@@ -140,13 +140,13 @@ export const matchingAPI = {
 
 // Interview API
 export const interviewAPI = {
-    list: (params) => api.get('http://localhost:8086/api/interviews', { params }),
+    list: (params) => api.get('/api/interviews', { params }),
     get: (id) => api.get(`http://localhost:8086/api/interviews/${id}`),
-    create: (data) => api.post('http://localhost:8086/api/interviews', data),
+    create: (data) => api.post('/api/interviews', data),
     update: (id, data) => api.put(`http://localhost:8086/api/interviews/${id}`, data),
     delete: (id) => api.delete(`http://localhost:8086/api/interviews/${id}`),
     addFeedback: (id, feedback) => api.post(`http://localhost:8086/api/interviews/${id}/feedback`, feedback),
-    upcoming: () => api.get('http://localhost:8086/api/interviews/upcoming/all')
+    upcoming: () => api.get('/api/interviews/upcoming/all')
 }
 
 // Offer API

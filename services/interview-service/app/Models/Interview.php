@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class Interview extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = [
         'candidate_id', 'vacancy_id', 'interviewer_id', 'interviewer_ids', 'stage',

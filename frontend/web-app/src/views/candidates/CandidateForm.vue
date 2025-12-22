@@ -330,7 +330,7 @@ const handleSubmit = async () => {
       // Laravel doesn't parse FormData properly in PUT requests
       // Use POST with _method=PUT (method spoofing)
       formData.append('_method', 'PUT')
-      await api.post(`http://localhost:8082/api/candidates/${route.params.id}`, formData, {
+      await api.post(`/api/candidates/${route.params.id}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
     } else {
