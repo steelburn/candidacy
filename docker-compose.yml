@@ -89,6 +89,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/auth-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -113,6 +114,7 @@ services:
       QUEUE_CONNECTION: redis
     volumes:
       - ./services/candidate-service:/var/www/html
+      - ./shared:/var/www/shared
       - candidate_uploads:/var/www/html/storage/uploads
     depends_on:
       - mysql
@@ -137,6 +139,7 @@ services:
       AI_SERVICE_URL: http://ai-service:8080
     volumes:
       - ./services/vacancy-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -160,6 +163,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/ai-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       #      - ollama
       - redis
@@ -186,6 +190,7 @@ services:
       VACANCY_SERVICE_URL: http://vacancy-service:8080
     volumes:
       - ./services/matching-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -208,6 +213,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/interview-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -230,6 +236,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/offer-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -252,6 +259,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/onboarding-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -274,6 +282,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/reporting-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -296,6 +305,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/admin-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
@@ -318,6 +328,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/notification-service:/var/www/html
+      - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
