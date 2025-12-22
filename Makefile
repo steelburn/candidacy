@@ -4,7 +4,9 @@
 .PHONY: logs-auth logs-candidate logs-vacancy logs-ai logs-matching logs-interview
 .PHONY: logs-offer logs-onboarding logs-reporting logs-admin logs-notification
 .PHONY: logs-gateway logs-frontend logs-applicant logs-grafana
-.PHONY: db-reset pull build
+.PHONY: db-reset pull build status
+.PHONY: test-backend test-api test-integration test-e2e test-service
+.PHONY: test-auth test-candidate test-vacancy
 
 help:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -43,10 +45,12 @@ help:
 	@echo "  make logs-grafana   - View Grafana logs"
 	@echo ""
 	@echo "🧪 Testing Commands:"
-	@echo "  make test           - Run all tests"
-	@echo "  make test-auth      - Test Auth Service"
-	@echo "  make test-candidate - Test Candidate Service"
-	@echo "  make test-vacancy   - Test Vacancy Service"
+	@echo "  make test           - Run all tests (backend, API, integration, e2e)"
+	@echo "  make test-backend   - Run backend service tests (PHPUnit)"
+	@echo "  make test-api       - Run API endpoint tests"
+	@echo "  make test-integration - Run integration tests"
+	@echo "  make test-e2e       - Run end-to-end workflow tests"
+	@echo "  make test-service S=<service> - Run tests for specific service"
 	@echo ""
 	@echo "🛠️  Utility Commands:"
 	@echo "  make shell S=<service> - Access service shell (e.g., make shell S=auth-service)"
@@ -142,9 +146,35 @@ db-reset:
 	fi
 
 test:
-	@echo "🧪 Running tests for all services..."
+	@echo "🧪 Running all tests..."
 	@./scripts/run-tests.sh
 
+test-backend:
+	@echo "🧪 Running backend service tests..."
+	@./scripts/test-backend-services.sh
+
+test-api:
+	@echo "🧪 Running API endpoint tests..."
+	@./scripts/test-api-endpoints.sh
+
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@./scripts/test-integration.sh
+
+test-e2e:
+	@echo "🧪 Running end-to-end tests..."
+	@./scripts/test-e2e.sh
+
+test-service:
+	@if [ -z "$(S)" ]; then \
+		echo "❌ Error: Please specify a service with S=<service-name>"; \
+		echo "Example: make test-service S=auth-service"; \
+		exit 1; \
+	fi
+	@echo "🧪 Testing $(S)..."
+	@docker compose exec $(S) php artisan test
+
+# Legacy individual service test commands (for backward compatibility)
 test-auth:
 	@echo "🧪 Testing Auth Service..."
 	docker compose exec auth-service php artisan test
