@@ -177,7 +177,7 @@ class MatchController extends Controller
                 $modelUsed = $data['model_used'] ?? 'default';
 
                 // TEMPORARY: Save without metadata due to persistent cache issue
-                // TODO: Re-enable metadata once Laravel schema cache is resolved
+
                 CandidateMatch::updateOrCreate(
                     [
                         'candidate_id' => $candidateId, 

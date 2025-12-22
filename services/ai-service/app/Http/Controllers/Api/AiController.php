@@ -29,7 +29,7 @@ class AiController extends Controller
 
         $prompt = $this->buildCvParsingPrompt($request->text);
         
-        Log::debug("Built CV parsing prompt", ['prompt_length' => strlen($prompt)]);
+
         
         $response = $this->aiProvider->generate($prompt);
 
@@ -70,7 +70,7 @@ class AiController extends Controller
 
         $prompt = $this->buildJdGenerationPrompt($request->all());
         
-        Log::debug("Built JD generation prompt", ['prompt_length' => strlen($prompt)]);
+
         
         $response = $this->aiProvider->generate($prompt);
 
@@ -109,7 +109,7 @@ class AiController extends Controller
             $jobRequirements
         );
         
-        Log::debug("Built matching prompt", ['prompt_length' => strlen($prompt)]);
+
         
         // Use the faster matching model for quicker results
         $response = $this->aiProvider->generateForMatching($prompt);
@@ -146,7 +146,7 @@ class AiController extends Controller
             $request->match_analysis
         );
         
-        Log::debug("Built interview questions prompt", ['prompt_length' => strlen($prompt)]);
+
         
         // Use questionnaire-specific model
         $response = $this->aiProvider->generateForQuestionnaire($prompt);
