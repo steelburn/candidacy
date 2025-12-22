@@ -58,16 +58,34 @@ class GatewayController extends Controller
 
         try {
             // Forward request
-            // We use the same method, headers, and body
-            // pendingBody() allows sending body properly for all methods? 
-            // Or use send(method, url, options)
-            
             $response = Http::timeout(300)->withHeaders($request->header())
                 ->withBody($request->getContent(), $request->header('Content-Type'))
                 ->send($request->method(), $targetUrl);
 
-            return response($response->body(), $response->status())
-                ->withHeaders($response->headers());
+            // Build response with proper CORS headers
+            $proxyResponse = response($response->body(), $response->status());
+            
+            // Add response headers from service
+            foreach ($response->headers() as $key => $values) {
+                // Skip headers that might conflict
+                if (!in_array(strtolower($key), ['transfer-encoding', 'content-encoding'])) {
+                    $proxyResponse->header($key, $values);
+                }
+            }
+            
+            // Ensure CORS headers are present (Laravel's HandleCors middleware should add these)
+            // But we explicitly add them here as backup
+            if ($request->header('Origin')) {
+                $allowedOrigins = ['http://localhost:3001', 'http://localhost:3002'];
+                $origin = $request->header('Origin');
+                
+                if (in_array($origin, $allowedOrigins)) {
+                    $proxyResponse->header('Access-Control-Allow-Origin', $origin);
+                    $proxyResponse->header('Access-Control-Allow-Credentials', 'true');
+                }
+            }
+
+            return $proxyResponse;
 
         } catch (\Exception $e) {
             Log::error("Gateway Error: " . $e->getMessage());
