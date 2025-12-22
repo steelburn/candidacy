@@ -21,7 +21,7 @@ class OfferController extends Controller
             $query->where('status', $request->status);
         }
 
-        $offers = $query->latest()->paginate(20);
+        $offers = $query->latest()->paginate(AppConstants::DEFAULT_PAGE_SIZE);
 
         return response()->json($offers);
     }

@@ -31,7 +31,7 @@ class InterviewController extends Controller
             // When fetching for calendar, we want all events, so increase pagination limit
             $interviews = $query->orderBy('scheduled_at')->paginate(1000);
         } else {
-            $interviews = $query->latest('scheduled_at')->paginate(20);
+            $interviews = $query->latest('scheduled_at')->paginate(AppConstants::DEFAULT_PAGE_SIZE);
         }
 
         return response()->json($interviews);

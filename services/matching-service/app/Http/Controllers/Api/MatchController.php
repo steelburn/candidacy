@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Shared\Http\Controllers\BaseApiController;
+use Shared\Constants\AppConstants;
 use App\Models\CandidateMatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -134,7 +135,7 @@ class MatchController extends Controller
             $sortOrder = 'desc';
         }
 
-        $matches = $query->orderBy($sortBy, $sortOrder)->paginate(20);
+        $matches = $query->orderBy($sortBy, $sortOrder)->paginate(AppConstants::DEFAULT_PAGE_SIZE);
 
         return response()->json($matches);
     }

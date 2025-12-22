@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use Shared\Http\Controllers\BaseApiController;
+use Shared\Constants\AppConstants;
 use App\Models\Vacancy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -31,7 +32,7 @@ class VacancyController extends BaseApiController
             });
         }
 
-        $vacancies = $query->latest()->paginate(20);
+        $vacancies = $query->latest()->paginate(AppConstants::DEFAULT_PAGE_SIZE);
 
         return response()->json($vacancies);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use Shared\Http\Controllers\BaseApiController;
+use Shared\Constants\AppConstants;
 use App\Models\Candidate;
 use App\Models\CvFile;
 use App\Services\CvExtractorService;
@@ -36,7 +37,7 @@ class CandidateController extends BaseApiController
             });
         }
 
-        $candidates = $query->latest()->paginate(20);
+        $candidates = $query->latest()->paginate(AppConstants::DEFAULT_PAGE_SIZE);
 
         return response()->json($candidates);
     }
