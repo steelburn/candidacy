@@ -455,7 +455,7 @@ PROFILE;
                 }
 
                 // Send to AI service for parsing
-                $aiResponse = Http::timeout(120)->post('http://ai-service:8080/api/parse-cv', [
+                $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post('http://ai-service:8080/api/parse-cv', [
                     'text' => $extractedText
                 ]);
 

@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Shared\Http\Controllers\BaseApiController;
+use Shared\Constants\AppConstants;
 use App\Models\Offer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class OfferController extends Controller
+class OfferController extends BaseApiController
 {
     public function index(Request $request)
     {

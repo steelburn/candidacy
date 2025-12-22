@@ -148,7 +148,7 @@ class MatchJob implements ShouldQueue
                 $jobReqs .= "Skills: " . $safeEncode($vacancy['required_skills'] ?? []) . "\n";
 
                 try {
-                    $aiResponse = Http::timeout(120)->post("{$aiServiceUrl}/api/match", [
+                    $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post("{$aiServiceUrl}/api/match", [
                         'candidate_profile' => $candidateProfile,
                         'job_requirements' => $jobReqs
                     ]);

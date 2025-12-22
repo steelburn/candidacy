@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Shared\Http\Controllers\BaseApiController;
+use Shared\Constants\AppConstants;
 use App\Models\Interview;
 use App\Models\InterviewFeedback;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class InterviewController extends Controller
+class InterviewController extends BaseApiController
 {
     public function index(Request $request)
     {

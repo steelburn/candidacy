@@ -8,6 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Shared\Constants\AppConstants;
 use App\Models\JobStatus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -74,7 +75,7 @@ class ParseCvJob implements ShouldQueue
             // Call AI Service
             Log::info("ParseCvJob: Calling AI Service...");
             // Use internal Docker network URL
-            $aiResponse = Http::timeout(300)->post('http://ai-service:8080/api/parse-cv', [
+            $aiResponse = Http::timeout(AppConstants::AI_SERVICE_TIMEOUT)->post('http://ai-service:8080/api/parse-cv', [
                 'text' => $extractedText
             ]);
 

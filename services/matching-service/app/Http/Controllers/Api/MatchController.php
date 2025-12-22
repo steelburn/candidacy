@@ -320,7 +320,7 @@ class MatchController extends Controller
             $jobRequirements = $this->buildJobRequirements($vacancy);
 
             try {
-                $response = Http::timeout(120)->post($this->aiServiceUrl . '/api/match', [
+                $response = Http::timeout(AppConstants::API_TIMEOUT)->post($this->aiServiceUrl . '/api/match', [
                     'candidate_profile' => $candidateProfile,
                     'job_requirements' => $jobRequirements,
                 ]);
