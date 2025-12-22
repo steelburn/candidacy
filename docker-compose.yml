@@ -1,0 +1,414 @@
+# Common environment variables for all Laravel services
+# Set CANDIDACY_ENV to "production" for production deployments
+# Set APP_DEBUG to "false" for production
+x-common-env: &common-env
+  APP_ENV: ${CANDIDACY_ENV:-development}
+  APP_DEBUG: ${APP_DEBUG:-true}
+  LOG_LEVEL: ${LOG_LEVEL:-debug}
+  LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+
+x-laravel-env: &laravel-env
+  <<: *common-env
+  DB_CONNECTION: mysql
+  DB_PORT: 3306
+  DB_USERNAME: root
+  DB_PASSWORD: root
+  REDIS_PORT: 6379
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: candidacy-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: candidacy
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infrastructure/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - candidacy-network
+
+  # Redis for caching and events
+  redis:
+    image: redis:7-alpine
+    container_name: candidacy-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - candidacy-network
+
+  # Ollama (optional - for local AI)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: candidacy-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - candidacy-network
+    # Uncomment to pull a model on startup
+    # command: ["ollama", "pull", "mistral"]
+
+    # API Gateway
+  api-gateway:
+    build:
+      context: ./gateway/api-gateway
+      dockerfile: Dockerfile
+    container_name: candidacy-gateway
+    user: "1000:1000"
+    ports:
+      - "8080:8080"
+    environment:
+      <<: *laravel-env
+      APP_DEBUG: ${APP_DEBUG:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    volumes:
+      - ./gateway/api-gateway:/var/www/html
+    depends_on:
+      - redis
+    networks:
+      - candidacy-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: candidacy-auth
+    user: "1000:1000"
+    ports:
+      - "8081:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_auth
+      REDIS_HOST: redis
+    volumes:
+      - ./services/auth-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Candidate Service
+  candidate-service:
+    build:
+      context: ./services/candidate-service
+      dockerfile: Dockerfile
+    container_name: candidacy-candidate
+    user: "1000:1000"
+    ports:
+      - "8082:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_candidate
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8080
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./services/candidate-service:/var/www/html
+      - candidate_uploads:/var/www/html/storage/uploads
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Vacancy Service
+  vacancy-service:
+    build:
+      context: ./services/vacancy-service
+      dockerfile: Dockerfile
+    container_name: candidacy-vacancy
+    user: "1000:1000"
+    ports:
+      - "8083:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_vacancy
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8080
+    volumes:
+      - ./services/vacancy-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: candidacy-ai
+    user: "1000:1000"
+    ports:
+      - "8084:8080"
+    environment:
+      <<: *laravel-env
+      LOG_CHANNEL: stderr
+      # OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: http://192.168.88.120:11434
+      REDIS_HOST: redis
+    volumes:
+      - ./services/ai-service:/var/www/html
+    depends_on:
+      #      - ollama
+      - redis
+    networks:
+      - candidacy-network
+
+  # Matching Service
+  matching-service:
+    build:
+      context: ./services/matching-service
+      dockerfile: Dockerfile
+    container_name: candidacy-matching
+    user: "1000:1000"
+    ports:
+      - "8085:8080"
+    environment:
+      <<: *laravel-env
+      LOG_CHANNEL: stderr
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_matching
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8080
+      CANDIDATE_SERVICE_URL: http://candidate-service:8080
+      VACANCY_SERVICE_URL: http://vacancy-service:8080
+    volumes:
+      - ./services/matching-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Interview Service
+  interview-service:
+    build:
+      context: ./services/interview-service
+      dockerfile: Dockerfile
+    container_name: candidacy-interview
+    user: "1000:1000"
+    ports:
+      - "8086:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_interview
+      REDIS_HOST: redis
+    volumes:
+      - ./services/interview-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Offer Service
+  offer-service:
+    build:
+      context: ./services/offer-service
+      dockerfile: Dockerfile
+    container_name: candidacy-offer
+    user: "1000:1000"
+    ports:
+      - "8087:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_offer
+      REDIS_HOST: redis
+    volumes:
+      - ./services/offer-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Onboarding Service
+  onboarding-service:
+    build:
+      context: ./services/onboarding-service
+      dockerfile: Dockerfile
+    container_name: candidacy-onboarding
+    user: "1000:1000"
+    ports:
+      - "8088:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_onboarding
+      REDIS_HOST: redis
+    volumes:
+      - ./services/onboarding-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Reporting Service
+  reporting-service:
+    build:
+      context: ./services/reporting-service
+      dockerfile: Dockerfile
+    container_name: candidacy-reporting
+    user: "1000:1000"
+    ports:
+      - "8089:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_reporting
+      REDIS_HOST: redis
+    volumes:
+      - ./services/reporting-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Admin Service
+  admin-service:
+    build:
+      context: ./services/admin-service
+      dockerfile: Dockerfile
+    container_name: candidacy-admin
+    user: "1000:1000"
+    ports:
+      - "8090:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_admin
+      REDIS_HOST: redis
+    volumes:
+      - ./services/admin-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: candidacy-notification
+    user: "1000:1000"
+    ports:
+      - "8091:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_notification
+      REDIS_HOST: redis
+    volumes:
+      - ./services/notification-service:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend/web-app
+      dockerfile: Dockerfile.dev
+    container_name: candidacy-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - VITE_API_GATEWAY_URL=http://localhost:8080
+    volumes:
+      - ./frontend/web-app:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+    networks:
+      - candidacy-network
+
+  # Applicant Frontend
+  applicant-frontend:
+    build:
+      context: ./frontend/applicant-web-app
+      dockerfile: Dockerfile
+    container_name: candidacy-applicant-frontend
+    ports:
+      - "5173:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080/api
+    volumes:
+      - ./frontend/applicant-web-app:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+    networks:
+      - candidacy-network
+
+  # Centralized Logging Stack
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: candidacy-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./infrastructure/logging/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+    networks:
+      - candidacy-network
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: candidacy-promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./infrastructure/logging/promtail-config.yml:/etc/promtail/config.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - candidacy-network
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: candidacy-grafana
+    ports:
+      - "3050:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+    networks:
+      - candidacy-network
+
+volumes:
+  mysql_data:
+  ollama_data:
+  candidate_uploads:
+  loki_data:
+  grafana_data:
+
+
+networks:
+  candidacy-network:
+    driver: bridge

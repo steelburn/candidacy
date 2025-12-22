@@ -1,0 +1,45 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+    pipeline_stages:
+      # Try to parse as JSON first
+      - json:
+          expressions:
+            level: level
+            message: message
+            timestamp: timestamp
+            service_name: service
+            context: context
+          source: log
+      # If JSON parsing succeeds, use the extracted service name
+      - labels:
+          level:
+      # Use timestamp from JSON if available
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          action_on_failure: skip
+      # Multiline support for stack traces
+      - multiline:
+          firstline: '^\{|^\[|\d{4}-\d{2}-\d{2}'
+          max_wait_time: 3s

@@ -1,0 +1,100 @@
+candidacy-ai  | 
+candidacy-ai  |    WARN  You are a recruitment expert. Analyze how well the candidate matches the job requirements.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  Respond EXACTLY in the specified format.<|eot_id..."} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response received {"status":200,"successful":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response parsed {"response_length":31,"has_content":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match calculation completed {"match_score":0,"analysis_length":31} .  
+candidacy-ai  | 
+candidacy-ai  |   2025-12-17 19:35:49 ................................................... ~ 3s
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: AI provider from settings: ollama .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match request received {"candidate_profile_length":1165,"job_requirements_length":4206} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.DEBUG: Built matching prompt {"prompt_length":5942} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: LLM API call initiated {"provider":"ollama","model":"llama3.2:3b","prompt_length":5942,"operation":"matching"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Calling Ollama API {"url":"http://192.168.88.120:11434/api/generate","model":"llama3.2:3b","prompt_length":5942,"prompt_preview":"<|begin_of_text|><|start_header_id|>system<|end_header_id|>.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  You are a recruitment expert. Analyze how well the candidate matches the job requirements.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  Respond EXACTLY in the specified format.<|eot_id..."} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response received {"status":200,"successful":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response parsed {"response_length":31,"has_content":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match calculation completed {"match_score":0,"analysis_length":31} .  
+candidacy-ai  | 
+candidacy-ai  |   2025-12-17 19:35:52 ................................................... ~ 2s
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: AI provider from settings: ollama .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match request received {"candidate_profile_length":1165,"job_requirements_length":4435} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.DEBUG: Built matching prompt {"prompt_length":6171} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: LLM API call initiated {"provider":"ollama","model":"llama3.2:3b","prompt_length":6171,"operation":"matching"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Calling Ollama API {"url":"http://192.168.88.120:11434/api/generate","model":"llama3.2:3b","prompt_length":6171,"prompt_preview":"<|begin_of_text|><|start_header_id|>system<|end_header_id|>.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  You are a recruitment expert. Analyze how well the candidate matches the job requirements.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  Respond EXACTLY in the specified format.<|eot_id..."} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response received {"status":200,"successful":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response parsed {"response_length":31,"has_content":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match calculation completed {"match_score":0,"analysis_length":31} .  
+candidacy-ai  | 
+candidacy-ai  |   2025-12-17 19:35:54 ................................................... ~ 2s
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: AI provider from settings: ollama .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match request received {"candidate_profile_length":1165,"job_requirements_length":4052} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.DEBUG: Built matching prompt {"prompt_length":5788} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: LLM API call initiated {"provider":"ollama","model":"llama3.2:3b","prompt_length":5788,"operation":"matching"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Calling Ollama API {"url":"http://192.168.88.120:11434/api/generate","model":"llama3.2:3b","prompt_length":5788,"prompt_preview":"<|begin_of_text|><|start_header_id|>system<|end_header_id|>.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  You are a recruitment expert. Analyze how well the candidate matches the job requirements.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  Respond EXACTLY in the specified format.<|eot_id..."} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response received {"status":200,"successful":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response parsed {"response_length":31,"has_content":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match calculation completed {"match_score":0,"analysis_length":31} .  
+candidacy-ai  | 
+candidacy-ai  |   2025-12-17 19:35:56 ................................................... ~ 2s
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: AI provider from settings: ollama .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match request received {"candidate_profile_length":1165,"job_requirements_length":3883} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.DEBUG: Built matching prompt {"prompt_length":5619} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: LLM API call initiated {"provider":"ollama","model":"llama3.2:3b","prompt_length":5619,"operation":"matching"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Calling Ollama API {"url":"http://192.168.88.120:11434/api/generate","model":"llama3.2:3b","prompt_length":5619,"prompt_preview":"<|begin_of_text|><|start_header_id|>system<|end_header_id|>.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  You are a recruitment expert. Analyze how well the candidate matches the job requirements.  
+candidacy-ai  | 
+candidacy-ai  |    WARN  Respond EXACTLY in the specified format.<|eot_id..."} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response received {"status":200,"successful":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Ollama response parsed {"response_length":31,"has_content":true,"model":"llama3.2:3b"} .  
+candidacy-ai  | 
+candidacy-ai  |    WARN  development.INFO: Match calculation completed {"match_score":0,"analysis_length":31} .  
+candidacy-ai  | 
+candidacy-ai  |   2025-12-17 19:35:58 ................................................... ~ 2s
