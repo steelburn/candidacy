@@ -41,9 +41,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { authAPI } from '@/services/api'
 
 const router = useRouter()
+const authStore = useAuthStore()
+
 const credentials = ref({
   email: '',
   password: ''
@@ -57,15 +60,9 @@ async function handleLogin() {
   
   try {
     console.log('Attempting login with:', credentials.value.email)
-    const response = await authAPI.login(credentials.value)
-    console.log('Login response:', response.data)
-    
-    if (response.data.access_token) {
-      localStorage.setItem('token', response.data.access_token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      console.log('Login successful, redirecting...')
-      router.push('/dashboard')
-    }
+    await authStore.login(credentials.value)
+    console.log('Login successful via store, redirecting...')
+    router.push('/dashboard')
   } catch (err) {
     console.error('Login error:', err)
     error.value = err.response?.data?.message || err.response?.data?.error || 'Login failed. Please try again.'
