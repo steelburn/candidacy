@@ -13,15 +13,15 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Delete existing users
-        User::truncate();
+        // Delete existing users (avoid truncate due to foreign key constraints)
+        User::query()->delete();
 
         // Create admin user
         User::create([
             'name' => 'Admin User',
             'email' => 'admin@test.com',
             'password' => Hash::make('password'),
-            'role' => 'admin',
+            'is_active' => true,
         ]);
 
         $this->command->info('Admin user created successfully!');
