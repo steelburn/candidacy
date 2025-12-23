@@ -41,7 +41,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/services/api'
+import { authAPI } from '@/services/api'
 
 const router = useRouter()
 const credentials = ref({
@@ -57,7 +57,7 @@ async function handleLogin() {
   
   try {
     console.log('Attempting login with:', credentials.value.email)
-    const response = await api.auth.login(credentials.value)
+    const response = await authAPI.login(credentials.value)
     console.log('Login response:', response.data)
     
     if (response.data.access_token) {
