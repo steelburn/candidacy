@@ -1,38 +1,39 @@
 <template>
   <div class="login-container">
-    <div class="login-card card">
-      <h1 class="text-2xl font-bold mb-lg text-center">Login</h1>
+    <div class="login-card">
+      <h1>Login</h1>
       
-      <form @submit.prevent="handleSubmit(onSubmit)" class="login-form">
-        <BaseInput
-          v-model="formData.email"
-          label="Email"
-          type="email"
-          placeholder="Enter your email"
-          :error="errors.email"
-          required
-        />
+      <form @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label>Email</label>
+          <input 
+            v-model="credentials.email" 
+            type="email" 
+            required 
+            placeholder="admin@test.com"
+          />
+        </div>
 
-        <BaseInput
-          v-model="formData.password"
-          label="Password"
-          type="password"
-          placeholder="Enter your password"
-          :error="errors.password"
-          required
-        />
+        <div class="form-group">
+          <label>Password</label>
+          <input 
+            v-model="credentials.password" 
+            type="password" 
+            required 
+            placeholder="password"
+          />
+        </div>
 
-        <BaseButton
-          type="submit"
-          variant="primary"
-          :loading="isSubmitting"
-          class="w-full"
-        >
-          Login
-        </BaseButton>
+        <div v-if="error" class="error-message">
+          {{ error }}
+        </div>
+
+        <button type="submit" :disabled="loading" class="btn-primary">
+          {{ loading ? 'Logging in...' : 'Login' }}
+        </button>
       </form>
 
-      <p v-if="loginError" class="form-error mt-md text-center">{{ loginError }}</p>
+      <p class="hint">Default: admin@test.com / password</p>
     </div>
   </div>
 </template>
@@ -40,40 +41,36 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useForm } from '@/composables/useForm'
-import { validators } from '@/utils/validators'
-import { useNotification } from '@/composables/useNotification'
-import BaseInput from '@/components/base/BaseInput.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
 import api from '@/services/api'
 
 const router = useRouter()
-const { success, error: showError } = useNotification()
-const loginError = ref('')
+const credentials = ref({
+  email: '',
+  password: ''
+})
+const loading = ref(false)
+const error = ref('')
 
-const { formData, errors, isSubmitting, handleSubmit } = useForm(
-  { email: '', password: '' },
-  {
-    email: [validators.required, validators.email],
-    password: [validators.required, validators.minLength(6)]
-  }
-)
-
-async function onSubmit(data) {
-  loginError.value = ''
+async function handleLogin() {
+  loading.value = true
+  error.value = ''
   
   try {
-    const response = await api.auth.login(data)
+    console.log('Attempting login with:', credentials.value.email)
+    const response = await api.auth.login(credentials.value)
+    console.log('Login response:', response.data)
     
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
-      success('Login successful!')
+      console.log('Login successful, redirecting...')
       router.push('/dashboard')
     }
   } catch (err) {
-    loginError.value = err.response?.data?.message || 'Login failed. Please try again.'
-    showError(loginError.value)
+    console.error('Login error:', err)
+    error.value = err.response?.data?.message || err.response?.data?.error || 'Login failed. Please try again.'
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -84,23 +81,86 @@ async function onSubmit(data) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
 }
 
 .login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
-  padding: var(--spacing-2xl);
 }
 
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
 }
 
-.w-full {
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+input {
   width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #666;
 }
 </style>
