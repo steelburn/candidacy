@@ -23,6 +23,17 @@ echo "🔨 Generating SQL from DBML..."
 npm run dbml:sql
 echo ""
 
+# Database credentials from .env
+if [ -f .env ]; then
+    set -a
+    source <(grep -v '^#' .env | grep -v '^$' | sed 's/#.*$//')
+    set +a
+fi
+
+DB_USER="${DB_USERNAME:-root}"
+DB_PASSWORD="${DB_PASSWORD:-root}"
+DB_ROOT_PASSWORD="${DB_PASSWORD:-root}"
+
 # Wait for MySQL to be ready
 echo "⏳ Waiting for MySQL to be ready..."
 max_attempts=60
@@ -39,15 +50,6 @@ until docker compose exec -T mysql mysqladmin -u root -p${DB_ROOT_PASSWORD} ping
 done
 echo "✅ MySQL is ready"
 echo ""
-
-# Database credentials from .env
-if [ -f .env ]; then
-    export $(grep -v '^#' .env | xargs)
-fi
-
-DB_USER="${DB_USERNAME:-root}"
-DB_PASSWORD="${DB_PASSWORD:-root}"
-DB_ROOT_PASSWORD="${DB_PASSWORD:-root}"
 
 # Service to database mapping
 declare -A services=(
@@ -71,8 +73,13 @@ for service in "${!services[@]}"; do
     
     echo "  📁 $database"
     
+    # Drop existing database for clean initialization
+    echo "     Dropping existing database (if exists)..."
+    docker compose exec -T mysql mysql -u root -p${DB_ROOT_PASSWORD} -e "DROP DATABASE IF EXISTS \`${database}\`;" 2>/dev/null
+    
     # Create database
-    docker compose exec -T mysql mysql -u root -p${DB_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS \`${database}\`;" 2>/dev/null
+    echo "     Creating database..."
+    docker compose exec -T mysql mysql -u root -p${DB_ROOT_PASSWORD} -e "CREATE DATABASE \`${database}\`;" 2>/dev/null
     
     # Grant permissions
     docker compose exec -T mysql mysql -u root -p${DB_ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON \`${database}\`.* TO '${DB_USER}'@'%';" 2>/dev/null

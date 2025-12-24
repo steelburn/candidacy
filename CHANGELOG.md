@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2025-12-24
+
+#### Build System
+- **Database Configuration Syntax Errors** - Fixed duplicate Redis configuration blocks
+  - Removed duplicate 'default' and 'cache' Redis configurations from lines 151-161
+  - Affected 9 services: auth, vacancy, matching, interview, offer, onboarding, reporting, admin, notification
+  - Each service's `config/database.php` reduced from 167 to 152 lines
+  - Build now completes successfully without syntax errors
+
+#### Database Initialization
+- **init-databases-from-dbml.sh Script Fixes** - Fixed 3 critical issues:
+  1. **Unsafe .env parsing** - Replaced `export $(grep...)` with safer `set -a; source; set +a` pattern
+     - Now properly handles comment lines and inline comments
+     - Prevents "export: `#': not a valid identifier" errors
+  2. **Variable ordering** - Moved `.env` loading before MySQL readiness check
+     - `DB_ROOT_PASSWORD` now defined before use
+     - Fixes MySQL connection failures during initialization
+  3. **Table already exists errors** - Added `DROP DATABASE IF EXISTS` before `CREATE DATABASE`
+     - Ensures clean initialization on repeated runs
+     - Prevents "ERROR 1050 (42S01): Table already exists" errors
+  - All 9 databases now initialize successfully
+
 ### Added - 2025-12-23
 
 #### Testing Infrastructure
