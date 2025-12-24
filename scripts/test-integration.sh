@@ -58,31 +58,31 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # Test MySQL connectivity from services
 run_test "Auth service can connect to MySQL" \
-    "docker compose exec -T auth-service php artisan db:show | grep -q 'mysql'"
+    "docker compose exec -T auth-service php artisan tinker --execute=\"DB::connection()->getPdo(); echo 'connected'\" | grep -q 'connected'"
 
 run_test "Candidate service can connect to MySQL" \
-    "docker compose exec -T candidate-service php artisan db:show | grep -q 'mysql'"
+    "docker compose exec -T candidate-service php artisan tinker --execute=\"DB::connection()->getPdo(); echo 'connected'\" | grep -q 'connected'"
 
 run_test "Vacancy service can connect to MySQL" \
-    "docker compose exec -T vacancy-service php artisan db:show | grep -q 'mysql'"
+    "docker compose exec -T vacancy-service php artisan tinker --execute=\"DB::connection()->getPdo(); echo 'connected'\" | grep -q 'connected'"
 
 run_test "Admin service can connect to MySQL" \
-    "docker compose exec -T admin-service php artisan db:show | grep -q 'mysql'"
+    "docker compose exec -T admin-service php artisan tinker --execute=\"DB::connection()->getPdo(); echo 'connected'\" | grep -q 'connected'"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Database Migration Tests"
+echo "Database Schema Tests (Table Existence)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Check if migrations have been run
-run_test "Auth service migrations are up to date" \
-    "docker compose exec -T auth-service php artisan migrate:status | grep -q 'Ran'"
+# Check if core tables exist
+run_test "Auth service: users table exists" \
+    "docker compose exec -T auth-service php artisan tinker --execute=\"echo (Schema::hasTable('users') ? 'exists' : 'missing')\" | grep -q 'exists'"
 
-run_test "Candidate service migrations are up to date" \
-    "docker compose exec -T candidate-service php artisan migrate:status | grep -q 'Ran'"
+run_test "Candidate service: candidates table exists" \
+    "docker compose exec -T candidate-service php artisan tinker --execute=\"echo (Schema::hasTable('candidates') ? 'exists' : 'missing')\" | grep -q 'exists'"
 
-run_test "Vacancy service migrations are up to date" \
-    "docker compose exec -T vacancy-service php artisan migrate:status | grep -q 'Ran'"
+run_test "Vacancy service: vacancies table exists" \
+    "docker compose exec -T vacancy-service php artisan tinker --execute=\"echo (Schema::hasTable('vacancies') ? 'exists' : 'missing')\" | grep -q 'exists'"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -167,7 +167,8 @@ else
     echo "💡 Tips for fixing integration issues:"
     echo "  - Ensure all services are running: docker compose ps"
     echo "  - Check service logs: make logs-<service>"
-    echo "  - Verify migrations: make migrate"
+    echo "  - Verify DBML sync: make dbml-check"
+    echo "  - Initialize databases: make dbml-init"
     echo "  - Restart services: make restart"
     exit 1
 fi

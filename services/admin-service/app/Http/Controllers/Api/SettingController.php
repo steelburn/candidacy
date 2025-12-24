@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Shared\Http\Controllers\BaseApiController;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
-class SettingController extends Controller
+class SettingController extends BaseApiController
 {
     /**
      * Get all settings
@@ -159,21 +159,20 @@ class SettingController extends Controller
         foreach ($services as $service => $url) {
             try {
                 $start = microtime(true);
-                $response = @file_get_contents($url, false, stream_context_create([
-                    'http' => ['timeout' => 2]
-                ]));
+                $response = \Illuminate\Support\Facades\Http::timeout(2)->get($url);
                 $time = round((microtime(true) - $start) * 1000);
                 
                 $health[] = [
                     'service' => $service,
-                    'status' => $response !== false ? 'online' : 'offline',
-                    'response_time' => $response !== false ? $time : null
+                    'status' => $response->successful() ? 'online' : 'offline',
+                    'response_time' => $response->successful() ? $time . 'ms' : null
                 ];
             } catch (\Exception $e) {
                 $health[] = [
                     'service' => $service,
                     'status' => 'offline',
-                    'response_time' => null
+                    'response_time' => null,
+                    'error' => $e->getMessage()
                 ];
             }
         }

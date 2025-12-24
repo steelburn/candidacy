@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ApiDocController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// API Documentation Routes
+Route::get('/api/documentation', [ApiDocController::class, 'renderDocs'])->name('api.docs');
+Route::get('/api/documentation/spec', [ApiDocController::class, 'getOpenApiSpec'])->name('api.docs.spec');

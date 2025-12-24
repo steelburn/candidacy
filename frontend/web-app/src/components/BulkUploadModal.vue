@@ -34,18 +34,23 @@
         <!-- Selected Files -->
         <div v-if="files.length > 0 && !uploading && results.length === 0" class="file-list">
           <h3>Selected Files ({{ files.length }})</h3>
-          <div class="file-list-container">
-            <ul>
-              <li v-for="(file, index) in files" :key="index">
-                <span class="file-name">{{ file.name }}</span>
-                <span class="file-size">{{ formatSize(file.size) }}</span>
-                <button class="remove-btn" @click="removeFile(index)">&times;</button>
-              </li>
-            </ul>
+          <div class="file-list-scroll-wrapper">
+            <div class="file-list-container">
+              <ul>
+                <li v-for="(file, index) in files" :key="index">
+                  <span class="file-name">{{ file.name }}</span>
+                  <span class="file-size">{{ formatSize(file.size) }}</span>
+                  <button class="remove-btn" @click="removeFile(index)">&times;</button>
+                </li>
+              </ul>
+            </div>
           </div>
-          <button class="btn-primary" @click="startUpload" :disabled="files.length === 0">
-            Upload {{ files.length }} file(s)
-          </button>
+          <!-- Upload button fixed at bottom -->
+          <div class="upload-btn-container">
+            <button class="btn-primary" @click="startUpload" :disabled="files.length === 0">
+              Upload {{ files.length }} file(s)
+            </button>
+          </div>
         </div>
 
         <!-- Upload Progress -->
@@ -243,17 +248,29 @@ const startUpload = async () => {
 
 .file-list {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  /* No max-height here - let it grow naturally */
 }
 
 .file-list h3 {
   margin: 0 0 1rem;
   color: #333;
+  flex-shrink: 0;
 }
 
-.file-list-container {
-  max-height: 300px;
+.file-list-scroll-wrapper {
+  flex: 1 1 auto; /* Can grow and shrink */
   overflow-y: auto;
-  margin-bottom: 1.5rem;
+  max-height: 400px; /* Only scroll if file list exceeds this */
+  min-height: 0;
+  margin-bottom: 1rem;
+}
+
+.upload-btn-container {
+  flex-shrink: 0; /* Keep button always visible */
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
 }
 
 .file-list ul {

@@ -361,13 +361,13 @@ const loadSettings = async () => {
   loading.value = true
   try {
     const response = await adminAPI.getSettings()
-    console.log('Settings API response:', response.data)
+
     
     // The API returns {settings: {...}}, so access response.data.settings
     const settingsData = response.data.settings || response.data
     Object.assign(settings.value, settingsData)
     
-    console.log('Settings after merge:', settings.value)
+
   } catch (err) {
     console.error('Failed to load settings:', err)
   } finally {

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\JobStatus;
 use App\Jobs\MatchJob;
 
-class MatchController extends Controller
+class MatchController extends BaseApiController
 {
     protected $candidateServiceUrl;
     protected $vacancyServiceUrl;

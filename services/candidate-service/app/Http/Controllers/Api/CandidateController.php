@@ -178,12 +178,34 @@ class CandidateController extends BaseApiController
         $parsedData = null;
 
         try {
+            Log::info('CV upload: Starting text extraction', [
+                'candidate_id' => $candidate->id,
+                'file_path' => $fullPath
+            ]);
+            
             $extractor = new CvExtractorService();
             $extractedText = $extractor->extractText($fullPath);
+            
+            Log::info('CV upload: Text extracted', [
+                'candidate_id' => $candidate->id,
+                'text_length' => strlen($extractedText ?? '')
+            ]);
 
             if ($extractedText) {
+                Log::info('CV upload: Calling AI service for parsing', [
+                    'candidate_id' => $candidate->id,
+                    'text_length' => strlen($extractedText),
+                    'ai_service_url' => 'http://ai-service:8080/api/ai/parse-cv'
+                ]);
+                
                 $aiResponse = Http::timeout(60)->post('http://ai-service:8080/api/ai/parse-cv', [
                     'text' => $extractedText
+                ]);
+                
+                Log::info('CV upload: AI service response received', [
+                    'candidate_id' => $candidate->id,
+                    'status' => $aiResponse->status(),
+                    'successful' => $aiResponse->successful()
                 ]);
                 
                 if ($aiResponse->successful()) {
@@ -192,6 +214,14 @@ class CandidateController extends BaseApiController
                     // Update candidate with parsed data
                     // The AI response has nested structure: parsed_data.parsed_data
                     $aiData = $parsedData['parsed_data'] ?? $parsedData;
+                    
+                    Log::info('CV upload: Parsed data extracted', [
+                        'candidate_id' => $candidate->id,
+                        'name' => $aiData['name'] ?? 'Unknown',
+                        'email' => $aiData['email'] ?? 'Not found',
+                        'skills_count' => count($aiData['skills'] ?? []),
+                        'experience_count' => count($aiData['experience'] ?? [])
+                    ]);
                     
                     $updateData = [];
                     if (!empty($aiData['skills'])) {
@@ -375,30 +405,122 @@ PROFILE;
     {
         $validator = Validator::make($request->all(), [
             'file' => 'required|file|mimes:pdf,doc,docx|max:10240',
+            'candidate_id' => 'nullable|exists:candidates,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $file = $request->file('file');
-        
-        // Store permanently for the job (in temp folder though)
-        $path = $file->store('temp');
-        
-        // Create Job Status
-        $jobStatus = \App\Models\JobStatus::create([
-            'type' => 'parse_cv',
-            'status' => 'pending'
-        ]);
+        try {
+            $file = $request->file('file');
+            $originalName = $file->getClientOriginalName();
+            
+            // Store file permanently for async processing
+            $path = $file->store('cvs');
+            $fullPath = storage_path('app/' . $path);
+            
+            Log::info('CV parse: Starting document parsing', [
+                'file' => $originalName,
+                'path' => $fullPath
+            ]);
+            
+            // Use document parser service to extract text
+            $parser = new \App\Services\DocumentParserClient();
+            $result = $parser->parseDocument($fullPath);
+            $extractedText = $result['text'];
+            
+            Log::info('CV parse: Text extracted via document-parser-service', [
+                'file' => $originalName,
+                'text_length' => strlen($extractedText ?? ''),
+                'page_count' => $result['page_count'] ?? 'unknown'
+            ]);
 
-        // Dispatch Job
-        \App\Jobs\ParseCvJob::dispatch($jobStatus->id, $path);
+            if (!$extractedText) {
+                Storage::delete($path);
+                return response()->json([
+                    'error' => 'Could not extract text from file'
+                ], 422);
+            }
+
+            // Create CV parsing job
+            $parsingJob = \App\Models\CvParsingJob::create([
+                'candidate_id' => $request->input('candidate_id'),
+                'file_path' => $path,
+                'extracted_text' => $extractedText,
+                'status' => 'pending',
+            ]);
+
+            // Dispatch async AI parsing job
+            \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id);
+
+            Log::info('CV parse: Job created and dispatched', [
+                'job_id' => $parsingJob->id,
+                'file' => $originalName
+            ]);
+            
+            return response()->json([
+                'message' => 'CV uploaded successfully. Processing in background.',
+                'job_id' => $parsingJob->id,
+                'status' => 'pending'
+            ], 202);
+            
+        } catch (\Exception $e) {
+            Log::error('CV parse: Exception occurred', [
+                'file' => $originalName ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'CV parsing failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCvParsingStatus($id)
+    {
+        $parsingJob = \App\Models\CvParsingJob::find($id);
+        
+        if (!$parsingJob) {
+            return response()->json(['error' => 'Parsing job not found'], 404);
+        }
 
         return response()->json([
-            'message' => 'File uploaded and processing started',
-            'job_id' => $jobStatus->id,
-            'status' => 'pending'
+            'job_id' => $parsingJob->id,
+            'status' => $parsingJob->status,
+            'created_at' => $parsingJob->created_at,
+            'updated_at' => $parsingJob->updated_at,
+        ]);
+    }
+
+    public function getCvParsingResult($id)
+    {
+        $parsingJob = \App\Models\CvParsingJob::find($id);
+        
+        if (!$parsingJob) {
+            return response()->json(['error' => 'Parsing job not found'], 404);
+        }
+
+        if ($parsingJob->status === 'pending' || $parsingJob->status === 'processing') {
+            return response()->json([
+                'error' => 'Job is still processing',
+                'status' => $parsingJob->status
+            ], 202);
+        }
+
+        if ($parsingJob->status === 'failed') {
+            return response()->json([
+                'error' => 'Parsing failed',
+                'message' => $parsingJob->error_message
+            ], 500);
+        }
+
+        return response()->json([
+            'job_id' => $parsingJob->id,
+            'status' => $parsingJob->status,
+            'parsed_data' => $parsingJob->parsed_data,
         ]);
     }
 
@@ -439,9 +561,10 @@ PROFILE;
                 $tempPath = $file->store('temp');
                 $fullPath = storage_path('app/' . $tempPath);
 
-                // Extract text from the file
-                $extractor = new CvExtractorService();
-                $extractedText = $extractor->extractText($fullPath);
+                // Use document parser service
+                $parser = new \App\Services\DocumentParserClient();
+                $result = $parser->parseDocument($fullPath);
+                $extractedText = $result['text'];
 
                 if (empty($extractedText)) {
                     Storage::delete($tempPath);
@@ -455,8 +578,20 @@ PROFILE;
                 }
 
                 // Send to AI service for parsing
+                Log::info('Bulk upload: Calling AI service for CV parsing', [
+                    'file' => $originalName,
+                    'text_length' => strlen($extractedText),
+                    'ai_service_url' => 'http://ai-service:8080/api/parse-cv'
+                ]);
+                
                 $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post('http://ai-service:8080/api/parse-cv', [
                     'text' => $extractedText
+                ]);
+                
+                Log::info('Bulk upload: AI service response received', [
+                    'file' => $originalName,
+                    'status' => $aiResponse->status(),
+                    'successful' => $aiResponse->successful()
                 ]);
 
                 if (!$aiResponse->successful()) {
@@ -476,6 +611,14 @@ PROFILE;
 
                 $parsedData = $aiResponse->json();
                 $aiData = $parsedData['parsed_data'] ?? $parsedData;
+                
+                Log::info('Bulk upload: CV data parsed', [
+                    'file' => $originalName,
+                    'name' => $aiData['name'] ?? 'Unknown',
+                    'email' => $aiData['email'] ?? 'Not found',
+                    'skills_count' => count($aiData['skills'] ?? []),
+                    'experience_count' => count($aiData['experience'] ?? [])
+                ]);
 
                 // Extract email from parsed data
                 $email = $aiData['email'] ?? null;
@@ -483,6 +626,13 @@ PROFILE;
 
                 $name = $aiData['name'] ?? pathinfo($originalName, PATHINFO_FILENAME);
                 if (is_array($name)) $name = $name[0] ?? pathinfo($originalName, PATHINFO_FILENAME);
+
+                // Sanitize other string fields (moved here to be available for restore section)
+                $phone = $aiData['phone'] ?? null;
+                if (is_array($phone)) $phone = $phone[0] ?? null;
+
+                $summary = $aiData['summary'] ?? null;
+                if (is_array($summary)) $summary = implode("\n", $summary);
 
                 if (empty($email)) {
                     // Generate a placeholder email if not found
@@ -551,13 +701,6 @@ PROFILE;
                         continue;
                     }
                 }
-
-                // Sanitize other string fields
-                $phone = $aiData['phone'] ?? null;
-                if (is_array($phone)) $phone = $phone[0] ?? null;
-
-                $summary = $aiData['summary'] ?? null;
-                if (is_array($summary)) $summary = implode("\n", $summary);
 
                 // Create candidate data
                 // Note: skills, experience, education are cast to array in Candidate model, so we pass arrays directly.

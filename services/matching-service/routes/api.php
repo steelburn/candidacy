@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\MatchController;
-
 Route::get('/candidates/{id}/matches', [MatchController::class, 'matchCandidateToVacancies']);
 Route::get('/vacancies/{id}/matches', [MatchController::class, 'matchVacancyToCandidates']);
 Route::post('/matches/vacancy/{vacancyId}', [MatchController::class, 'matchVacancyToCandidates']);
@@ -14,8 +14,5 @@ Route::post('/matches/{candidateId}/{vacancyId}/restore', [MatchController::clas
 Route::get('/matches', [MatchController::class, 'getMatches']);
 Route::get('/matches/jobs/{id}', [MatchController::class, 'getJobStatus']);
 Route::delete('/matches/clear', [MatchController::class, 'clearMatches']);
-
-Route::get('/health', function () {
+Route::get('/health', [HealthController::class, 'check']);
     return response()->json(['status' => 'ok', 'service' => 'matching-service']);
-});
-

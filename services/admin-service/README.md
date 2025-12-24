@@ -1,154 +1,93 @@
 # Admin Service
 
-System configuration and settings management service for the Candidacy recruitment platform.
+System administration and configuration management service.
 
-## Purpose
+## Overview
 
-The Admin Service manages all system-wide configuration settings, including AI provider configuration, module toggles, branding settings, and application preferences. It provides a centralized settings API consumed by other services and the frontend admin panel.
+- **Port**: 8090
+- **Database**: `candidacy_admin`
+- **Framework**: Laravel 10
 
-## Key Features
+## Features
 
-- **Settings Management**: CRUD operations for system settings
-- **Category Organization**: Settings grouped by category (general, ai, system)
-- **Type Safety**: Typed settings (string, boolean, integer)
-- **Default Values**: Fallback defaults when settings not yet configured
-- **Real-time Updates**: Settings changes immediately available to all services
-
-## Technology Stack
-
-- **Framework**: Laravel 11
-- **Database**: MySQL (candidacy_admin)
-- **Port**: 8090 (container internal: 8080)
-- **Dependencies**: Redis for caching
-
-## Available Settings
-
-### General Settings
-- `app_name` - Application name (default: "Candidacy")
-- `company_name` - Company name for branding
-- `contact_email` - HR contact email
-- `candidate_portal_url` - Base URL for candidate portal links (default: http://localhost:5173)
-- `login_background_image` - URL for login page background image
-
-### AI Settings
-- `enable_ai` - Enable/disable AI features (boolean)
-- `ai_provider` - AI provider selection: "ollama" or "openrouter"
-- `matching_model` - AI model for candidate matching (default: gemma2:2b)
-- `questionnaire_model` - AI model for question generation (default: gemma2:2b)
-- `match_threshold` - Minimum match percentage (default: 70)
-
-### System Settings
-- `max_upload_size` - Maximum file upload size in MB (default: 10)
+- ✅ System settings management
+- ✅ Application configuration
+- ✅ AI provider configuration
+- ✅ System health monitoring
+- ✅ Service status tracking
 
 ## API Endpoints
 
-### Get All Settings
+```http
+GET    /api/settings                # Get all settings
+PUT    /api/settings                # Update settings (bulk)
+GET    /api/settings/{key}          # Get single setting
+PUT    /api/settings/{key}          # Update single setting
+GET    /api/settings/category/{cat} # Get settings by category
+GET    /api/system-health           # Get all services health status
+GET    /api/health                  # Service health check
 ```
-GET /api/settings
-```
-Returns all settings with defaults for missing values.
 
-### Get Single Setting
-```
-GET /api/settings/{key}
-```
-Returns a specific setting by key.
+## Settings Categories
 
-### Update Setting
-```
-PUT /api/settings/{key}
-```
-Updates a setting value.
+### General Settings
+- `app_name` - Application name
+- `company_name` - Company name
+- `contact_email` - Contact email
+- `candidate_portal_url` - Applicant portal base URL
+- `max_upload_size` - Maximum file upload size (MB)
 
-**Request Body:**
+### AI Settings
+- `enable_ai` - Enable/disable AI features
+- `ai_provider` - AI provider (ollama/openrouter)
+- `ollama_url` - Ollama instance URL
+- `ollama_model` - Model for general AI tasks
+- `ollama_matching_model` - Model for candidate matching
+- `openrouter_api_key` - OpenRouter API key
+
+### Notification Settings
+- `enable_notifications` - Enable/disable notifications
+- `email_from_address` - Email sender address
+- `email_from_name` - Email sender name
+
+## System Health Monitoring
+
+The system health endpoint checks all microservices:
+
+```bash
+curl http://localhost:8080/api/system-health
+```
+
+**Response:**
 ```json
 {
-  "value": "new_value"
+  "services": [
+    {
+      "service": "auth-service",
+      "status": "online",
+      "response_time": "16ms"
+    },
+    ...
+  ],
+  "timestamp": "2025-12-23T03:00:00+00:00"
 }
 ```
 
-### Bulk Update Settings
-```
-POST /api/settings/bulk
-```
-Updates multiple settings at once.
+## Recent Fixes (2025-12-23)
 
-**Request Body:**
-```json
-{
-  "settings": {
-    "app_name": "My Company ATS",
-    "match_threshold": 75
-  }
-}
-```
-
-## Database Schema
-
-### Settings Table
-- `id` - Primary key
-- `key` - Setting key (unique)
-- `value` - Setting value (JSON encoded for complex types)
-- `type` - Data type (string, boolean, integer)
-- `category` - Setting category (general, ai, system)
-- `created_at` - Timestamp
-- `updated_at` - Timestamp
-
-## Setup
-
-### Run Migrations
-```bash
-docker-compose exec admin-service php artisan migrate
-```
-
-### Seed Default Settings
-```bash
-docker-compose exec admin-service php artisan db:seed
-```
-
-This will create all default settings with sensible values.
-
-## Usage Examples
-
-### Frontend Integration
-The admin panel in the main frontend (http://localhost:3001/admin) provides a UI for managing these settings.
-
-### Service Integration
-Other services can fetch settings via HTTP:
-
-```php
-$response = Http::get('http://admin-service:8080/api/settings/candidate_portal_url');
-$portalUrl = $response->json()['value'];
-```
+- ✅ Added Shared namespace configuration
+- ✅ Updated SettingController to extend BaseApiController
+- ✅ Fixed routes syntax errors
+- ✅ Improved system health check with HTTP client
 
 ## Development
 
-### View Routes
+The database schema is managed via DBML. Always edit `schema.dbml` at the root and run `make dbml-sql`.
+
 ```bash
-docker-compose exec admin-service php artisan route:list
+# Sync local database
+make dbml-init
+
+# Start service
+docker-compose up -d admin-service
 ```
-
-### Clear Cache
-```bash
-docker-compose exec admin-service php artisan cache:clear
-```
-
-### Run Tests
-```bash
-docker-compose exec admin-service php artisan test
-```
-
-## Environment Variables
-
-- `DB_HOST` - MySQL host (default: mysql)
-- `DB_DATABASE` - Database name (candidacy_admin)
-- `DB_USERNAME` - Database user (default: root)
-- `DB_PASSWORD` - Database password
-- `REDIS_HOST` - Redis host for caching
-
-## Notes
-
-- Settings are cached for performance
-- Changes to settings require cache clear or TTL expiration
-- All services should use the admin service as the single source of truth for configuration
-- Default values are provided in controllers when settings don't exist in database

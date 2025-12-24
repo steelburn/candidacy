@@ -1,12 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok']);
-});
+Route::get('/health', [HealthController::class, 'check']);
 
 Route::middleware('api')->group(function () {
     // Settings routes

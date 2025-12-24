@@ -1,5 +1,13 @@
 {
-  "dependencies": {
-    "pinia": "^3.0.4"
+  "name": "candidacy",
+  "private": true,
+  "scripts": {
+    "dbml:validate": "dbml2sql schema.dbml --mysql > /dev/null && echo '✅ DBML syntax valid'",
+    "dbml:sql": "node scripts/generate-sql-from-dbml.js",
+    "dbml:init": "bash scripts/init-databases-from-dbml.sh",
+    "dbml:check": "node scripts/check-schema-sync.js"
+  },
+  "devDependencies": {
+    "@dbml/cli": "^2.6.1"
   }
 }

@@ -56,7 +56,8 @@ else
     echo "Please fix integration issues before running other tests:"
     echo "  - Check if all services are running: docker compose ps"
     echo "  - Check service logs: make logs"
-    echo "  - Verify migrations: make migrate"
+    echo "  - Verify DBML sync: make dbml-check"
+    echo "  - Initialize databases: make dbml-init"
     exit 1
 fi
 

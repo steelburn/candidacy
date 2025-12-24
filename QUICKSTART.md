@@ -23,10 +23,11 @@ chmod +x scripts/setup-services.sh
 ./scripts/setup-services.sh
 ```
 
-This will create:
-- 11 microservices using Laravel
+This will create/configure:
+- 12 microservices using Laravel
 - API Gateway
-- Vue.js frontend
+- Vue.js HR/Recruiter dashboard
+- Vue.js Applicant portal
 
 ### 2. Configure Environment
 
@@ -41,59 +42,46 @@ cp .env.example .env
 # - OPENROUTER_API_KEY if using OpenRouter
 ```
 
-### 3. Start Services
+### 3. Initialize Databases (DBML-First)
+
+The Candidacy system uses **Database-as-Code**. Initialize your databases directly from the DBML schema:
+
+```bash
+# Install dependencies for DBML tools
+npm install
+
+# Initialize all databases and apply schema
+make dbml-init
+```
+
+### 4. Start Services
 
 ```bash
 # Start all services with Docker Compose
 docker-compose up -d
 
-# View logs
-docker-compose logs -f
+# View logs for all services
+make logs
 
 # Check running services
-docker-compose ps
+make status
 ```
 
-### 4. Install Ollama (Optional - for local AI)
+### 5. Setup AI Models (Optional - for local AI)
 
 ```bash
-# Pull Ollama image and start
+# Pull models for candidate matching and questionnaires
 docker-compose exec ollama ollama pull gemma2:2b
 
-# Or use other models like mistral or llama2
-docker-compose exec ollama ollama pull mistral
-```
-
-### 5. Run Migrations
-
-```bash
-# Run migrations for each service
-docker-compose exec auth-service php artisan migrate
-docker-compose exec candidate-service php artisan migrate
-docker-compose exec vacancy-service php artisan migrate
-docker-compose exec matching-service php artisan migrate
-docker-compose exec interview-service php artisan migrate
-docker-compose exec offer-service php artisan migrate
-docker-compose exec onboarding-service php artisan migrate
-docker-compose exec reporting-service php artisan migrate
-docker-compose exec admin-service php artisan migrate
-docker-compose exec notification-service php artisan migrate
-```
-
-Or use the migration script:
-```bash
-chmod +x scripts/run-migrations.sh
-./scripts/run-migrations.sh
+# Pull model for CV parsing
+docker-compose exec ollama ollama pull llama3.2
 ```
 
 ### 6. Seed Initial Data
 
 ```bash
-# Seed admin user and roles
-docker-compose exec auth-service php artisan db:seed
-
-# Seed admin settings (AI config, portal URLs, etc.)
-docker-compose exec admin-service php artisan db:seed
+# Seeds admin user, roles, and default settings
+make seed
 ```
 
 ### 7. Access the Application
@@ -114,47 +102,43 @@ docker-compose exec admin-service php artisan db:seed
   - Reporting: http://localhost:8089
   - Admin: http://localhost:8090
   - Notification: http://localhost:8091
+  - Document Parser: http://localhost:8092
 
 ## Development Workflow
 
-### Running Individual Services
+### Database Management (DBML)
+
+Always edit `schema.dbml` to change your database structure:
 
 ```bash
-# Start specific services only
-docker-compose up auth-service candidate-service api-gateway frontend
+# 1. Edit schema.dbml
+# 2. Validate and generate SQL
+make dbml-sql
+# 3. Apply to local databases (drops data!)
+make dbml-reset
+```
 
-# Stop services
-docker-compose down
+### Managing Services
+
+```bash
+# Start specific services
+docker-compose up auth-service candidate-service api-gateway
 
 # Rebuild after code changes
-docker-compose up --build
+docker-compose up -d --build service-name
+
+# Access service shell
+make shell S=candidate-service
 ```
 
 ### Viewing Logs
 
 ```bash
-# All services
-docker-compose logs -f
-
 # Specific service
-docker-compose logs -f auth-service
+make logs-candidate
 
-# Last 100 lines
-docker-compose logs --tail=100 candidate-service
-```
-
-### Running Commands in Services
-
-```bash
-# Access service shell
-docker-compose exec auth-service bash
-
-# Run artisan commands
-docker-compose exec auth-service php artisan tinker
-docker-compose exec auth-service php artisan route:list
-
-# Clear cache
-docker-compose exec auth-service php artisan cache:clear
+# Combined logs for CV parsing flow
+make logs-parse-cv
 ```
 
 ## Service Architecture
@@ -162,83 +146,40 @@ docker-compose exec auth-service php artisan cache:clear
 ### Service Communication
 
 Services communicate via:
-1. **HTTP REST APIs**: Synchronous requests using ServiceClient
-2. **Redis Pub/Sub**: Asynchronous events using EventPublisher
+1. **HTTP REST APIs**: Synchronous requests (e.g., matching requests AI analysis)
+2. **Redis Pub/Sub**: Asynchronous events (e.g., candidate created → trigger match)
 
-### Event Flow Example
+### Unified Health Monitoring
 
+Check the status of all services at once:
+```bash
+curl http://localhost:8080/api/system-health
 ```
-CandidateService → publishes "CandidateCreated" event
-     ↓
-Redis Pub/Sub
-     ↓
-MatchingService → subscribes and triggers matching algorithm
-```
-
-### Database Strategy
-
-Each service has its own database:
-- candidacy_auth
-- candidacy_candidate
-- candidacy_vacancy
-- etc.
-
-This ensures loose coupling and independent scaling.
 
 ## Testing
 
-### Unit Tests
-
 ```bash
-# Run tests for a service
-docker-compose exec auth-service php artisan test
+# Run all tests
+make test
 
-# With coverage
-docker-compose exec auth-service php artisan test --coverage
-```
-
-### Integration Tests
-
-```bash
-# Run integration test suite
-./scripts/run-integration-tests.sh
+# Run specific service tests
+make test-service S=auth-service
 ```
 
 ## Troubleshooting
 
-### Services not starting
-
+### Schema Out of Sync
+If you see unexpected database errors, verify your SQL files match the DBML:
 ```bash
-# Check logs
-docker-compose logs
-
-# Rebuild containers
-docker-compose down
-docker-compose up --build
-
-# Clear volumes
-docker-compose down -v
+make dbml-check
 ```
 
-### Database connection issues
+### Service Health
+If a service is behaving unexpectedly, check its health endpoint:
+`http://localhost:8080/api/system-health`
 
-```bash
-# Check MySQL is running
-docker-compose ps mysql
-
-# Check databases exist
-docker-compose exec mysql mysql -uroot -proot -e "SHOW DATABASES;"
-```
-
-### Ollama not responding
-
-```bash
-# Check Ollama status
-docker-compose exec ollama ollama list
-
-# Pull model if missing
-docker-compose exec ollama ollama pull mistral
-```
+### AI Processing
+Ensure Ollama is running and the models are pulled. You can check Ollama status in the Admin panel.
 
 ## Default Credentials
 

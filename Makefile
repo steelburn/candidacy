@@ -1,12 +1,15 @@
 # Candidacy Development Makefile
+SHELL := /bin/bash
 
-.PHONY: help setup up down restart logs migrate seed test clean shell
+.PHONY: help setup up down restart logs seed test clean shell
 .PHONY: logs-auth logs-candidate logs-vacancy logs-ai logs-matching logs-interview
 .PHONY: logs-offer logs-onboarding logs-reporting logs-admin logs-notification
-.PHONY: logs-gateway logs-frontend logs-applicant logs-grafana
+.PHONY: logs-gateway logs-frontend logs-applicant logs-grafana logs-parse-cv
 .PHONY: db-reset pull build status
 .PHONY: test-backend test-api test-integration test-e2e test-service
 .PHONY: test-auth test-candidate test-vacancy
+.PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
+.PHONY: logs-document-parser
 
 help:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -22,9 +25,15 @@ help:
 	@echo "  make pull           - Pull latest images"
 	@echo ""
 	@echo "📊 Database Commands:"
-	@echo "  make migrate        - Run migrations for all services"
 	@echo "  make seed           - Seed all databases"
 	@echo "  make db-reset       - Reset all databases (WARNING: destructive)"
+	@echo ""
+	@echo "🗄️  DBML Commands (Database-as-Code):"
+	@echo "  make dbml-validate  - Validate DBML schema syntax"
+	@echo "  make dbml-sql       - Generate SQL from DBML"
+	@echo "  make dbml-check     - Check if generated SQL is in sync with DBML"
+	@echo "  make dbml-init      - Initialize databases from DBML"
+	@echo "  make dbml-reset     - Drop & recreate databases from DBML (WARNING: destructive)"
 	@echo ""
 	@echo "🔍 Monitoring Commands:"
 	@echo "  make logs           - View all service logs"
@@ -33,6 +42,7 @@ help:
 	@echo "  make logs-candidate - View Candidate Service logs"
 	@echo "  make logs-vacancy   - View Vacancy Service logs"
 	@echo "  make logs-ai        - View AI Service logs"
+	@echo "  make logs-parse-cv  - View CV Parsing logs (Candidate + AI)"
 	@echo "  make logs-matching  - View Matching Service logs"
 	@echo "  make logs-interview - View Interview Service logs"
 	@echo "  make logs-offer     - View Offer Service logs"
@@ -40,6 +50,7 @@ help:
 	@echo "  make logs-reporting - View Reporting Service logs"
 	@echo "  make logs-admin     - View Admin Service logs"
 	@echo "  make logs-notification - View Notification Service logs"
+	@echo "  make logs-document-parser - View Document Parser logs"
 	@echo "  make logs-frontend  - View Main Frontend logs"
 	@echo "  make logs-applicant - View Applicant Portal logs"
 	@echo "  make logs-grafana   - View Grafana logs"
@@ -73,7 +84,7 @@ setup:
 	@echo "📝 Next steps:"
 	@echo "  1. Edit .env file with your configuration"
 	@echo "  2. Run 'make up' to start all services"
-	@echo "  3. Run 'make migrate' to set up databases"
+	@echo "  3. Run 'make dbml-init' to set up databases"
 	@echo "  4. Run 'make seed' to populate initial data"
 
 up:
@@ -117,16 +128,15 @@ status:
 logs:
 	docker compose logs -f
 
-migrate:
-	@echo "📊 Running migrations for all services..."
-	./scripts/run-migrations.sh
+
+# Removing legacy migrate target. Use make dbml-init instead.
 
 seed:
 	@echo "🌱 Seeding databases..."
 	@echo "Seeding Auth Service..."
-	docker compose exec auth-service php artisan db:seed --force || true
+	docker compose exec -T auth-service php artisan db:seed --force || true
 	@echo "Seeding Admin Service..."
-	docker compose exec admin-service php artisan db:seed --force || true
+	docker compose exec -T admin-service php artisan db:seed --force || true
 	@echo "✅ Seeding complete"
 
 db-reset:
@@ -136,11 +146,13 @@ db-reset:
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
 		echo "🗑️  Resetting databases..."; \
 		docker compose down -v; \
-		docker compose up -d mysql redis; \
 		sleep 10; \
+		docker compose up -d mysql; \
+		echo "⏳ Waiting for MySQL to initialize..."; \
+		sleep 20; \
+		make dbml-init; \
 		docker compose up -d; \
 		sleep 5; \
-		make migrate; \
 		make seed; \
 		echo "✅ Database reset complete"; \
 	fi
@@ -237,6 +249,9 @@ logs-admin:
 logs-notification:
 	docker compose logs -f notification-service
 
+logs-document-parser:
+	docker compose logs -f document-parser-service
+
 logs-frontend:
 	docker compose logs -f frontend
 
@@ -245,3 +260,48 @@ logs-applicant:
 
 logs-grafana:
 	docker compose logs -f grafana
+
+logs-parse-cv:
+	docker compose logs -f candidate-service document-parser-service ai-service
+
+# DBML Commands (Database-as-Code)
+dbml-validate:
+	@echo "🔍 Validating DBML schema..."
+	@npm run dbml:validate
+
+dbml-sql:
+	@echo "🔨 Generating SQL from DBML..."
+	@npm run dbml:sql
+
+dbml-check:
+	@echo "🔍 Checking DBML sync status..."
+	@npm run dbml:check
+
+dbml-init:
+	@echo "🗄️  Initializing databases from DBML..."
+	@npm run dbml:init
+
+dbml-reset:
+	@echo "⚠️  WARNING: This will drop all databases and recreate from DBML!"
+	@echo "⚠️  All data will be lost!"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "🗑️  Dropping databases..."; \
+		docker compose down -v && \
+		echo "🚀 Starting MySQL..." && \
+		docker compose up -d mysql && \
+		echo "⏳ Waiting for MySQL to initialize..." && \
+		sleep 20 && \
+		echo "🗄️  Initializing from DBML..." && \
+		make dbml-init && \
+		echo "🚀 Starting all services..." && \
+		docker compose up -d && \
+		sleep 5 && \
+		echo "🌱 Seeding databases..." && \
+		make seed && \
+		echo "✅ Databases reset from DBML complete"; \
+	else \
+		echo "Operation cancelled."; \
+		exit 1; \
+	fi

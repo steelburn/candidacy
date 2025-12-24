@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Constants;
+namespace Shared\Constants;
 
 /**
  * Application-wide constants

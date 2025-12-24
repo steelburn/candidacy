@@ -59,9 +59,9 @@ async function handleLogin() {
   error.value = ''
   
   try {
-    console.log('Attempting login with:', credentials.value.email)
+
     await authStore.login(credentials.value)
-    console.log('Login successful via store, redirecting...')
+
     router.push('/dashboard')
   } catch (err) {
     console.error('Login error:', err)

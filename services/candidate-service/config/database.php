@@ -148,4 +148,6 @@ return [
 
     ],
 
+    'log_queries' => env('DB_LOG_QUERIES', false),
+
 ];

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use Shared\Http\Controllers\BaseApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
-class ReportController extends Controller
+class ReportController extends BaseApiController
 {
     public function candidateMetrics()
     {

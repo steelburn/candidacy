@@ -1,0 +1,657 @@
+// Candidacy Application Database Schema
+// Database-as-Code using DBML (Database Markup Language)
+// Generated: 2025-12-23
+// 
+// This schema represents the complete database structure for the Candidacy
+// microservices application, including all tables, relationships, and indexes.
+
+Project Candidacy {
+  database_type: 'MySQL'
+  Note: '''
+    Recruitment and Candidate Management System
+    Microservices Architecture with separate databases per service
+  '''
+}
+
+//==============================================================================
+// AUTH SERVICE DATABASE (candidacy_auth)
+//==============================================================================
+
+Table users {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  email_verified_at timestamp [null]
+  password varchar(255) [not null]
+  remember_token varchar(100) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  is_active boolean [default: true, not null]
+  
+  indexes {
+    created_at [name: 'idx_users_created_at']
+  }
+  
+  Note: 'System users (HR managers, recruiters, interviewers, admins)'
+}
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar(255) [unique, not null]
+  display_name varchar(255) [not null]
+  description text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'User roles: admin, hr_manager, recruiter, interviewer, viewer'
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  name varchar(255) [unique, not null]
+  display_name varchar(255) [not null]
+  description text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Granular permissions for access control'
+}
+
+Table role_user {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  role_id bigint [not null, ref: > roles.id]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (user_id, role_id) [unique]
+  }
+  
+  Note: 'Many-to-many relationship between users and roles'
+}
+
+Table permission_role {
+  id bigint [pk, increment]
+  permission_id bigint [not null, ref: > permissions.id]
+  role_id bigint [not null, ref: > roles.id]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (permission_id, role_id) [unique]
+  }
+  
+  Note: 'Many-to-many relationship between permissions and roles'
+}
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
+  created_at timestamp [null]
+}
+
+Table personal_access_tokens {
+  id bigint [pk, increment]
+  tokenable_type varchar(255) [not null]
+  tokenable_id bigint [not null]
+  name varchar(255) [not null]
+  token varchar(64) [unique, not null]
+  abilities text [null]
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (tokenable_type, tokenable_id) [name: 'personal_access_tokens_tokenable']
+  }
+  
+  Note: 'Laravel Sanctum API tokens'
+}
+
+Table failed_jobs {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+//==============================================================================
+// CANDIDATE SERVICE DATABASE (candidacy_candidate)
+//==============================================================================
+
+Table candidates {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  phone varchar(255) [null]
+  summary text [null]
+  linkedin_url varchar(255) [null]
+  github_url varchar(255) [null]
+  portfolio_url varchar(255) [null]
+  skills json [null]
+  experience json [null]
+  education json [null]
+  status varchar(255) [default: 'new', not null]
+  notes text [null]
+  years_of_experience int [null]
+  generated_cv_content longtext [null]
+  pin_code varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_candidates_status']
+    created_at [name: 'idx_candidates_created_at']
+    updated_at [name: 'idx_candidates_updated_at']
+    (status, created_at) [name: 'idx_candidates_status_created']
+  }
+  
+  Note: 'Job candidates with their profiles and information'
+}
+
+Table cv_files {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  file_path varchar(255) [not null]
+  file_name varchar(255) [not null]
+  file_type varchar(50) [not null]
+  file_size int [not null]
+  parsed_data json [null]
+  parsing_status varchar(50) [default: 'pending']
+  parsing_error text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Uploaded CV/resume files and their parsing status'
+}
+
+Table candidate_tokens {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  token varchar(255) [unique, not null]
+  vacancy_id bigint [null]
+  expires_at timestamp [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Access tokens for candidate portal (logical FK to vacancy service)'
+}
+
+Table applicant_answers {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  vacancy_id bigint [not null]
+  question_id bigint [not null]
+  answer text [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Candidate answers to vacancy questions (logical FKs to vacancy service)'
+}
+
+Table job_statuses {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  vacancy_id bigint [not null]
+  status varchar(255) [not null]
+  notes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Candidate application status tracking (logical FK to vacancy service)'
+}
+
+Table cv_parsing_jobs {
+  id bigint [pk, increment]
+  candidate_id bigint [null, ref: > candidates.id]
+  file_path varchar(255) [not null]
+  extracted_text longtext [not null]
+  status varchar(50) [default: 'pending', not null]
+  parsed_data json [null]
+  error_message text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_cv_parsing_jobs_status']
+    candidate_id [name: 'idx_cv_parsing_jobs_candidate_id']
+    created_at [name: 'idx_cv_parsing_jobs_created_at']
+  }
+  
+  Note: 'Async AI CV parsing jobs - tracks background processing of CV text extraction'
+}
+
+//==============================================================================
+// VACANCY SERVICE DATABASE (candidacy_vacancy)
+//==============================================================================
+
+Table vacancies {
+  id bigint [pk, increment]
+  title varchar(255) [not null]
+  description text [not null]
+  requirements text [null]
+  responsibilities text [null]
+  department varchar(255) [null]
+  location varchar(255) [not null]
+  employment_type varchar(255) [default: 'full_time', not null]
+  experience_level varchar(255) [default: 'mid', not null]
+  min_experience_years int [null]
+  max_experience_years int [null]
+  min_salary decimal(10,2) [null]
+  max_salary decimal(10,2) [null]
+  currency varchar(255) [default: 'USD', not null]
+  required_skills json [null]
+  preferred_skills json [null]
+  benefits json [null]
+  status varchar(255) [default: 'draft', not null]
+  closing_date date [null]
+  positions_available int [default: 1, not null]
+  work_mode varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_vacancies_status']
+    department [name: 'idx_vacancies_department']
+    location [name: 'idx_vacancies_location']
+    employment_type [name: 'idx_vacancies_employment_type']
+    created_at [name: 'idx_vacancies_created_at']
+    updated_at [name: 'idx_vacancies_updated_at']
+    (status, department) [name: 'idx_vacancies_status_dept']
+    (status, created_at) [name: 'idx_vacancies_status_created']
+  }
+  
+  Note: '''
+    Job vacancies/positions
+    Employment types: full_time, part_time, contract, intern
+    Experience levels: entry, mid, senior, lead, executive
+    Statuses: draft, open, closed, on_hold
+    Work modes: on-site, remote, hybrid
+  '''
+}
+
+Table vacancy_questions {
+  id bigint [pk, increment]
+  vacancy_id bigint [not null, ref: > vacancies.id]
+  question_text varchar(255) [not null]
+  question_type varchar(255) [default: 'text', not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Custom questions for vacancy applications'
+}
+
+Table required_skills {
+  id bigint [pk, increment]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Placeholder table for required skills (currently unused)'
+}
+
+//==============================================================================
+// MATCHING SERVICE DATABASE (candidacy_matching)
+//==============================================================================
+
+Table matches {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  match_score int [default: 0, not null]
+  analysis json [null]
+  status varchar(255) [default: 'pending', not null]
+  interview_questions json [null]
+  applied_at timestamp [null]
+  questionnaire_completed boolean [default: false]
+  questionnaire_metadata json [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_matches_candidate_id']
+    vacancy_id [name: 'idx_matches_vacancy_id']
+    match_score [name: 'idx_matches_score']
+    status [name: 'idx_matches_status']
+    created_at [name: 'idx_matches_created_at']
+    (match_score, status) [name: 'idx_matches_score_status']
+    (candidate_id, match_score) [name: 'idx_matches_candidate_score']
+    (vacancy_id, match_score) [name: 'idx_matches_vacancy_score']
+    (candidate_id, vacancy_id) [unique, name: 'matches_candidate_id_vacancy_id_unique']
+  }
+  
+  Note: '''
+    AI-generated candidate-vacancy matches
+    Statuses: pending, reviewed, accepted, rejected, shortlisted, applied
+    Logical FKs to candidate and vacancy services
+  '''
+}
+
+Table job_statuses_matching {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  status varchar(255) [not null]
+  notes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Job application status tracking (logical FKs to candidate and vacancy services)'
+}
+
+//==============================================================================
+// INTERVIEW SERVICE DATABASE (candidacy_interview)
+//==============================================================================
+
+Table interviews {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  interviewer_id bigint [null]
+  stage varchar(255) [default: 'screening', not null]
+  scheduled_at datetime [not null]
+  duration_minutes int [default: 60, not null]
+  location varchar(255) [null]
+  type varchar(255) [default: 'video', not null]
+  status varchar(255) [default: 'scheduled', not null]
+  notes text [null]
+  interviewer_ids json [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_interviews_candidate_id']
+    vacancy_id [name: 'idx_interviews_vacancy_id']
+    interviewer_id [name: 'idx_interviews_interviewer_id']
+    status [name: 'idx_interviews_status']
+    type [name: 'idx_interviews_type']
+    scheduled_at [name: 'idx_interviews_scheduled_at']
+    created_at [name: 'idx_interviews_created_at']
+    (interviewer_id, scheduled_at) [name: 'idx_interviews_interviewer_schedule']
+    (candidate_id, scheduled_at) [name: 'idx_interviews_candidate_schedule']
+    (status, scheduled_at) [name: 'idx_interviews_status_schedule']
+  }
+  
+  Note: '''
+    Interview scheduling and management
+    Stages: screening, technical, behavioral, final
+    Types: in_person, video, phone
+    Statuses: scheduled, completed, cancelled, rescheduled
+    Logical FKs to candidate, vacancy, and user (interviewer) services
+  '''
+}
+
+Table interview_feedback {
+  id bigint [pk, increment]
+  interview_id bigint [not null, ref: > interviews.id]
+  reviewer_id bigint [not null]
+  technical_score int [null]
+  communication_score int [null]
+  cultural_fit_score int [null]
+  overall_score int [null]
+  strengths text [null]
+  weaknesses text [null]
+  comments text [null]
+  recommendation varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+    Interview feedback and scoring
+    Scores: 1-10 scale
+    Recommendations: strong_hire, hire, maybe, no_hire
+    Logical FK to user (reviewer) service
+  '''
+}
+
+//==============================================================================
+// OFFER SERVICE DATABASE (candidacy_offer)
+//==============================================================================
+
+Table offers {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  salary_offered decimal(12,2) [not null]
+  currency varchar(255) [default: 'USD', not null]
+  benefits json [null]
+  start_date date [null]
+  offer_date date [not null]
+  expiry_date date [null]
+  status varchar(255) [default: 'pending', not null]
+  terms text [null]
+  candidate_response text [null]
+  responded_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_offers_candidate_id']
+    vacancy_id [name: 'idx_offers_vacancy_id']
+    status [name: 'idx_offers_status']
+    expiry_date [name: 'idx_offers_expiry_date']
+    start_date [name: 'idx_offers_start_date']
+    created_at [name: 'idx_offers_created_at']
+    (status, expiry_date) [name: 'idx_offers_status_expiry']
+    (candidate_id, status) [name: 'idx_offers_candidate_status']
+  }
+  
+  Note: '''
+    Job offers extended to candidates
+    Statuses: pending, accepted, rejected, withdrawn, expired
+    Logical FKs to candidate and vacancy services
+  '''
+}
+
+//==============================================================================
+// ONBOARDING SERVICE DATABASE (candidacy_onboarding)
+//==============================================================================
+
+Table onboarding_checklists {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  task_name varchar(255) [not null]
+  description text [null]
+  status varchar(255) [default: 'pending', not null]
+  due_date date [null]
+  completed_at timestamp [null]
+  notes text [null]
+  order int [default: 0, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+    Onboarding tasks and checklists for new hires
+    Statuses: pending, in_progress, completed
+    Logical FK to candidate service
+  '''
+}
+
+//==============================================================================
+// ADMIN SERVICE DATABASE (candidacy_admin)
+//==============================================================================
+
+Table settings {
+  id bigint [pk, increment]
+  key varchar(255) [unique, not null]
+  value text [null]
+  type varchar(255) [default: 'string', not null]
+  category varchar(255) [null]
+  description text [null]
+  is_public boolean [default: false, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+    Application-wide settings and configuration
+    Types: string, integer, boolean, json
+    Public settings are accessible without authentication
+  '''
+}
+
+//==============================================================================
+// DOCUMENT PARSER SERVICE DATABASE (candidacy_document_parser)
+//==============================================================================
+
+Table parse_jobs {
+  id bigint [pk, increment]
+  file_path varchar(255) [not null]
+  file_type varchar(50) [not null]
+  original_filename varchar(255) [not null]
+  status varchar(50) [default: 'pending', not null]
+  extracted_text longtext [null]
+  error_message text [null]
+  file_size int [null]
+  page_count int [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_parse_jobs_status']
+    created_at [name: 'idx_parse_jobs_created_at']
+  }
+  
+  Note: '''
+    Asynchronous document parsing jobs for PDF/DOCX files
+    Statuses: pending, processing, completed, failed
+  '''
+}
+
+//==============================================================================
+// CROSS-SERVICE RELATIONSHIPS (Logical Foreign Keys)
+//==============================================================================
+
+// Note: The following relationships exist logically across microservices
+// but are not enforced at the database level due to the distributed architecture
+
+// Candidate Service -> Vacancy Service
+// - candidate_tokens.vacancy_id -> vacancies.id
+// - applicant_answers.vacancy_id -> vacancies.id
+// - applicant_answers.question_id -> vacancy_questions.id
+// - job_statuses.vacancy_id -> vacancies.id
+
+// Matching Service -> Candidate Service
+// - matches.candidate_id -> candidates.id
+// - job_statuses_matching.candidate_id -> candidates.id
+
+// Matching Service -> Vacancy Service
+// - matches.vacancy_id -> vacancies.id
+// - job_statuses_matching.vacancy_id -> vacancies.id
+
+// Interview Service -> Candidate Service
+// - interviews.candidate_id -> candidates.id
+
+// Interview Service -> Vacancy Service
+// - interviews.vacancy_id -> vacancies.id
+
+// Interview Service -> Auth Service
+// - interviews.interviewer_id -> users.id
+// - interview_feedback.reviewer_id -> users.id
+
+// Offer Service -> Candidate Service
+// - offers.candidate_id -> candidates.id
+
+// Offer Service -> Vacancy Service
+// - offers.vacancy_id -> vacancies.id
+
+// Onboarding Service -> Candidate Service
+// - onboarding_checklists.candidate_id -> candidates.id
+
+// Document Parser Service -> Candidate Service
+// - parse_jobs.candidate_id -> candidates.id
+
+//==============================================================================
+// ENUMERATIONS AND CONSTANTS
+//==============================================================================
+
+Enum employment_type {
+  full_time
+  part_time
+  contract
+  intern
+}
+
+Enum experience_level {
+  entry
+  mid
+  senior
+  lead
+  executive
+}
+
+Enum vacancy_status {
+  draft
+  open
+  closed
+  on_hold
+}
+
+Enum work_mode {
+  on_site
+  remote
+  hybrid
+}
+
+Enum match_status {
+  pending
+  reviewed
+  accepted
+  rejected
+  shortlisted
+  applied
+}
+
+Enum interview_stage {
+  screening
+  technical
+  behavioral
+  final
+}
+
+Enum interview_type {
+  in_person
+  video
+  phone
+}
+
+Enum interview_status {
+  scheduled
+  completed
+  cancelled
+  rescheduled
+}
+
+Enum recommendation {
+  strong_hire
+  hire
+  maybe
+  no_hire
+}
+
+Enum offer_status {
+  pending
+  accepted
+  rejected
+  withdrawn
+  expired
+}
+
+Enum onboarding_status {
+  pending
+  in_progress
+  completed
+}
+
+Enum parse_job_status {
+  pending
+  processing
+  completed
+  failed
+}

@@ -13,6 +13,7 @@ x-laravel-env: &laravel-env
   DB_PORT: 3306
   DB_USERNAME: root
   DB_PASSWORD: root
+  DB_LOG_QUERIES: ${DB_LOG_QUERIES:-true}
   REDIS_PORT: 6379
 
 services:
@@ -64,6 +65,9 @@ services:
       - "8080:8080"
     environment:
       <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_gateway
+      REDIS_HOST: redis
       APP_DEBUG: ${APP_DEBUG:-true}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     volumes:
@@ -121,6 +125,84 @@ services:
       - redis
     networks:
       - candidacy-network
+
+  # Candidate Queue Worker
+  candidate-queue-worker:
+    build:
+      context: ./services/candidate-service
+      dockerfile: Dockerfile
+    container_name: candidacy-candidate-worker
+    user: "1000:1000"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_candidate
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8080
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./services/candidate-service:/var/www/html
+      - ./shared:/var/www/shared
+      - candidate_uploads:/var/www/html/storage/uploads
+    depends_on:
+      - mysql
+      - redis
+      - candidate-service
+    networks:
+      - candidacy-network
+    command: php artisan queue:work --tries=3 --timeout=300
+    restart: unless-stopped
+
+  # Document Parser Service
+  document-parser-service:
+    build:
+      context: ./services/document-parser-service
+      dockerfile: Dockerfile
+    container_name: candidacy-document-parser
+    user: "1000:1000"
+    ports:
+      - "8095:8080"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_document_parser
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./services/document-parser-service:/var/www/html
+      - ./shared:/var/www/shared
+      - document_parser_temp:/var/www/html/storage/temp
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
+  # Document Parser Worker
+  document-parser-worker:
+    build:
+      context: ./services/document-parser-service
+      dockerfile: Dockerfile
+    container_name: candidacy-document-parser-worker
+    user: "1000:1000"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_document_parser
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+    volumes:
+      - ./services/document-parser-service:/var/www/html
+      - ./shared:/var/www/shared
+      - document_parser_temp:/var/www/html/storage/temp
+    depends_on:
+      - mysql
+      - redis
+      - document-parser-service
+    networks:
+      - candidacy-network
+    command: php artisan queue:work --tries=3 --timeout=300
+    restart: unless-stopped
 
   # Vacancy Service
   vacancy-service:
@@ -418,6 +500,7 @@ volumes:
   candidate_uploads:
   loki_data:
   grafana_data:
+  document_parser_temp:
 
 
 networks:

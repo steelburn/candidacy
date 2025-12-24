@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
@@ -14,7 +15,7 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::get('/setup/check', [AuthController::class, 'setupCheck']);
 Route::post('/setup/create-admin', [AuthController::class, 'createFirstAdmin']);
 
-// Protected routes
+// Protected routes - using auth:api for JWT authentication
 Route::middleware('auth:api')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
@@ -32,6 +33,4 @@ Route::middleware('auth:api')->group(function () {
 });
 
 // Health check
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'service' => 'auth-service']);
-});
+Route::get('/health', [HealthController::class, 'check']);

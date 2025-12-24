@@ -4,7 +4,7 @@ Comprehensive architecture documentation for the AI-powered Candidacy recruitmen
 
 ## Overview
 
-Candidacy is built using a **microservices architecture** with 11 independent services, two frontend applications, and a central API gateway. The system leverages event-driven communication, database-per-service pattern, and AI integration for intelligent recruitment operations.
+Candidacy is built using a **microservices architecture** with 12 independent services, two frontend applications, and a central API gateway. The system leverages event-driven communication, database-per-service pattern, and AI integration for intelligent recruitment operations. The database schema is managed as code using **DBML (Database Markup Language)** as the single source of truth.
 
 ## Architecture Diagram
 
@@ -16,7 +16,7 @@ graph TB
     end
     
     subgraph "Gateway Layer"
-        GW[API Gateway<br/>Laravel - Port 8080]
+        GW[API Gateway<br/>Laravel 10 - Port 8080]
     end
     
     subgraph "Microservices Layer"
@@ -31,9 +31,11 @@ graph TB
         REP[Reporting Service<br/>Port 8089]
         ADM[Admin Service<br/>Port 8090]
         NOT[Notification Service<br/>Port 8091]
+        DOC[Document Parser<br/>Port 8092]
     end
     
     subgraph "Data Layer"
+        DBML[schema.dbml<br/>Source of Truth]
         MYSQL[(MySQL<br/>Database per Service)]
         REDIS[(Redis<br/>Cache & Events)]
     end
@@ -62,6 +64,9 @@ graph TB
     GW --> REP
     GW --> ADM
     GW --> NOT
+    GW --> DOC
+    
+    DBML -- generates --> MYSQL
     
     AUTH --> MYSQL
     CAND --> MYSQL
@@ -73,6 +78,7 @@ graph TB
     REP --> MYSQL
     ADM --> MYSQL
     NOT --> MYSQL
+    DOC --> MYSQL
     
     CAND --> REDIS
     VAC --> REDIS
@@ -84,6 +90,7 @@ graph TB
     CAND --> AI
     VAC --> AI
     MATCH --> AI
+    CAND --> DOC
     
     PROMTAIL --> LOKI
     LOKI --> GRAFANA
@@ -110,12 +117,14 @@ Each service has its own database:
 - `candidacy_reporting` - Aggregated metrics
 - `candidacy_admin` - System settings
 - `candidacy_notification` - Notification history
+- `candidacy_document_parser` - Temporary storage for parsing operations
 
-Benefits:
-- Data isolation and security
-- Independent scaling
-- Schema evolution without affecting other services
-- Technology flexibility
+**Database-as-Code (DBML)**:
+All schemas are defined in `schema.dbml`. This file is used to generate SQL scripts for all services, ensuring:
+- Uniform indexing strategies
+- Consistent column naming
+- Cross-service relationship documentation
+- Automated environment synchronization
 
 ### 3. Event-Driven Communication
 Services communicate via:
@@ -145,8 +154,8 @@ Notification Service subscribes and sends confirmation email
 - Candidate profile management
 - CV upload and storage
 - Experience and education tracking
-- Skills management
-- Integrates with AI Service for CV parsing
+- Integrates with AI Service for analysis
+- Integrates with Document Parser for text extraction
 
 ### Vacancy Service
 - Job posting management
@@ -155,7 +164,7 @@ Notification Service subscribes and sends confirmation email
 
 ### AI Service
 - Centralized AI operations
-- CV parsing (extract skills, experience, education)
+- CV Analysis (extract skills, experience, education)
 - Job description generation
 - Candidate-vacancy matching
 - Interview questionnaire generation
@@ -165,8 +174,13 @@ Notification Service subscribes and sends confirmation email
 - AI-powered candidate-vacancy matching
 - Match scoring (0-100)
 - Detailed analysis generation
-- Batch matching operations
 - Integrates with AI, Candidate, and Vacancy services
+
+### Document Parser Service
+- Asynchronous PDF and DOCX text extraction
+- High-performance text parsing
+- Reduces load on Candidate Service
+- Independent scaling for document-intensive tasks
 
 ### Interview Service
 - Interview scheduling and management
@@ -253,17 +267,17 @@ Matching Service → AI Service (perform matching)
    ↓
 3. Candidate Service stores file
    ↓
-4. Candidate Service → AI Service (parse CV)
+4. Candidate Service → Document Parser Service (extract text)
    ↓
-5. AI Service → Ollama/OpenRouter (extract data)
+5. Document Parser returns raw text
    ↓
-6. AI Service returns parsed data
+6. Candidate Service → AI Service (analyze text)
    ↓
-7. Candidate Service saves skills, experience, education
+7. AI Service returns skills, experience, education
    ↓
-8. Candidate Service publishes "CVUploaded" event
+8. Candidate Service saves candidate profile
    ↓
-9. Matching Service triggers auto-matching
+9. Candidate Service publishes "CandidateCreated" event
 ```
 
 ### Candidate Matching
@@ -276,16 +290,11 @@ Matching Service → AI Service (perform matching)
    ↓
 4. Matching Service subscribes to event
    ↓
-5. Matching Service → Candidate Service (get all candidates)
+5. Matching Service → AI Service (calculate matches)
    ↓
-6. For each candidate:
-   Matching Service → AI Service (calculate match)
+6. AI Service returns scores and analysis
    ↓
-7. AI Service returns score and analysis
-   ↓
-8. Matching Service saves match records
-   ↓
-9. Frontend displays top matches
+7. Matching Service saves match records
 ```
 
 ### Offer to Onboarding
@@ -404,38 +413,30 @@ All services run in containers with:
 - Persistent volumes for databases
 - Ingress for external access
 
+## Monitoring & Logging
+
+### Centralized Logging
+Unified logging for all 12 microservices:
+```
+Services → Docker Logs → Promtail → Loki → Grafana
+```
+
 ## Technology Stack Summary
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | Vue 3, Vite, Pinia, Axios |
-| Gateway | Laravel 11 |
-| Services | Laravel 11 |
-| Database | MySQL 8.0 |
+| Gateway | Laravel 10 |
+| Services | Laravel 10 |
+| Database | MySQL 8.0 (Managed via DBML) |
 | Cache/Events | Redis 7 |
 | AI | Ollama, OpenRouter |
-| Logging | Loki, Promtail, Grafana |
-| Containerization | Docker, Docker Compose |
-
-## Future Enhancements
-
-- **Service Mesh**: Istio for advanced traffic management
-- **API Gateway**: Kong or custom solution with more features
-- **Message Queue**: RabbitMQ or Kafka for reliable event delivery
-- **Service Discovery**: Consul for dynamic service registration
-- **Configuration Management**: Vault for secrets management
-- **Distributed Tracing**: Jaeger for request tracing
-- **WebSockets**: Real-time updates for frontend
-- **GraphQL**: Alternative API interface
-- **Mobile Apps**: Native iOS/Android applications
+| Monitoring | Loki, Promtail, Grafana |
+| Architecture | Microservices, Event-Driven |
 
 ## Best Practices
 
-1. **Service Independence**: Each service should be deployable independently
-2. **API Versioning**: Use versioned APIs for backward compatibility
-3. **Error Handling**: Consistent error responses across services
-4. **Logging**: Structured logging with correlation IDs
-5. **Testing**: Unit tests for each service, integration tests for flows
-6. **Documentation**: Keep API docs up to date
-7. **Monitoring**: Set up alerts for critical metrics
-8. **Security**: Regular security audits and updates
+1. **DBML-First**: All schema changes must happen in `schema.dbml` first.
+2. **Standardized Responses**: All APIs follow the `BaseApiController` pattern.
+3. **Shared Middleware**: Core security and headers are shared across services.
+4. **Asynchronous Processing**: Heavy tasks like parsing and AI are separated.

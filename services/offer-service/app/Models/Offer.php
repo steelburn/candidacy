@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class Offer extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = [
         'candidate_id', 'vacancy_id', 'salary_offered', 'currency',

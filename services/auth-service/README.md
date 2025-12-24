@@ -1,66 +1,232 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Auth Service
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Authentication and user management service for the Candidacy recruitment system.
 
-## About Laravel
+## Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Port**: 8081
+- **Database**: `candidacy_auth`
+- **Authentication**: JWT (tymon/jwt-auth)
+- **Framework**: Laravel 10
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Authentication
+- ✅ JWT-based authentication with `auth:api` guard
+- ✅ User login and registration
+- ✅ Token refresh and logout
+- ✅ Password change functionality
+- ✅ First-time admin setup
 
-## Learning Laravel
+### User Management
+- ✅ CRUD operations for users
+- ✅ Role assignment and management
+- ✅ User activation/deactivation
+- ✅ Department and position tracking
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Role Management
+- ✅ Predefined roles (Admin, HR Manager, Recruiter, Interviewer, Viewer)
+- ✅ Role-based permissions
+- ✅ User-role assignment
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## API Endpoints
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Public Endpoints
 
-## Laravel Sponsors
+```http
+POST   /api/auth/login              # User login
+POST   /api/auth/register           # User registration
+GET    /api/setup/check             # Check if setup needed
+POST   /api/setup/create-admin      # Create first admin user
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Protected Endpoints (require JWT token)
 
-### Premium Partners
+```http
+# Authentication
+POST   /api/auth/logout             # Logout user
+POST   /api/auth/refresh            # Refresh JWT token
+GET    /api/auth/me                 # Get current user
+POST   /api/auth/change-password    # Change password
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# User Management
+GET    /api/users                   # List all users
+POST   /api/users                   # Create new user
+GET    /api/users/{id}              # Get user details
+PUT    /api/users/{id}              # Update user
+DELETE /api/users/{id}              # Delete user
 
-## Contributing
+# Role Management
+GET    /api/roles                   # List all roles
+GET    /api/roles/{id}              # Get role details
+POST   /api/users/{userId}/roles    # Assign role to user
+DELETE /api/users/{userId}/roles/{roleId}  # Remove role from user
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Authentication Flow
 
-## Code of Conduct
+### Login
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@test.com",
+    "password": "password"
+  }'
+```
 
-## Security Vulnerabilities
+**Response:**
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "user": {
+    "id": 1,
+    "name": "Admin User",
+    "email": "admin@test.com",
+    "roles": []
+  }
+}
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Using the Token
 
-## License
+```bash
+curl -X GET http://localhost:8080/api/users \
+  -H "Authorization: Bearer {access_token}"
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Database Schema
+
+### Users Table
+- `id` - Primary key
+- `name` - User's full name
+- `email` - Unique email address
+- `password` - Hashed password
+- `department` - User's department
+- `position` - User's position
+- `is_active` - Account status
+- `email_verified_at` - Email verification timestamp
+- `created_at`, `updated_at`, `deleted_at`
+
+### Roles Table
+- `id` - Primary key
+- `name` - Role name (admin, hr_manager, recruiter, interviewer, viewer)
+- `display_name` - Human-readable name
+- `description` - Role description
+- `permissions` - JSON array of permissions
+- `created_at`, `updated_at`
+
+### User_Roles Table
+- `user_id` - Foreign key to users
+- `role_id` - Foreign key to roles
+- `assigned_at` - Assignment timestamp
+- `assigned_by` - User who assigned the role
+
+## Configuration
+
+### JWT Settings
+
+Token expiration and other JWT settings are configured in `config/jwt.php`:
+- **TTL**: 60 minutes
+- **Refresh TTL**: 20160 minutes (2 weeks)
+- **Algorithm**: HS256
+
+### Environment Variables
+
+```env
+APP_NAME=auth-service
+DB_DATABASE=candidacy_auth
+JWT_SECRET=your-secret-key
+JWT_TTL=60
+```
+
+## User Roles
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full system access, user management, system configuration |
+| **HR Manager** | Manage vacancies, view all data, configure onboarding |
+| **Recruiter** | Manage candidates, schedule interviews, view matches |
+| **Interviewer** | View assigned interviews, submit feedback |
+| **Viewer** | Read-only access to data |
+
+## First-Time Setup
+
+When no users exist in the system, use the setup endpoint:
+
+```bash
+curl -X POST http://localhost:8080/api/setup/create-admin \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Admin User",
+    "email": "admin@test.com",
+    "password": "password",
+    "password_confirmation": "password"
+  }'
+```
+
+This creates the first admin user and automatically logs them in.
+
+## Recent Fixes (2025-12-23)
+
+- ✅ Changed from `auth:sanctum` to `auth:api` for JWT compatibility
+- ✅ Fixed Authenticate middleware to return JSON 401 responses
+- ✅ Fixed Exception Handler for proper unauthenticated responses
+- ✅ Fixed health check Redis dependency issue
+
+## Development
+
+### Running Locally
+
+```bash
+cd services/auth-service
+composer install
+php artisan migrate
+php artisan db:seed
+php artisan serve --port=8081
+```
+
+### Testing
+
+```bash
+php artisan test
+php artisan test --filter=AuthenticationTest
+```
+
+## Health Check
+
+```bash
+curl http://localhost:8081/api/health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "service": "auth-service",
+  "timestamp": "2025-12-23T03:00:00.000000Z",
+  "checks": {
+    "database": "ok"
+  }
+}
+```
+
+## Troubleshooting
+
+**401 Unauthenticated errors**:
+- Ensure you're including the JWT token in the `Authorization` header
+- Check if token has expired (60 minute TTL)
+- Verify you're using `Bearer` prefix: `Authorization: Bearer {token}`
+
+**User creation fails**:
+- Check if email already exists
+- Verify password meets minimum requirements (6 characters)
+- Ensure password_confirmation matches password
+
+**Role assignment fails**:
+- Verify both user and role exist
+- Check if user already has the role
+- Ensure you have admin permissions

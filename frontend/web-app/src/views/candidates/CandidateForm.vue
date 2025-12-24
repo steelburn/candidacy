@@ -231,38 +231,19 @@ const processResume = async () => {
     const formData = new FormData()
     formData.append('file', cvFile.value)
     
+    // Call parse-cv endpoint (now returns immediately with job_id)
     const response = await candidateAPI.parseCv(formData)
     const data = response.data
     
-    // Auto-fill fields
-    if (data.name) form.value.name = data.name
-    if (data.email) form.value.email = data.email
-    if (data.phone) form.value.phone = data.phone
-    if (data.linkedin_url) form.value.linkedin_url = data.linkedin_url
-    if (data.github_url) form.value.github_url = data.github_url
-    if (data.portfolio_url) form.value.portfolio_url = data.portfolio_url
-    if (data.summary) form.value.summary = data.summary
-    if (data.years_of_experience) form.value.years_of_experience = data.years_of_experience
-    
-    if (data.skills) {
-      if (Array.isArray(data.skills)) {
-        form.value.skills = data.skills.join(', ')
-      } else if (typeof data.skills === 'string') {
-        form.value.skills = data.skills
-      }
+    // Check if async response (202 with job_id)
+    if (response.status === 202 && data.job_id) {
+      // Poll for results
+      await pollForParsingResults(data.job_id)
+    } else {
+      // Legacy sync response (shouldn't happen now, but handle it)
+      applyParsedData(data)
+      resumeProcessed.value = true
     }
-
-    // Store complex data
-    if (data.experience) {
-        form.value.experience = data.experience
-        parsedExperience.value = JSON.stringify(data.experience, null, 2)
-    }
-    if (data.education) {
-        form.value.education = data.education
-        parsedEducation.value = JSON.stringify(data.education, null, 2)
-    }
-    
-    resumeProcessed.value = true
     
   } catch (err) {
     console.error('Resume processing error:', err)
@@ -271,6 +252,74 @@ const processResume = async () => {
     processingResume.value = false
   }
 }
+
+// Poll for parsing results
+const pollForParsingResults = async (jobId) => {
+  const maxAttempts = 60 // 60 attempts
+  const pollInterval = 2000 // 2 seconds
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const statusResponse = await api.get(`/api/cv-parsing/${jobId}/status`)
+      const status = statusResponse.data.status
+      
+      if (status === 'completed') {
+        // Fetch the result
+        const resultResponse = await api.get(`/api/cv-parsing/${jobId}/result`)
+        const parsedData = resultResponse.data.parsed_data
+        applyParsedData(parsedData)
+        resumeProcessed.value = true
+        return
+      } else if (status === 'failed') {
+        throw new Error('AI parsing failed')
+      }
+      
+      // Still processing, wait and retry
+      await new Promise(resolve => setTimeout(resolve, pollInterval))
+      
+    } catch (err) {
+      if (err.response?.status === 202) {
+        // Still processing
+        await new Promise(resolve => setTimeout(resolve, pollInterval))
+      } else {
+        throw err
+      }
+    }
+  }
+  
+  throw new Error('Parsing timeout - please try again')
+}
+
+// Apply parsed data to form
+const applyParsedData = (data) => {
+  if (data.name) form.value.name = data.name
+  if (data.email) form.value.email = data.email
+  if (data.phone) form.value.phone = data.phone
+  if (data.linkedin_url) form.value.linkedin_url = data.linkedin_url
+  if (data.github_url) form.value.github_url = data.github_url
+  if (data.portfolio_url) form.value.portfolio_url = data.portfolio_url
+  if (data.summary) form.value.summary = data.summary
+  if (data.years_of_experience) form.value.years_of_experience = data.years_of_experience
+  
+  if (data.skills) {
+    if (Array.isArray(data.skills)) {
+      form.value.skills = data.skills.join(', ')
+    } else if (typeof data.skills === 'string') {
+      form.value.skills = data.skills
+    }
+  }
+
+  // Store complex data
+  if (data.experience) {
+    form.value.experience = data.experience
+    parsedExperience.value = JSON.stringify(data.experience, null, 2)
+  }
+  if (data.education) {
+    form.value.education = data.education
+    parsedEducation.value = JSON.stringify(data.education, null, 2)
+  }
+}
+
 
 const clearFile = () => {
     cvFile.value = null
@@ -314,14 +363,14 @@ const handleSubmit = async () => {
             ? JSON.stringify(form.value.experience)
             : form.value.experience
         formData.append('experience', expValue)
-        console.log('Appending experience:', expValue)
+
     }
     if (form.value.education !== null && form.value.education !== undefined) {
         const eduValue = Array.isArray(form.value.education)
             ? JSON.stringify(form.value.education)
             : form.value.education
         formData.append('education', eduValue)
-        console.log('Appending education:', eduValue)
+
     }
 
     if (cvFile.value) formData.append('cv_file', cvFile.value)

@@ -17,8 +17,15 @@ class GatewayController extends Controller
         'offers' => 'offer-service',
         'admin' => 'admin-service',
         'settings' => 'admin-service', // Admin service handles settings
+        'system-health' => 'admin-service', // Admin service handles system health
         'portal' => 'candidate-service', // Candidate service handles portal logic
         'notifications' => 'notification-service',
+        'reports' => 'reporting-service',
+        'users' => 'auth-service', // Auth service handles user management
+        'roles' => 'auth-service', // Auth service handles role management
+        'generate-jd' => 'ai-service', // AI service handles job description generation
+        'parse-cv' => 'ai-service', // AI service handles CV parsing
+        'match' => 'ai-service', // AI service handles matching
     ];
 
     public function handle(Request $request, $path)
@@ -58,9 +65,17 @@ class GatewayController extends Controller
 
         try {
             // Forward request
-            $response = Http::timeout(300)->withHeaders($request->header())
-                ->withBody($request->getContent(), $request->header('Content-Type'))
-                ->send($request->method(), $targetUrl);
+            $httpClient = Http::timeout(300)->withHeaders($request->header());
+            
+            // Only add body if there's content and a valid Content-Type
+            $contentType = $request->header('Content-Type');
+            $content = $request->getContent();
+            
+            if ($content && $contentType) {
+                $httpClient = $httpClient->withBody($content, $contentType);
+            }
+            
+            $response = $httpClient->send($request->method(), $targetUrl);
 
             // Build response with proper CORS headers
             $proxyResponse = response($response->body(), $response->status());

@@ -1,0 +1,61 @@
+<?php
+
+namespace Shared\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Security Headers Middleware
+ * 
+ * Adds security headers to all responses to protect against common web vulnerabilities
+ */
+class SecurityHeaders
+{
+    /**
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
+    public function handle(Request $request, Closure $next): Response
+    {
+        $response = $next($request);
+
+        // Prevent clickjacking attacks
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+
+        // Prevent MIME type sniffing
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+
+        // Enable XSS protection (legacy browsers)
+        $response->headers->set('X-XSS-Protection', '1; mode=block');
+
+        // Referrer policy
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+        // Permissions policy (formerly Feature-Policy)
+        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+        // Content Security Policy (CSP)
+        // Adjust this based on your application's needs
+        if (!app()->environment('local')) {
+            $response->headers->set('Content-Security-Policy', 
+                "default-src 'self'; " .
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " .
+                "style-src 'self' 'unsafe-inline'; " .
+                "img-src 'self' data: https:; " .
+                "font-src 'self' data:; " .
+                "connect-src 'self'; " .
+                "frame-ancestors 'self';"
+            );
+        }
+
+        // HSTS (HTTP Strict Transport Security) - only in production with HTTPS
+        if (!app()->environment('local') && $request->secure()) {
+            $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+        }
+
+        return $response;
+    }
+}
