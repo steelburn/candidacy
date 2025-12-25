@@ -132,13 +132,18 @@ class OllamaService
                 'prompt_preview' => substr($prompt, 0, 200) . '...'
             ]);
             
-            $response = Http::timeout(300)->post("{$this->baseUrl}/api/generate", [
+            // Get generation parameters from config
+            $timeout = (int) \Shared\Services\ConfigurationService::get('ai.generation.timeout', 300);
+            $temperature = (float) \Shared\Services\ConfigurationService::get('ai.generation.temperature', 0.7);
+            $contextLength = (int) \Shared\Services\ConfigurationService::get('ai.generation.context_length', 8192);
+            
+            $response = Http::timeout($timeout)->post("{$this->baseUrl}/api/generate", [
                 'model' => $modelName,
                 'prompt' => $prompt,
                 'stream' => false,
                 'options' => [
-                    'num_ctx' => 8192,
-                    'temperature' => 0.7,
+                    'num_ctx' => $contextLength,
+                    'temperature' => $temperature,
                     'repeat_penalty' => 1.5,
                     'top_k' => 40,
                     'top_p' => 0.9,

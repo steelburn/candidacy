@@ -149,6 +149,38 @@ class ConfigurationSeeder extends Seeder
                 'service_scope' => 'ai-service',
                 'requires_restart' => false,
             ],
+            [
+                'key' => 'ai.generation.timeout',
+                'value' => '300',
+                'type' => 'integer',
+                'category' => 'ai',
+                'description' => 'AI generation timeout in seconds',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:30', 'max:600'],
+            ],
+            [
+                'key' => 'ai.generation.temperature',
+                'value' => '0.7',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'AI temperature (0.0-1.0, lower = more deterministic)',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'ai.generation.context_length',
+                'value' => '8192',
+                'type' => 'integer',
+                'category' => 'ai',
+                'description' => 'Context window size for AI generation',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:2048', 'max:32768'],
+            ],
 
             // Document Parser Configuration
             [
