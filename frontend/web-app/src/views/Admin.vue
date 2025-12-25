@@ -50,53 +50,21 @@
 
     <!-- Settings Tab -->
     <div v-if="currentTab === 'settings'" class="tab-content">
-      <h2>System Settings</h2>
+      <h2>Quick Settings</h2>
+      
+      <div class="info-banner">
+        <div class="info-icon">ℹ️</div>
+        <div class="info-content">
+          <strong>Looking for system configuration?</strong>
+          <p>All system settings (AI, storage, features, etc.) have been moved to the <strong>Configuration</strong> tab for better organization and management.</p>
+          <button @click="currentTab = 'configuration'" class="btn-link">Go to Configuration →</button>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading">Loading settings...</div>
       <form v-else @submit.prevent="saveSettings" class="settings-form">
-        <div class="form-group">
-          <label>Application Name</label>
-          <input v-model="settings.app_name" type="text" />
-        </div>
+        <h3>UI Customization</h3>
         
-        <div class="form-group">
-          <label>Company Name</label>
-          <input v-model="settings.company_name" type="text" />
-        </div>
-        
-        <div class="form-group">
-          <label>Contact Email</label>
-          <input v-model="settings.contact_email" type="email" />
-        </div>
-
-        <div class="form-group">
-          <label>Applicant Portal Base URL</label>
-          <input 
-            v-model="settings.candidate_portal_url" 
-            type="text" 
-            placeholder="http://localhost:5173/portal" 
-          />
-          <small>The base URL for generated applicant links (e.g. https://your-domain.com/portal)</small>
-        </div>
-        
-        <div class="form-group">
-          <label>
-            <input v-model="settings.enable_notifications" type="checkbox" />
-            Enable Email Notifications
-          </label>
-        </div>
-        
-        <div class="form-group">
-          <label>
-            <input v-model="settings.enable_ai" type="checkbox" />
-            Enable AI Features
-          </label>
-        </div>
-        
-        <div class="form-group">
-          <label>Max File Upload Size (MB)</label>
-          <input v-model.number="settings.max_upload_size" type="number" min="1" max="100" />
-        </div>
-
         <div class="form-group">
           <label>Login Background Image</label>
           <input 
@@ -105,74 +73,6 @@
             placeholder="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920"
           />
           <small>URL to background image for login page. Leave empty for gradient fallback.</small>
-        </div>
-
-        <hr style="margin: 2rem 0; border: none; border-top: 2px solid #eee;" />
-        <h3 style="margin-bottom: 1rem;">AI Provider Settings</h3>
-
-        <div class="form-group">
-          <label>AI Provider</label>
-          <select v-model="settings.ai_provider" class="select-input">
-            <option value="ollama">Ollama (Local, Free)</option>
-            <option value="openrouter">OpenRouter (Cloud API)</option>
-          </select>
-          <small style="color: #666; margin-top: 0.5rem; display: block;">
-            Ollama runs locally (free), OpenRouter uses cloud API (requires key)
-          </small>
-        </div>
-
-        <div v-if="settings.ai_provider === 'ollama'" class="provider-settings">
-          <div class="form-group">
-            <label>Ollama URL</label>
-            <input 
-              v-model="settings.ollama_url" 
-              type="text" 
-              placeholder="http://ollama:11434"
-            />
-            <small>Default: http://ollama:11434 (Internal Docker DNS) or http://host.docker.internal:11434 (Localhost)</small>
-          </div>
-          
-          <div class="form-group">
-            <label>Ollama Model (CV Parsing)</label>
-            <input 
-              v-model="settings.ollama_model" 
-              type="text" 
-              placeholder="mistral"
-            />
-            <small>Larger model for detailed CV parsing. Default: mistral</small>
-          </div>
-          
-          <div class="form-group">
-            <label>Ollama Model (Matching)</label>
-            <input 
-              v-model="settings.ollama_matching_model" 
-              type="text" 
-              placeholder="llama3.2:3b"
-            />
-            <small>Faster model for candidate matching. Recommended: llama3.2:3b, phi3:mini, gemma2:2b</small>
-          </div>
-          
-          <div class="form-group">
-            <label>Ollama Model (Interview Questions)</label>
-            <input 
-              v-model="settings.ollama_questionnaire_model" 
-              type="text" 
-              placeholder="gemma2:2b"
-            />
-            <small>Model for generating interview questions. Recommended: gemma2:2b, llama3.2:3b, phi3:mini</small>
-          </div>
-        </div>
-
-        <div v-if="settings.ai_provider === 'openrouter'" class="form-group">
-          <label>OpenRouter API Key</label>
-          <input 
-            v-model="settings.openrouter_api_key" 
-            type="password" 
-            placeholder="sk-or-..." 
-          />
-          <small style="color: #666; margin-top: 0.5rem; display: block;">
-            Get your API key from <a href="https://openrouter.ai/" target="_blank">openrouter.ai</a>
-          </small>
         </div>
 
         <div v-if="error" class="error">{{ error }}</div>
@@ -1202,6 +1102,56 @@ onMounted(() => {
   color: #999;
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Info Banner */
+.info-banner {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-left: 4px solid #2196f3;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.info-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-content strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #1976d2;
+  font-size: 1.1rem;
+}
+
+.info-content p {
+  margin: 0 0 0.75rem 0;
+  color: #555;
+  line-height: 1.5;
+}
+
+.btn-link {
+  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.3s;
+}
+
+.btn-link:hover {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  transform: translateX(2px);
 }
 
 /* Configuration Tab Styles */
