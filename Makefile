@@ -305,3 +305,12 @@ dbml-reset:
 		echo "Operation cancelled."; \
 		exit 1; \
 	fi
+
+setup-env:
+	@echo "🔧 Generating .env files from templates..."
+	@./scripts/setup-env.sh
+
+generate-secrets:
+	@echo "🔐 Generating secrets for all services..."
+	@echo "This feature will be implemented in setup-services.sh"
+	@echo "For now, manually update JWT_SECRET and APP_KEY in .env files"

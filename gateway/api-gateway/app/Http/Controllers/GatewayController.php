@@ -30,6 +30,24 @@ class GatewayController extends Controller
 
     public function handle(Request $request, $path)
     {
+        // Handle preflight OPTIONS requests
+        if ($request->isMethod('OPTIONS')) {
+            $origin = $request->header('Origin');
+            $allowedOrigins = ['http://localhost:3001', 'http://localhost:3002'];
+            
+            $response = response('', 200);
+            
+            if (in_array($origin, $allowedOrigins)) {
+                $response->header('Access-Control-Allow-Origin', $origin);
+                $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+                $response->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+                $response->header('Access-Control-Allow-Credentials', 'true');
+                $response->header('Access-Control-Max-Age', '86400');
+            }
+            
+            return $response;
+        }
+        
         // $path comes from route /{any} where prefix 'api' is already handled or stripped?
         // RouteServiceProvider maps 'api' prefix to routes/api.php.
         // So if request is /api/candidates/parse-cv

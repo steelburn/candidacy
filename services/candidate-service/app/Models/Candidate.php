@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Candidate extends Model
 {
     use HasFactory, SoftDeletes;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = [
         'name',

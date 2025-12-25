@@ -19,22 +19,27 @@ docker compose down
 echo -e "${GREEN}✓ All containers stopped${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 2: Rebuilding containers (this may take a few minutes)...${NC}"
+echo -e "${YELLOW}Step 2: Rebuilding base image...${NC}"
+docker build -t candidacy-base:latest -f infrastructure/docker/Dockerfile.base .
+echo -e "${GREEN}✓ Base image rebuilt${NC}"
+echo ""
+
+echo -e "${YELLOW}Step 3: Rebuilding containers (this may take a few minutes)...${NC}"
 docker compose build --no-cache
 echo -e "${GREEN}✓ All containers rebuilt${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 3: Starting all services...${NC}"
+echo -e "${YELLOW}Step 4: Starting all services...${NC}"
 docker compose up -d
 echo -e "${GREEN}✓ All services started${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 4: Waiting for services to initialize (30 seconds)...${NC}"
+echo -e "${YELLOW}Step 5: Waiting for services to initialize (30 seconds)...${NC}"
 sleep 30
 echo -e "${GREEN}✓ Services initialized${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 5: Regenerating composer autoload for all services...${NC}"
+echo -e "${YELLOW}Step 6: Regenerating composer autoload for all services...${NC}"
 SERVICES=(
     "auth-service"
     "candidate-service"
@@ -56,16 +61,16 @@ for SERVICE in "${SERVICES[@]}"; do
 done
 echo ""
 
-echo -e "${YELLOW}Step 6: Restarting all services to apply changes...${NC}"
+echo -e "${YELLOW}Step 7: Restarting all services to apply changes...${NC}"
 docker compose restart
 echo -e "${GREEN}✓ All services restarted${NC}"
 echo ""
 
-echo -e "${YELLOW}Step 7: Waiting for services to be ready (20 seconds)...${NC}"
+echo -e "${YELLOW}Step 8: Waiting for services to be ready (20 seconds)...${NC}"
 sleep 20
 echo ""
 
-echo -e "${YELLOW}Step 8: Testing services...${NC}"
+echo -e "${YELLOW}Step 9: Testing services...${NC}"
 echo ""
 
 # Test auth service

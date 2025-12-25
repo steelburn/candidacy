@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class Permission extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = ['name', 'display_name', 'description'];
 

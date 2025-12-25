@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class OnboardingChecklist extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = [
         'candidate_id', 'task_name', 'description', 'status',

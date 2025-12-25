@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class InterviewFeedback extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $table = 'interview_feedback';
 

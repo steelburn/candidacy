@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class JobStatus extends Model
 {
     use HasFactory;
-    use \Shared\Traits\HasJsonFields;
 
     protected $fillable = [
         'type',
