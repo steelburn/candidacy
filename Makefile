@@ -17,7 +17,7 @@ help:
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🚀 Main Commands:"
-	@echo "  make setup          - Initial setup (create all services)"
+	@echo "  make setup          - Complete platform setup (recommended for first time)"
 	@echo "  make up             - Start all services"
 	@echo "  make down           - Stop all services"
 	@echo "  make restart        - Restart all services"
@@ -25,7 +25,8 @@ help:
 	@echo "  make pull           - Pull latest images"
 	@echo ""
 	@echo "📊 Database Commands:"
-	@echo "  make seed           - Seed all databases"
+	@echo "  make seed           - Seed all databases with sample data"
+	@echo "  make seed-config    - Seed configuration settings (27 settings)"
 	@echo "  make db-reset       - Reset all databases (WARNING: destructive)"
 	@echo ""
 	@echo "🗄️  DBML Commands (Database-as-Code):"
@@ -76,16 +77,43 @@ help:
 	@echo ""
 
 setup:
-	@echo "🚀 Setting up Candidacy Microservices..."
-	./scripts/setup-services.sh
-	@if [ ! -f .env ]; then cp .env.example .env; fi
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║     Candidacy Platform - Complete Setup                       ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "✅ Setup complete!"
-	@echo "📝 Next steps:"
-	@echo "  1. Edit .env file with your configuration"
-	@echo "  2. Run 'make up' to start all services"
-	@echo "  3. Run 'make dbml-init' to set up databases"
-	@echo "  4. Run 'make seed' to populate initial data"
+	@echo "📋 Step 1/5: Setting up environment..."
+	@bash scripts/setup-env.sh
+	@echo ""
+	@echo "📋 Step 2/5: Building base Docker image..."
+	@docker build -f infrastructure/docker/Dockerfile.base -t candidacy-base:latest .
+	@echo ""
+	@echo "📋 Step 3/5: Initializing databases from DBML..."
+	@$(MAKE) dbml-init
+	@echo ""
+	@echo "📋 Step 4/5: Starting services..."
+	@docker compose up -d
+	@echo ""
+	@echo "📋 Step 5/5: Seeding configuration..."
+	@sleep 5
+	@docker compose exec -T admin-service php artisan db:seed --class=ConfigurationSeeder || echo "⚠️  Configuration seeding will run on first admin-service start"
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║                    ✅ Setup Complete!                          ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "🌐 Access Points:"
+	@echo "  • Main Frontend (HR/Recruiter): http://localhost:3001"
+	@echo "  • Applicant Portal:             http://localhost:5173"
+	@echo "  • API Gateway:                  http://localhost:8080"
+	@echo "  • Admin API:                    http://localhost:8090"
+	@echo "  • Grafana (Monitoring):         http://localhost:3050 (admin/admin)"
+	@echo ""
+	@echo "📚 Next Steps:"
+	@echo "  • View logs:           make logs"
+	@echo "  • View configuration:  curl http://localhost:8090/api/settings"
+	@echo "  • Update config:       See CONFIGURATION.md"
+	@echo "  • Documentation:       See README.md"
+	@echo ""
 
 up:
 	@echo "🚀 Starting all services..."

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Environment Setup Script
-# Generates .env files from .env.example templates for all services
+# Generates .env file from root .env.example
 
 set -e
 
@@ -10,97 +10,82 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}==================================${NC}"
-echo -e "${BLUE}Environment Setup Script${NC}"
-echo -e "${BLUE}==================================${NC}"
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║          Candidacy Platform - Environment Setup               ║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
 # Base directory
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$BASE_DIR"
 
-# Counter for tracking
-CREATED=0
-SKIPPED=0
-FAILED=0
-
-# Function to generate .env from .env.example
-generate_env() {
-    local example_file="$1"
-    local env_file="${example_file%.example}"
-    local relative_path=$(echo "$example_file" | sed "s|$BASE_DIR/||")
-    local service_name=$(dirname "$relative_path")
-    
-    # Clean up service name for display
-    if [ "$service_name" = "." ]; then
-        service_name="root"
-    fi
-    
-    echo -e "Processing: ${YELLOW}$service_name${NC}"
-    
-    if [ -f "$env_file" ]; then
-        echo -e "  ${YELLOW}⚠${NC}  .env already exists, skipping..."
-        ((SKIPPED++))
-    else
-        if cp "$example_file" "$env_file"; then
-            echo -e "  ${GREEN}✓${NC}  Created .env file"
-            ((CREATED++))
-        else
-            echo -e "  ${RED}✗${NC}  Failed to create .env file"
-            ((FAILED++))
-        fi
-    fi
-    echo ""
-}
-
-# Find all .env.example files dynamically
-echo "Searching for .env.example files..."
-echo ""
-
-# Use find to locate all .env.example files
-while IFS= read -r example_file; do
-    generate_env "$example_file"
-done < <(find "$BASE_DIR" -name ".env.example" -type f | sort)
-
-# Summary
-echo -e "${BLUE}==================================${NC}"
-echo -e "${BLUE}Summary${NC}"
-echo -e "${BLUE}==================================${NC}"
-echo -e "Created: ${GREEN}$CREATED${NC}"
-echo -e "Skipped: ${YELLOW}$SKIPPED${NC}"
-echo -e "Failed:  ${RED}$FAILED${NC}"
-echo ""
-
-if [ $FAILED -gt 0 ]; then
-    echo -e "${RED}Some .env files failed to generate. Please check the errors above.${NC}"
+# Check if root .env.example exists
+if [ ! -f ".env.example" ]; then
+    echo -e "${RED}✗ Error: .env.example not found in root directory${NC}"
     exit 1
 fi
 
-if [ $CREATED -gt 0 ]; then
-    echo -e "${GREEN}✓ Environment files generated successfully!${NC}"
+# Generate root .env file
+if [ -f ".env" ]; then
+    echo -e "${YELLOW}⚠  .env already exists in root directory${NC}"
+    echo -e "   Skipping .env generation..."
     echo ""
-    echo -e "${YELLOW}IMPORTANT:${NC} Please review and update the generated .env files with your specific configuration:"
-    echo ""
-    echo "  ${BLUE}Required Updates:${NC}"
-    echo "    • Database credentials (DB_PASSWORD, etc.)"
-    echo "    • API keys and secrets"
-    echo "    • Service URLs (if different from defaults)"
-    echo "    • JWT_SECRET and APP_KEY (use 'make generate-secrets')"
-    echo ""
-    echo "  ${BLUE}Granite Docling Configuration:${NC}"
-    echo "    • OLLAMA_URL (default: http://192.168.88.120:11434)"
-    echo "    • GRANITE_DOCLING_MODEL (default: ibm/granite-docling:258m)"
-    echo "    • DOCLING_TIMEOUT (default: 60)"
-    echo "    • DOCLING_IMAGE_RESOLUTION (default: 150)"
-    echo ""
-    echo "See services/document-parser-service/DOCLING_CONFIG.md for details."
 else
-    echo -e "${YELLOW}All .env files already exist. No changes made.${NC}"
-    echo ""
-    echo -e "To regenerate .env files, delete existing ones and run this script again."
+    if cp ".env.example" ".env"; then
+        echo -e "${GREEN}✓ Created root .env file${NC}"
+        echo ""
+    else
+        echo -e "${RED}✗ Failed to create .env file${NC}"
+        exit 1
+    fi
 fi
 
+# Summary
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}📋 Setup Complete!${NC}"
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${GREEN}Done!${NC}"
+echo -e "${GREEN}✓ Environment file configured${NC}"
+echo ""
+echo -e "${YELLOW}⚙️  Configuration System:${NC}"
+echo -e "   The Candidacy platform uses a ${CYAN}centralized configuration system${NC}."
+echo -e "   Application settings are stored in the ${CYAN}database${NC}, not in .env files."
+echo ""
+echo -e "${BLUE}📝 What's in .env:${NC}"
+echo -e "   • Infrastructure settings (Database, Redis, Service URLs)"
+echo -e "   • Environment mode (APP_ENV, APP_DEBUG)"
+echo -e "   • Logging configuration"
+echo ""
+echo -e "${BLUE}📝 What's in Database:${NC}"
+echo -e "   • AI provider settings (Ollama URL, models)"
+echo -e "   • Document parser configuration (Granite Docling)"
+echo -e "   • Feature flags (enable AI, auto-matching)"
+echo -e "   • Business logic settings (offer expiry, interview reminders)"
+echo -e "   • Storage limits and quotas"
+echo ""
+echo -e "${YELLOW}🚀 Next Steps:${NC}"
+echo ""
+echo -e "   1. ${CYAN}Review .env file${NC} and update if needed:"
+echo -e "      • Database credentials (default: root/root)"
+echo -e "      • Redis configuration (default: redis:6379)"
+echo ""
+echo -e "   2. ${CYAN}Initialize the platform:${NC}"
+echo -e "      ${GREEN}make setup${NC}  # Complete platform setup"
+echo ""
+echo -e "   3. ${CYAN}Start services:${NC}"
+echo -e "      ${GREEN}make up${NC}     # Start all services"
+echo ""
+echo -e "   4. ${CYAN}Seed configuration:${NC}"
+echo -e "      Configuration is automatically seeded during 'make setup'"
+echo -e "      Or manually: ${GREEN}make seed-config${NC}"
+echo ""
+echo -e "${BLUE}📚 Documentation:${NC}"
+echo -e "   • Configuration reference: ${CYAN}CONFIGURATION.md${NC}"
+echo -e "   • Quick start guide: ${CYAN}QUICKSTART.md${NC}"
+echo -e "   • Full documentation: ${CYAN}README.md${NC}"
+echo ""
+echo -e "${GREEN}Done! Ready to start development.${NC}"
+echo ""
