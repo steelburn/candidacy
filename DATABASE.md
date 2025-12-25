@@ -4,7 +4,29 @@ This directory contains the complete database schema for the Candidacy applicati
 
 ## DBML-First Workflow
 
-The Candidacy application uses **DBML as the single source of truth** for database schema. Instead of writing Laravel migrations, you edit `schema.dbml` and generate SQL from it.
+The Candidacy application uses **DBML as the single source of truth** for database schema. Instead of writing Laravel migrations, you edit the modular DBML files in `database/dbml/` and generate SQL from them.
+
+### Schema Structure
+
+```
+database/dbml/
+├── project.dbml      # Project metadata
+├── enums.dbml        # Shared enumerations
+├── admin.dbml        # Admin service tables
+├── auth.dbml         # Auth service tables
+├── candidate.dbml    # Candidate service tables
+├── vacancy.dbml      # Vacancy service tables
+├── matching.dbml     # Matching service tables
+├── interview.dbml    # Interview service tables
+├── offer.dbml        # Offer service tables
+├── onboarding.dbml   # Onboarding service tables
+├── document_parser.dbml  # Document parser tables
+├── notification.dbml # Notification service (stateless)
+├── ai.dbml           # AI service (stateless)
+└── relationships.dbml # Cross-service relationships
+```
+
+The root `schema.dbml` is **auto-generated** by combining these files.
 
 ### Quick Start
 
@@ -27,10 +49,11 @@ make dbml-reset
 
 ### Making Schema Changes
 
-1. **Edit schema.dbml**
+1. **Edit the appropriate DBML module**
    ```bash
-   # Edit the DBML file with your changes
-   vim schema.dbml
+   # Edit the service-specific DBML file
+   vim database/dbml/matching.dbml   # For matching service changes
+   vim database/dbml/candidate.dbml  # For candidate service changes
    ```
 
 2. **Validate syntax**
@@ -62,10 +85,14 @@ make dbml-reset
 | `make dbml-check` | Check if DBML is in sync with databases |
 | `make dbml-init` | Initialize databases from DBML |
 | `make dbml-reset` | Drop & recreate databases from DBML ⚠️ |
+| `make clear-matches` | Clear all match data (for re-running matching) |
 
 ## Files
 
-- **`schema.dbml`** - Complete database schema for all microservices
+- **`database/dbml/*.dbml`** - Modular DBML source files (edit these)
+- **`schema.dbml`** - Auto-generated combined schema (do not edit directly)
+- **`database/schema.sql`** - Auto-generated complete SQL
+- **`database/sql/*.sql`** - Auto-generated per-service SQL files
 
 ## What is DBML?
 
@@ -92,7 +119,11 @@ The Candidacy application uses a microservices architecture with separate databa
    - vacancies, vacancy_questions, required_skills
 
 4. **candidacy_matching** - AI-powered candidate-vacancy matching
-   - matches, job_statuses_matching
+   - matches, job_statuses_matching, matching_job_statuses
+   - **Business Rules:**
+     - Matches below 40% score are automatically discarded
+     - Missing RECOMMENDATION triggers retry (up to 3 attempts)
+     - Statuses: pending, reviewed, accepted, rejected, shortlisted, applied, dismissed
 
 5. **candidacy_interview** - Interview scheduling and feedback
    - interviews, interview_feedback
