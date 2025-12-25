@@ -17,11 +17,11 @@ class PdfParserService
     
     public function __construct()
     {
-        $this->useDocling = env('USE_GRANITE_DOCLING', true);
-        $this->ollamaUrl = env('OLLAMA_URL', 'http://192.168.88.120:11434');
-        $this->model = env('GRANITE_DOCLING_MODEL', 'ibm/granite-docling:258m');
-        $this->timeout = env('DOCLING_TIMEOUT', 60);
-        $this->imageResolution = env('DOCLING_IMAGE_RESOLUTION', 150);
+        $this->useDocling = \Shared\Services\ConfigurationService::get('document_parser.use_granite_docling', env('USE_GRANITE_DOCLING', true));
+        $this->ollamaUrl = \Shared\Services\ConfigurationService::get('ai.ollama.url', env('OLLAMA_URL', 'http://192.168.88.120:11434'));
+        $this->model = \Shared\Services\ConfigurationService::get('document_parser.granite_model', env('GRANITE_DOCLING_MODEL', 'ibm/granite-docling:258m'));
+        $this->timeout = \Shared\Services\ConfigurationService::get('document_parser.timeout', env('DOCLING_TIMEOUT', 60));
+        $this->imageResolution = \Shared\Services\ConfigurationService::get('document_parser.image_resolution', env('DOCLING_IMAGE_RESOLUTION', 150));
     }
     
     public function extractText(string $path): array

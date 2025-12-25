@@ -1,0 +1,322 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Setting;
+use Illuminate\Database\Seeder;
+
+class ConfigurationSeeder extends Seeder
+{
+    /**
+     * Seed the application's configuration settings
+     */
+    public function run(): void
+    {
+        $settings = [
+            // System Configuration
+            [
+                'key' => 'app.name',
+                'value' => 'Candidacy',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Application name displayed in UI',
+                'is_public' => true,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'app.company_name',
+                'value' => 'Candidacy Inc.',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Company name for branding',
+                'is_public' => true,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'app.contact_email',
+                'value' => 'contact@candidacy.com',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Contact email for support',
+                'is_public' => true,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'app.candidate_portal_url',
+                'value' => 'http://localhost:5173',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Base URL for candidate self-service portal',
+                'is_public' => false,
+                'service_scope' => 'candidate-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'app.timezone',
+                'value' => 'UTC',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Default timezone for the application',
+                'is_public' => false,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'app.language',
+                'value' => 'en',
+                'type' => 'string',
+                'category' => 'system',
+                'description' => 'Default language',
+                'is_public' => false,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+
+            // AI Configuration
+            [
+                'key' => 'ai.provider',
+                'value' => 'ollama',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'AI provider: ollama or openrouter',
+                'is_public' => false,
+                'service_scope' => 'ai-service,document-parser-service',
+                'requires_restart' => false,
+                'validation_rules' => ['in:ollama,openrouter'],
+            ],
+            [
+                'key' => 'ai.ollama.url',
+                'value' => 'http://192.168.88.120:11434',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'Ollama API endpoint URL',
+                'is_public' => false,
+                'service_scope' => 'ai-service,document-parser-service',
+                'requires_restart' => false,
+                'validation_rules' => ['url'],
+            ],
+            [
+                'key' => 'ai.ollama.model.default',
+                'value' => 'mistral',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'Default Ollama model for general AI tasks',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'ai.ollama.model.matching',
+                'value' => 'llama3.2:3b',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'Ollama model for candidate-vacancy matching',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'ai.ollama.model.cv_parsing',
+                'value' => 'llama3.2',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'Ollama model for CV parsing',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'ai.openrouter.api_key',
+                'value' => '',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'OpenRouter API key',
+                'is_public' => false,
+                'is_sensitive' => true,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'ai.openrouter.model',
+                'value' => 'mistralai/mistral-7b-instruct',
+                'type' => 'string',
+                'category' => 'ai',
+                'description' => 'OpenRouter model to use',
+                'is_public' => false,
+                'service_scope' => 'ai-service',
+                'requires_restart' => false,
+            ],
+
+            // Document Parser Configuration
+            [
+                'key' => 'document_parser.use_granite_docling',
+                'value' => 'true',
+                'type' => 'boolean',
+                'category' => 'document_parser',
+                'description' => 'Enable IBM Granite Docling for advanced PDF parsing',
+                'is_public' => false,
+                'service_scope' => 'document-parser-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'document_parser.granite_model',
+                'value' => 'ibm/granite-docling:258m',
+                'type' => 'string',
+                'category' => 'document_parser',
+                'description' => 'Granite Docling model name',
+                'is_public' => false,
+                'service_scope' => 'document-parser-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'document_parser.timeout',
+                'value' => '60',
+                'type' => 'integer',
+                'category' => 'document_parser',
+                'description' => 'Document parsing timeout in seconds',
+                'is_public' => false,
+                'service_scope' => 'document-parser-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:10', 'max:300'],
+            ],
+            [
+                'key' => 'document_parser.image_resolution',
+                'value' => '150',
+                'type' => 'integer',
+                'category' => 'document_parser',
+                'description' => 'PDF-to-image resolution in DPI',
+                'is_public' => false,
+                'service_scope' => 'document-parser-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:72', 'max:300'],
+            ],
+
+            // Recruitment Configuration
+            [
+                'key' => 'recruitment.auto_matching',
+                'value' => 'true',
+                'type' => 'boolean',
+                'category' => 'recruitment',
+                'description' => 'Automatically match candidates to vacancies',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'recruitment.offer_expiry_days',
+                'value' => '7',
+                'type' => 'integer',
+                'category' => 'recruitment',
+                'description' => 'Number of days before job offers expire',
+                'is_public' => false,
+                'service_scope' => 'offer-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:1', 'max:90'],
+            ],
+            [
+                'key' => 'recruitment.interview_reminder_hours',
+                'value' => '24',
+                'type' => 'integer',
+                'category' => 'recruitment',
+                'description' => 'Hours before interview to send reminder',
+                'is_public' => false,
+                'service_scope' => 'interview-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:1', 'max:168'],
+            ],
+
+            // Storage Configuration
+            [
+                'key' => 'storage.cv_storage_limit_mb',
+                'value' => '10',
+                'type' => 'integer',
+                'category' => 'storage',
+                'description' => 'Maximum CV file size in MB',
+                'is_public' => false,
+                'service_scope' => 'candidate-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:1', 'max:50'],
+            ],
+            [
+                'key' => 'storage.max_upload_size',
+                'value' => '10',
+                'type' => 'integer',
+                'category' => 'storage',
+                'description' => 'Maximum upload size in MB',
+                'is_public' => false,
+                'service_scope' => 'candidate-service,document-parser-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:1', 'max:100'],
+            ],
+
+            // Feature Flags
+            [
+                'key' => 'features.enable_ai',
+                'value' => 'true',
+                'type' => 'boolean',
+                'category' => 'features',
+                'description' => 'Enable AI-powered features',
+                'is_public' => false,
+                'service_scope' => 'all',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'features.enable_notifications',
+                'value' => 'true',
+                'type' => 'boolean',
+                'category' => 'features',
+                'description' => 'Enable email notifications',
+                'is_public' => false,
+                'service_scope' => 'notification-service',
+                'requires_restart' => false,
+            ],
+            [
+                'key' => 'features.enable_auto_matching',
+                'value' => 'true',
+                'type' => 'boolean',
+                'category' => 'features',
+                'description' => 'Enable automatic candidate matching',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+            ],
+
+            // Service URLs (Internal)
+            [
+                'key' => 'services.ai_service_url',
+                'value' => 'http://ai-service:8080',
+                'type' => 'string',
+                'category' => 'services',
+                'description' => 'Internal AI service URL',
+                'is_public' => false,
+                'service_scope' => 'candidate-service,vacancy-service,matching-service',
+                'requires_restart' => false,
+                'validation_rules' => ['url'],
+            ],
+            [
+                'key' => 'services.document_parser_url',
+                'value' => 'http://document-parser-service:8080',
+                'type' => 'string',
+                'category' => 'services',
+                'description' => 'Internal document parser service URL',
+                'is_public' => false,
+                'service_scope' => 'candidate-service',
+                'requires_restart' => false,
+                'validation_rules' => ['url'],
+            ],
+        ];
+
+        foreach ($settings as $setting) {
+            Setting::updateOrCreate(
+                ['key' => $setting['key']],
+                $setting
+            );
+        }
+
+        $this->command->info('Configuration settings seeded successfully!');
+        $this->command->info('Total settings: ' . count($settings));
+    }
+}

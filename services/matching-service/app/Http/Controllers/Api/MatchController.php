@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\JobStatus;
 use App\Jobs\MatchJob;
+use Shared\Services\ConfigurationService;
 
 class MatchController extends BaseApiController
 {
@@ -22,7 +23,7 @@ class MatchController extends BaseApiController
     {
         $this->candidateServiceUrl = env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080');
         $this->vacancyServiceUrl = env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080');
-        $this->aiServiceUrl = env('AI_SERVICE_URL', 'http://ai-service:8080');
+        $this->aiServiceUrl = ConfigurationService::get('services.ai_service_url', env('AI_SERVICE_URL', 'http://ai-service:8080'));
     }
 
     public function matchCandidateToVacancies(Request $request, $id)

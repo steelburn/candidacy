@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libzip-dev \
     poppler-utils \
+    ghostscript \
     libmagickwand-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
     && pecl install redis imagick \

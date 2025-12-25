@@ -486,13 +486,52 @@ Table settings {
   category varchar(255) [null]
   description text [null]
   is_public boolean [default: false, not null]
+  is_sensitive boolean [default: false, not null]
+  validation_rules json [null]
+  default_value text [null]
+  service_scope varchar(255) [null]
+  requires_restart boolean [default: false, not null]
+  version int [default: 1, not null]
+  updated_by bigint [null]
   created_at timestamp [null]
   updated_at timestamp [null]
+  
+  indexes {
+    category [name: 'idx_settings_category']
+    service_scope [name: 'idx_settings_service_scope']
+    is_public [name: 'idx_settings_is_public']
+  }
   
   Note: '''
     Application-wide settings and configuration
     Types: string, integer, boolean, json
     Public settings are accessible without authentication
+    Sensitive settings are masked in UI (API keys, passwords)
+    Service scope indicates which service(s) use this setting
+    Validation rules stored as JSON schema
+  '''
+}
+
+Table setting_change_logs {
+  id bigint [pk, increment]
+  setting_id bigint [not null, ref: > settings.id]
+  old_value text [null]
+  new_value text [null]
+  changed_by bigint [not null]
+  changed_at timestamp [default: `CURRENT_TIMESTAMP`]
+  ip_address varchar(45) [null]
+  user_agent varchar(255) [null]
+  
+  indexes {
+    setting_id [name: 'idx_setting_logs_setting_id']
+    changed_at [name: 'idx_setting_logs_changed_at']
+    changed_by [name: 'idx_setting_logs_changed_by']
+  }
+  
+  Note: '''
+    Audit trail for configuration changes
+    Tracks who changed what configuration, when, and from where
+    Enables configuration rollback and compliance tracking
   '''
 }
 

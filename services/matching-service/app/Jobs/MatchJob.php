@@ -3,18 +3,14 @@
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue; // ShouldBeUnique?
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\JobStatus;
-use App\Http\Controllers\Api\MatchController; 
-// We will instantiate MatchController or access logic via service.
-// MatchController is an API controller. Logic should be in a Service ideally.
-// But current implementation is in Controller. I'll instantiate Controller for now or copy logic.
-// Better: Refactor MatchController logic into MatchService. 
-// For now, I'll cheat and put logic here or instantiate controller.
+use App\Http\Controllers\Api\MatchController;
 use Shared\Constants\AppConstants;
+use Shared\Services\ConfigurationService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
@@ -56,7 +52,7 @@ class MatchJob implements ShouldQueue
             // Service URLs - using defaults if env not set
             $candidateServiceUrl = env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080');
             $vacancyServiceUrl = env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080');
-            $aiServiceUrl = env('AI_SERVICE_URL', 'http://ai-service:8080');
+            $aiServiceUrl = ConfigurationService::get('services.ai_service_url', env('AI_SERVICE_URL', 'http://ai-service:8080'));
             $adminServiceUrl = env('ADMIN_SERVICE_URL', 'http://admin-service:8080');
 
             // 1. Fetch Candidate

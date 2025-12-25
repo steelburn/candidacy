@@ -124,31 +124,31 @@ class VacancyController extends BaseApiController
         return response()->json(['message' => 'Vacancy deleted successfully']);
     }
 
-    public function generateDescription(Request $request, $id)
+    public function generateJobDescription(Request $request, $id)
     {
         $vacancy = Vacancy::findOrFail($id);
 
         try {
-            $response = Http::post(env('AI_SERVICE_URL') . '/api/ai/generate-jd', [
+            $aiServiceUrl = \Shared\Services\ConfigurationService::get('services.ai_service_url', env('AI_SERVICE_URL', 'http://ai-service:8080'));
+            
+            $response = Http::post($aiServiceUrl . '/api/ai/generate-jd', [
                 'title' => $vacancy->title,
                 'department' => $vacancy->department,
-                'level' => $vacancy->experience_level,
-                'skills' => $vacancy->required_skills ?? [],
+                'location' => $vacancy->location,
+                'employment_type' => $vacancy->employment_type,
+                'experience_level' => $vacancy->experience_level,
+                'keywords' => $request->input('keywords', ''),
+                'expectations' => $request->input('expectations', '')
             ]);
 
             if ($response->successful()) {
-                $jd = $response->json()['job_description'];
-                $vacancy->update(['description' => $jd]);
-
-                return response()->json([
-                    'message' => 'Job description generated successfully',
-                    'vacancy' => $vacancy
-                ]);
+                return response()->json($response->json());
             }
 
-            return response()->json(['error' => 'AI service error'], 500);
+            return response()->json(['error' => 'Failed to generate job description'], 500);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to generate description'], 500);
+            Log::error('Job description generation failed: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate job description'], 500);
         }
     }
     public function metrics()

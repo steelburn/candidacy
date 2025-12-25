@@ -22,70 +22,30 @@ class OllamaService
     }
 
     /**
-     * Load settings from admin service or cache
+     * Load settings using ConfigurationService
      */
     protected function loadSettings()
     {
-        // Try to get from cache first
-        $cached = Cache::get($this->settingsCacheKey);
-        if ($cached) {
-            $this->baseUrl = $cached['url'];
-            $this->model = $cached['model'];
-            $this->matchingModel = $cached['matching_model'] ?? $cached['model'];
-            $this->questionnaireModel = $cached['questionnaire_model'] ?? $cached['matching_model'] ?? $cached['model'];
-            return;
-        }
-
-        // Fetch from admin service
-        try {
-            $response = Http::timeout(2)->get('http://admin-service:8080/api/settings');
-            
-            if ($response->successful()) {
-                $settings = $response->json();
-                
-                // Handle nested settings response
-                $settingsData = $settings['settings'] ?? $settings;
-                
-                $this->baseUrl = $settingsData['ollama_url'] ?? env('OLLAMA_URL', 'http://ollama:11434');
-                $this->model = $settingsData['ollama_model'] ?? env('OLLAMA_MODEL', 'mistral');
-                $this->matchingModel = $settingsData['ollama_matching_model'] ?? $this->model;
-                $this->questionnaireModel = $settingsData['ollama_questionnaire_model'] ?? $this->matchingModel;
-                
-                // Cache the settings
-                Cache::put($this->settingsCacheKey, [
-                    'url' => $this->baseUrl,
-                    'model' => $this->model,
-                    'matching_model' => $this->matchingModel,
-                    'questionnaire_model' => $this->questionnaireModel
-                ], $this->settingsCacheTTL);
-                
-                Log::info('OllamaService settings loaded', [
-                    'url' => $this->baseUrl,
-                    'model' => $this->model,
-                    'matching_model' => $this->matchingModel,
-                    'questionnaire_model' => $this->questionnaireModel,
-                    'source' => 'admin-service'
-                ]);
-            } else {
-                throw new \Exception('Failed to fetch settings: ' . $response->status());
-            }
-        } catch (\Exception $e) {
-            // Fallback to environment variables
-            $this->baseUrl = env('OLLAMA_URL', 'http://ollama:11434');
-            $this->model = env('OLLAMA_MODEL', 'mistral');
-            $this->matchingModel = env('OLLAMA_MATCHING_MODEL', $this->model);
-            $this->questionnaireModel = env('OLLAMA_QUESTIONNAIRE_MODEL', $this->matchingModel);
-            
-            Log::warning('Failed to fetch Ollama settings: ' . $e->getMessage() . '. Using env defaults.');
-        }
+        // Use the new ConfigurationService
+        $this->baseUrl = \Shared\Services\ConfigurationService::get('ai.ollama.url', env('OLLAMA_URL', 'http://ollama:11434'));
+        $this->model = \Shared\Services\ConfigurationService::get('ai.ollama.model.default', env('OLLAMA_MODEL', 'mistral'));
+        $this->matchingModel = \Shared\Services\ConfigurationService::get('ai.ollama.model.matching', $this->model);
+        $this->questionnaireModel = \Shared\Services\ConfigurationService::get('ai.ollama.model.questionnaire', $this->matchingModel);
+        
+        Log::info('OllamaService settings loaded via ConfigurationService', [
+            'url' => $this->baseUrl,
+            'model' => $this->model,
+            'matching_model' => $this->matchingModel,
+            'questionnaire_model' => $this->questionnaireModel
+        ]);
     }
 
     /**
-     * Refresh settings from admin service (clears cache)
+     * Refresh settings (invalidate cache)
      */
     public function refreshSettings()
     {
-        Cache::forget($this->settingsCacheKey);
+        \Shared\Services\ConfigurationService::refresh();
         $this->loadSettings();
     }
 
