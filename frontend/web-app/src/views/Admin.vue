@@ -126,20 +126,102 @@
 
               <div class="setting-value">
                 <div v-if="editingSetting === setting.key" class="setting-edit">
-                  <!-- Boolean Type -->
+                  <!-- Boolean Type - Toggle Switch -->
                   <div v-if="setting.type === 'boolean'" class="edit-control">
-                    <label class="checkbox-label">
+                    <label class="toggle-switch">
                       <input 
                         v-model="editValue" 
                         type="checkbox"
                         :true-value="true"
                         :false-value="false"
                       />
-                      <span>{{ editValue ? 'Enabled' : 'Disabled' }}</span>
+                      <span class="toggle-slider"></span>
+                      <span class="toggle-label">{{ editValue ? 'Enabled' : 'Disabled' }}</span>
                     </label>
                   </div>
 
-                  <!-- Integer Type -->
+                  <!-- Color Picker for primary_color -->
+                  <div v-else-if="setting.key.includes('_color') || setting.key.includes('.color')" class="edit-control color-picker-control">
+                    <input 
+                      v-model="editValue" 
+                      type="color" 
+                      class="color-picker"
+                    />
+                    <input 
+                      v-model="editValue" 
+                      type="text" 
+                      class="edit-input color-text"
+                      placeholder="#RRGGBB"
+                    />
+                  </div>
+
+                  <!-- Dropdown for AI Provider -->
+                  <select 
+                    v-else-if="setting.key === 'ai.provider'" 
+                    v-model="editValue" 
+                    class="edit-select"
+                  >
+                    <option value="ollama">Ollama (Local)</option>
+                    <option value="openrouter">OpenRouter (Cloud)</option>
+                  </select>
+
+                  <!-- Dropdown for Date Format -->
+                  <select 
+                    v-else-if="setting.key === 'ui.date_format'" 
+                    v-model="editValue" 
+                    class="edit-select"
+                  >
+                    <option value="YYYY-MM-DD">YYYY-MM-DD (2025-12-26)</option>
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (26/12/2025)</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY (12/26/2025)</option>
+                    <option value="DD MMM YYYY">DD MMM YYYY (26 Dec 2025)</option>
+                    <option value="MMM DD, YYYY">MMM DD, YYYY (Dec 26, 2025)</option>
+                  </select>
+
+                  <!-- Dropdown for Time Format -->
+                  <select 
+                    v-else-if="setting.key === 'ui.time_format'" 
+                    v-model="editValue" 
+                    class="edit-select"
+                  >
+                    <option value="HH:mm">24-hour (14:30)</option>
+                    <option value="HH:mm:ss">24-hour with seconds (14:30:00)</option>
+                    <option value="hh:mm A">12-hour (02:30 PM)</option>
+                    <option value="hh:mm:ss A">12-hour with seconds (02:30:00 PM)</option>
+                  </select>
+
+                  <!-- Dropdown for Employment Type (if exists) -->
+                  <select 
+                    v-else-if="setting.key.includes('employment_type')" 
+                    v-model="editValue" 
+                    class="edit-select"
+                  >
+                    <option value="full_time">Full Time</option>
+                    <option value="part_time">Part Time</option>
+                    <option value="contract">Contract</option>
+                    <option value="intern">Intern</option>
+                  </select>
+
+                  <!-- Integer Type with Range Slider for percentages/thresholds -->
+                  <div v-else-if="setting.type === 'integer' && (setting.key.includes('threshold') || setting.key.includes('score'))" class="edit-control range-control">
+                    <input 
+                      v-model.number="editValue" 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      class="range-slider"
+                    />
+                    <input 
+                      v-model.number="editValue" 
+                      type="number" 
+                      min="0"
+                      max="100"
+                      class="edit-input range-value"
+                    />
+                    <span class="range-unit">%</span>
+                  </div>
+
+                  <!-- Integer Type - Regular Number -->
                   <input 
                     v-else-if="setting.type === 'integer'" 
                     v-model.number="editValue" 
@@ -147,19 +229,28 @@
                     class="edit-input"
                   />
 
-                  <!-- String Type -->
+                  <!-- URL Type -->
                   <input 
-                    v-else-if="!setting.is_sensitive"
+                    v-else-if="setting.key.includes('_url') || setting.key.includes('.url')"
                     v-model="editValue" 
-                    type="text" 
-                    class="edit-input"
+                    type="url" 
+                    class="edit-input edit-url"
+                    placeholder="https://..."
                   />
 
                   <!-- Sensitive String -->
                   <input 
-                    v-else
+                    v-else-if="setting.is_sensitive"
                     v-model="editValue" 
                     :type="showSensitive[setting.key] ? 'text' : 'password'"
+                    class="edit-input"
+                  />
+
+                  <!-- Regular String Type -->
+                  <input 
+                    v-else
+                    v-model="editValue" 
+                    type="text" 
                     class="edit-input"
                   />
 
@@ -1510,6 +1601,146 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 0.875rem;
 }
+
+.edit-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #667eea;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+}
+
+.edit-url {
+  font-family: monospace;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 24px;
+  transition: background 0.3s;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-weight: 500;
+  color: #333;
+}
+
+/* Color Picker */
+.color-picker-control {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.color-picker {
+  width: 48px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  background: none;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.color-picker::-webkit-color-swatch {
+  border-radius: 4px;
+  border: none;
+}
+
+.color-text {
+  width: 100px !important;
+  font-family: monospace;
+  text-transform: uppercase;
+}
+
+/* Range Slider */
+.range-control {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.range-slider {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: linear-gradient(to right, #667eea, #764ba2);
+  border-radius: 3px;
+  outline: none;
+}
+
+.range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.range-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.range-value {
+  width: 60px !important;
+  text-align: center;
+}
+
+.range-unit {
+  font-weight: 500;
+  color: #666;
+}
+
 
 .edit-actions {
   display: flex;
