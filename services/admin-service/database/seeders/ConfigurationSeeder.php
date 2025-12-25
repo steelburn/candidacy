@@ -228,6 +228,41 @@ class ConfigurationSeeder extends Seeder
                 'validation_rules' => ['integer', 'min:1', 'max:168'],
             ],
 
+            // Matching Configuration
+            [
+                'key' => 'matching.min_score_threshold',
+                'value' => '40',
+                'type' => 'integer',
+                'category' => 'matching',
+                'description' => 'Minimum match score to save (matches below this are discarded)',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:0', 'max:100'],
+            ],
+            [
+                'key' => 'matching.max_retry_attempts',
+                'value' => '3',
+                'type' => 'integer',
+                'category' => 'matching',
+                'description' => 'Maximum retry attempts if AI fails to provide RECOMMENDATION',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:1', 'max:10'],
+            ],
+            [
+                'key' => 'matching.display_threshold',
+                'value' => '60',
+                'type' => 'integer',
+                'category' => 'matching',
+                'description' => 'Threshold for displaying matches in UI (configurable filter)',
+                'is_public' => false,
+                'service_scope' => 'matching-service',
+                'requires_restart' => false,
+                'validation_rules' => ['integer', 'min:0', 'max:100'],
+            ],
+
             // Storage Configuration
             [
                 'key' => 'storage.cv_storage_limit_mb',

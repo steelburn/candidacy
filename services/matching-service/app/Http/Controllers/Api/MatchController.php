@@ -320,7 +320,8 @@ class MatchController extends BaseApiController
             $candidateProfile = $this->buildCandidateProfile($candidate);
             $jobRequirements = $this->buildJobRequirements($vacancy);
 
-            $maxRetries = 3;
+            $maxRetries = (int) ConfigurationService::get('matching.max_retry_attempts', 3);
+            $minScoreThreshold = (int) ConfigurationService::get('matching.min_score_threshold', 40);
             $finalMatchData = null;
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
@@ -336,7 +337,7 @@ class MatchController extends BaseApiController
                         $score = isset($aiResult['match_score']) ? (int)$aiResult['match_score'] : 0;
                         
                         // Filter out low scores immediately, no need to retry
-                        if ($score < 40) {
+                        if ($score < $minScoreThreshold) {
                             return null;
                         }
 

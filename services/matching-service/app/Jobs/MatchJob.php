@@ -78,22 +78,32 @@ class MatchJob implements ShouldQueue
                 return;
             }
 
-            // 3. Get Threshold
-            $threshold = 60; // Default
+            // 3. Get Thresholds from config
+            $minScoreThreshold = 40; // Default
+            $displayThreshold = 60; // Default
+            $maxRetries = 3; // Default
             try {
-                $settingsRes = Http::get("{$adminServiceUrl}/api/settings/category/ai");
+                $settingsRes = Http::get("{$adminServiceUrl}/api/settings/category/matching");
                 if ($settingsRes->successful()) {
                     $settings = $settingsRes->json();
                     if (is_array($settings)) {
                         foreach($settings as $s) {
-                            if (is_array($s) && isset($s['key']) && $s['key'] === 'match_threshold') {
-                                $threshold = (int)$s['value'];
+                            if (is_array($s) && isset($s['key'])) {
+                                if ($s['key'] === 'matching.min_score_threshold') {
+                                    $minScoreThreshold = (int)$s['value'];
+                                }
+                                if ($s['key'] === 'matching.display_threshold') {
+                                    $displayThreshold = (int)$s['value'];
+                                }
+                                if ($s['key'] === 'matching.max_retry_attempts') {
+                                    $maxRetries = (int)$s['value'];
+                                }
                             }
                         }
                     }
                 }
             } catch (\Exception $e) {
-                Log::warning("Could not fetch settings, using default threshold: " . $e->getMessage());
+                Log::warning("Could not fetch matching settings, using defaults: " . $e->getMessage());
             }
 
             // 4. Process Matches
@@ -145,7 +155,6 @@ class MatchJob implements ShouldQueue
                 $jobReqs .= "Skills: " . $safeEncode($vacancy['required_skills'] ?? []) . "\n";
 
                 try {
-                    $maxRetries = 3;
                     $finalMatchData = null;
                     
                     for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
@@ -160,7 +169,7 @@ class MatchJob implements ShouldQueue
                                 $score = $matchResult['match_score'] ?? 0;
                                 
                                 // Filter out low scores - Do NOT save
-                                if ($score < 40) {
+                                if ($score < $minScoreThreshold) {
                                     $finalMatchData = null; // Explicitly null to ensure we don't save previous attempts
                                     break; // Stop retrying, this is a valid "no match"
                                 }
@@ -201,7 +210,7 @@ class MatchJob implements ShouldQueue
                             $finalMatchData
                         );
 
-                        if ($finalMatchData['match_score'] >= $threshold) {
+                        if ($finalMatchData['match_score'] >= $displayThreshold) {
                              $results[] = [
                                 'vacancy' => $vacancy['title'],
                                 'score' => $finalMatchData['match_score']
