@@ -10,12 +10,6 @@
         System Health
       </button>
       <button 
-        @click="currentTab = 'settings'" 
-        :class="{ active: currentTab === 'settings' }"
-      >
-        Settings
-      </button>
-      <button 
         @click="currentTab = 'configuration'" 
         :class="{ active: currentTab === 'configuration' }"
       >
@@ -44,61 +38,6 @@
             <p v-if="service.version"><strong>Version:</strong> {{ service.version }}</p>
             <p v-if="service.uptime"><strong>Uptime:</strong> {{ service.uptime }}</p>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Tab -->
-    <div v-if="currentTab === 'settings'" class="tab-content">
-      <h2>Quick Settings</h2>
-      
-      <div class="info-banner">
-        <div class="info-icon">ℹ️</div>
-        <div class="info-content">
-          <strong>Looking for system configuration?</strong>
-          <p>All system settings (AI, storage, features, etc.) have been moved to the <strong>Configuration</strong> tab for better organization and management.</p>
-          <button @click="currentTab = 'configuration'" class="btn-link">Go to Configuration →</button>
-        </div>
-      </div>
-
-      <div v-if="loading" class="loading">Loading settings...</div>
-      <form v-else @submit.prevent="saveSettings" class="settings-form">
-        <h3>UI Customization</h3>
-        
-        <div class="form-group">
-          <label>Login Background Image</label>
-          <input 
-            v-model="settings.login_background_image" 
-            type="text" 
-            placeholder="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1920"
-          />
-          <small>URL to background image for login page. Leave empty for gradient fallback.</small>
-        </div>
-
-        <div v-if="error" class="error">{{ error }}</div>
-        <div v-if="success" class="success">{{ success }}</div>
-        
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Saving...' : 'Save Settings' }}
-        </button>
-      </form>
-
-      <hr style="margin: 2rem 0; border: none; border-top: 2px solid #eee;" />
-      <h3 style="margin-bottom: 1rem;">Maintenance</h3>
-      
-      <div class="maintenance-section">
-        <div class="maintenance-item">
-          <div class="maintenance-info">
-            <strong>Clear All Matches</strong>
-            <p>Delete all calculated matches from database and clear cache. Use this to recalculate all matches fresh.</p>
-          </div>
-          <button 
-            @click="clearMatches" 
-            class="btn-danger" 
-            :disabled="clearingMatches"
-          >
-            {{ clearingMatches ? 'Clearing...' : 'Clear Matches' }}
-          </button>
         </div>
       </div>
     </div>
@@ -137,6 +76,7 @@
           <option value="storage">Storage</option>
           <option value="features">Features</option>
           <option value="services">Services</option>
+          <option value="ui">UI Customization</option>
         </select>
       </div>
 
@@ -418,34 +358,15 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { adminAPI, userAPI, authAPI, roleAPI, matchingAPI } from '../services/api'
+import { adminAPI, userAPI, authAPI, roleAPI } from '../services/api'
 
 const currentTab = ref('system')
 const loading = ref(false)
-const saving = ref(false)
-const clearingMatches = ref(false)
 const error = ref('')
 const success = ref('')
 
 // System Health
 const systemHealth = ref([])
-
-// Settings
-const settings = ref({
-  app_name: 'Candidacy',
-  company_name: '',
-  contact_email: '',
-  enable_notifications: true,
-  enable_ai: true,
-  max_upload_size: 10,
-  login_background_image: '',
-  ai_provider: 'ollama',
-  ollama_url: 'http://ollama:11434',
-  ollama_model: 'mistral',
-  ollama_matching_model: 'llama3.2:3b',
-  ollama_questionnaire_model: 'gemma2:2b',
-  openrouter_api_key: ''
-})
 
 // Users
 const users = ref([])
@@ -486,7 +407,8 @@ const categoryConfig = {
   recruitment: { label: 'Recruitment', icon: '👥' },
   storage: { label: 'Storage', icon: '💾' },
   features: { label: 'Features', icon: '✨' },
-  services: { label: 'Services', icon: '🔗' }
+  services: { label: 'Services', icon: '🔗' },
+  ui: { label: 'UI Customization', icon: '🎨' }
 }
 
 
@@ -500,60 +422,6 @@ const loadSystemHealth = async () => {
     error.value = 'Failed to load system health'
   } finally {
     loading.value = false
-  }
-}
-
-const loadSettings = async () => {
-  loading.value = true
-  try {
-    const response = await adminAPI.getSettings()
-
-    
-    // The API returns {settings: {...}}, so access response.data.settings
-    const settingsData = response.data.settings || response.data
-    Object.assign(settings.value, settingsData)
-    
-
-  } catch (err) {
-    console.error('Failed to load settings:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-const saveSettings = async () => {
-  saving.value = true
-  error.value = ''
-  success.value = ''
-  
-  try {
-    await adminAPI.updateSettings(settings.value)
-    success.value = 'Settings saved successfully!'
-    setTimeout(() => success.value = '', 3000)
-  } catch (err) {
-    error.value = 'Failed to save settings'
-  } finally {
-    saving.value = false
-  }
-}
-
-const clearMatches = async () => {
-  if (!confirm('Are you sure you want to delete ALL matches? This cannot be undone.')) {
-    return
-  }
-  
-  clearingMatches.value = true
-  error.value = ''
-  
-  try {
-    const response = await matchingAPI.clear()
-    const count = response.data?.deleted_count || 0
-    success.value = `Successfully cleared ${count} matches!`
-    setTimeout(() => success.value = '', 5000)
-  } catch (err) {
-    error.value = 'Failed to clear matches: ' + (err.response?.data?.message || err.message)
-  } finally {
-    clearingMatches.value = false
   }
 }
 
@@ -789,8 +657,6 @@ const formatDate = (date) => {
 watch(currentTab, (newTab) => {
   if (newTab === 'system') {
     loadSystemHealth()
-  } else if (newTab === 'settings') {
-    loadSettings()
   } else if (newTab === 'configuration') {
     loadConfiguration()
   } else if (newTab === 'users') {
@@ -802,9 +668,7 @@ onMounted(() => {
   // Load initial tab data
   if (currentTab.value === 'system') {
     loadSystemHealth()
-  } else if (currentTab.value === 'settings') {
-    loadSettings()
-  } else if (newTab === 'configuration') {
+  } else if (currentTab.value === 'configuration') {
     loadConfiguration()
   } else if (currentTab.value === 'users') {
     loadUsers()

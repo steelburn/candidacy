@@ -284,6 +284,19 @@ class ConfigurationSeeder extends Seeder
                 'requires_restart' => false,
             ],
 
+            // UI Customization
+            [
+                'key' => 'ui.login_background_image',
+                'value' => '',
+                'type' => 'string',
+                'category' => 'ui',
+                'description' => 'URL for login page background image',
+                'is_public' => true,
+                'service_scope' => 'frontend',
+                'requires_restart' => false,
+                'validation_rules' => ['nullable', 'url'],
+            ],
+
             // Service URLs (Internal)
             [
                 'key' => 'services.ai_service_url',
