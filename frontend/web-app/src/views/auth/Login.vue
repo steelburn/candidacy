@@ -233,7 +233,7 @@ async function handleLogin() {
   align-items: center;
   gap: 2rem;
   width: 100%;
-  max-width: 420px;
+  max-width: 480px;
 }
 
 /* Branding */
