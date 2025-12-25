@@ -45,4 +45,16 @@ coverage/
 /schema.dbml
 /database/schema.sql
 /database/sql/*.sql
+/database/*.sql
 
+# Cache files
+**/storage/cache/
+**/fontconfig/
+*.cache-*
+
+# Service-specific generated files
+**/composer.lock
+
+# CV uploads (local dev only)
+**/storage/app/cvs/
+**/storage/app/public/
