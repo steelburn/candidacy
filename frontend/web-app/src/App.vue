@@ -56,10 +56,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useRouter } from 'vue-router'
-import { authAPI } from './services/api'
+import { authAPI, adminAPI } from './services/api'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -72,6 +72,97 @@ const passwordForm = ref({
   current_password: '',
   new_password: '',
   new_password_confirmation: ''
+})
+
+// UI Settings
+const uiSettings = ref({
+  maxContentWidth: 1400,
+  sidebarWidth: 260,
+  primaryColor: '#4F46E5',
+  itemsPerPage: 20,
+  dateFormat: 'YYYY-MM-DD',
+  timeFormat: 'HH:mm',
+  enableDarkMode: false
+})
+
+// Load UI settings and apply as CSS variables
+const loadUISettings = async () => {
+  try {
+    const response = await adminAPI.getSettingsByCategory('ui')
+    const settings = response.data
+    
+    if (Array.isArray(settings)) {
+      settings.forEach(setting => {
+        switch (setting.key) {
+          case 'ui.max_content_width':
+            uiSettings.value.maxContentWidth = parseInt(setting.value) || 1400
+            break
+          case 'ui.sidebar_width':
+            uiSettings.value.sidebarWidth = parseInt(setting.value) || 260
+            break
+          case 'ui.primary_color':
+            uiSettings.value.primaryColor = setting.value || '#4F46E5'
+            break
+          case 'ui.items_per_page':
+            uiSettings.value.itemsPerPage = parseInt(setting.value) || 20
+            break
+          case 'ui.date_format':
+            uiSettings.value.dateFormat = setting.value || 'YYYY-MM-DD'
+            break
+          case 'ui.time_format':
+            uiSettings.value.timeFormat = setting.value || 'HH:mm'
+            break
+          case 'ui.enable_dark_mode':
+            uiSettings.value.enableDarkMode = setting.value === 'true' || setting.value === true
+            break
+        }
+      })
+    }
+    
+    applyUISettings()
+  } catch (error) {
+    console.warn('Could not load UI settings, using defaults:', error.message)
+    applyUISettings()
+  }
+}
+
+const applyUISettings = () => {
+  const root = document.documentElement
+  
+  // Apply CSS variables
+  root.style.setProperty('--max-content-width', `${uiSettings.value.maxContentWidth}px`)
+  root.style.setProperty('--sidebar-width', `${uiSettings.value.sidebarWidth}px`)
+  root.style.setProperty('--primary-color', uiSettings.value.primaryColor)
+  root.style.setProperty('--items-per-page', uiSettings.value.itemsPerPage)
+  
+  // Generate lighter/darker variants of primary color
+  const primaryHex = uiSettings.value.primaryColor
+  root.style.setProperty('--primary-color-light', adjustColor(primaryHex, 40))
+  root.style.setProperty('--primary-color-dark', adjustColor(primaryHex, -20))
+  
+  // Apply dark mode if enabled
+  if (uiSettings.value.enableDarkMode) {
+    document.body.classList.add('dark-mode')
+  } else {
+    document.body.classList.remove('dark-mode')
+  }
+  
+  // Store in window for global access
+  window.__uiSettings = uiSettings.value
+}
+
+// Helper to lighten/darken hex color
+const adjustColor = (hex, percent) => {
+  const num = parseInt(hex.replace('#', ''), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt))
+  const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt))
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt))
+  return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)
+}
+
+onMounted(() => {
+  loadUISettings()
 })
 
 const logout = async () => {
@@ -119,7 +210,7 @@ const handleChangePassword = async () => {
 }
 
 .nav-container {
-  max-width: 1400px;
+  max-width: var(--max-content-width, 1400px);
   margin: 0 auto;
   padding: 0 2rem;
   display: flex;
@@ -186,7 +277,7 @@ const handleChangePassword = async () => {
 }
 
 .main-content {
-  max-width: 1400px;
+  max-width: var(--max-content-width, 1400px);
   margin: 2rem auto;
   padding: 0 2rem;
 }
