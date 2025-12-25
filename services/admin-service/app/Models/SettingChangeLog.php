@@ -39,7 +39,7 @@ class SettingChangeLog extends Model
         int $settingId,
         $oldValue,
         $newValue,
-        int $changedBy,
+        ?int $changedBy = null,
         ?string $ipAddress = null,
         ?string $userAgent = null
     ): void {
