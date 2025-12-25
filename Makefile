@@ -187,6 +187,28 @@ seed:
 	docker compose exec -T admin-service php artisan db:seed --force || true
 	@echo "✅ Seeding complete"
 
+seed-config:
+	@echo "⚙️  Seeding configuration settings..."
+	@echo ""
+	@docker compose exec -T admin-service php artisan db:seed --class=ConfigurationSeeder
+	@echo ""
+	@echo "✅ Configuration seeded successfully!"
+	@echo ""
+	@echo "📊 Seeded 27 configuration settings across 7 categories:"
+	@echo "  • System (6): app name, company, contact, timezone, language"
+	@echo "  • AI (7): provider, Ollama URL/models, OpenRouter settings"
+	@echo "  • Document Parser (4): Granite Docling settings"
+	@echo "  • Recruitment (3): auto-matching, offer expiry, reminders"
+	@echo "  • Storage (2): CV size limit, max upload size"
+	@echo "  • Features (3): enable AI, notifications, auto-matching"
+	@echo "  • Services (2): AI service URL, document parser URL"
+	@echo ""
+	@echo "📝 View configuration:"
+	@echo "  curl http://localhost:8090/api/settings | jq"
+	@echo ""
+	@echo "📚 Documentation: See CONFIGURATION.md"
+
+
 db-reset:
 	@echo "⚠️  WARNING: This will delete all data!"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \

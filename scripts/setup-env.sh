@@ -31,7 +31,7 @@ fi
 # Generate root .env file
 if [ -f ".env" ]; then
     echo -e "${YELLOW}⚠  .env already exists in root directory${NC}"
-    echo -e "   Skipping .env generation..."
+    echo -e "   Checking for required secrets..."
     echo ""
 else
     if cp ".env.example" ".env"; then
@@ -41,6 +41,42 @@ else
         echo -e "${RED}✗ Failed to create .env file${NC}"
         exit 1
     fi
+fi
+
+# Generate APP_KEY if missing
+if ! grep -q "^APP_KEY=base64:" ".env"; then
+    echo -e "${CYAN}🔐 Generating Laravel APP_KEY...${NC}"
+    # Generate a random 32-byte key and base64 encode it
+    APP_KEY="base64:$(openssl rand -base64 32)"
+    
+    # Check if APP_KEY line exists but is empty
+    if grep -q "^APP_KEY=" ".env"; then
+        # Replace existing empty APP_KEY
+        sed -i "s|^APP_KEY=.*|APP_KEY=$APP_KEY|" ".env"
+    else
+        # Add APP_KEY after APP_DEBUG
+        sed -i "/^APP_DEBUG=/a APP_KEY=$APP_KEY" ".env"
+    fi
+    echo -e "${GREEN}✓ Generated APP_KEY${NC}"
+    echo ""
+fi
+
+# Generate JWT_SECRET if missing
+if ! grep -q "^JWT_SECRET=" ".env" || grep -q "^JWT_SECRET=$" ".env"; then
+    echo -e "${CYAN}🔐 Generating JWT_SECRET...${NC}"
+    # Generate a random 64-character secret
+    JWT_SECRET=$(openssl rand -base64 64 | tr -d '\n' | head -c 64)
+    
+    # Check if JWT_SECRET line exists
+    if grep -q "^JWT_SECRET=" ".env"; then
+        # Replace existing empty JWT_SECRET
+        sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|" ".env"
+    else
+        # Add JWT_SECRET after APP_KEY
+        sed -i "/^APP_KEY=/a JWT_SECRET=$JWT_SECRET" ".env"
+    fi
+    echo -e "${GREEN}✓ Generated JWT_SECRET${NC}"
+    echo ""
 fi
 
 # Summary

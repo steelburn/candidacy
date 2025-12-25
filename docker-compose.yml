@@ -9,6 +9,8 @@ x-common-env: &common-env
 
 x-laravel-env: &laravel-env
   <<: *common-env
+  APP_KEY: ${APP_KEY}
+  JWT_SECRET: ${JWT_SECRET}
   DB_CONNECTION: mysql
   DB_PORT: 3306
   DB_USERNAME: root
