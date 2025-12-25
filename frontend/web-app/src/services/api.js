@@ -171,7 +171,15 @@ export const reportAPI = {
 export const adminAPI = {
     getSettings: () => api.get('/api/settings'),
     updateSettings: (settings) => api.put('/api/settings', settings),
-    getSystemHealth: () => api.get('/api/system-health')
+    getSystemHealth: () => api.get('/api/system-health'),
+    // Configuration Management
+    getDetailedSettings: () => api.get('/api/settings/detailed'),
+    getSettingsByCategory: (category) => api.get(`/api/settings/category/${category}`),
+    getSettingsByScope: (scope) => api.get(`/api/settings/scope/${scope}`),
+    updateSetting: (key, value) => api.put('/api/settings', { [key]: value }),
+    getSettingHistory: (key) => api.get(`/api/settings/${key}/history`),
+    exportSettings: () => api.get('/api/settings/export'),
+    importSettings: (data) => api.post('/api/settings/import', data)
 }
 
 // Role API

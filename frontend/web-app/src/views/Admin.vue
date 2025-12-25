@@ -16,6 +16,12 @@
         Settings
       </button>
       <button 
+        @click="currentTab = 'configuration'" 
+        :class="{ active: currentTab === 'configuration' }"
+      >
+        Configuration
+      </button>
+      <button 
         @click="currentTab = 'users'" 
         :class="{ active: currentTab === 'users' }"
       >
@@ -197,6 +203,173 @@
       </div>
     </div>
 
+    <!-- Configuration Tab -->
+    <div v-if="currentTab === 'configuration'" class="tab-content">
+      <div class="config-header">
+        <h2>Configuration Management</h2>
+        <div class="config-actions">
+          <button @click="exportConfiguration" class="btn-secondary">
+            📥 Export
+          </button>
+          <button @click="showImportModal = true" class="btn-secondary">
+            📤 Import
+          </button>
+          <button @click="loadConfiguration" class="btn-secondary">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Search and Filter -->
+      <div class="config-filters">
+        <input 
+          v-model="configSearch" 
+          type="text" 
+          placeholder="Search settings..." 
+          class="search-input"
+        />
+        <select v-model="configCategoryFilter" class="filter-select">
+          <option value="">All Categories</option>
+          <option value="system">System</option>
+          <option value="ai">AI</option>
+          <option value="document_parser">Document Parser</option>
+          <option value="recruitment">Recruitment</option>
+          <option value="storage">Storage</option>
+          <option value="features">Features</option>
+          <option value="services">Services</option>
+        </select>
+      </div>
+
+      <div v-if="loadingConfig" class="loading">Loading configuration...</div>
+      
+      <!-- Configuration Categories -->
+      <div v-else class="config-categories">
+        <div 
+          v-for="category in filteredCategories" 
+          :key="category.name" 
+          class="config-category"
+        >
+          <div 
+            class="category-header" 
+            @click="toggleCategory(category.name)"
+          >
+            <div class="category-title">
+              <span class="category-icon">{{ category.icon }}</span>
+              <h3>{{ category.label }}</h3>
+              <span class="setting-count">({{ category.settings.length }} settings)</span>
+            </div>
+            <span class="toggle-icon">{{ expandedCategories[category.name] ? '▼' : '▶' }}</span>
+          </div>
+
+          <div v-if="expandedCategories[category.name]" class="category-content">
+            <div 
+              v-for="setting in category.settings" 
+              :key="setting.key" 
+              class="setting-item"
+            >
+              <div class="setting-info">
+                <div class="setting-key-row">
+                  <code class="setting-key">{{ setting.key }}</code>
+                  <span v-if="setting.is_sensitive" class="sensitive-badge">🔒 Sensitive</span>
+                  <span v-if="setting.service_scope" class="scope-badge">
+                    {{ setting.service_scope }}
+                  </span>
+                </div>
+                <p class="setting-description">{{ setting.description }}</p>
+              </div>
+
+              <div class="setting-value">
+                <div v-if="editingSetting === setting.key" class="setting-edit">
+                  <!-- Boolean Type -->
+                  <div v-if="setting.type === 'boolean'" class="edit-control">
+                    <label class="checkbox-label">
+                      <input 
+                        v-model="editValue" 
+                        type="checkbox"
+                        :true-value="true"
+                        :false-value="false"
+                      />
+                      <span>{{ editValue ? 'Enabled' : 'Disabled' }}</span>
+                    </label>
+                  </div>
+
+                  <!-- Integer Type -->
+                  <input 
+                    v-else-if="setting.type === 'integer'" 
+                    v-model.number="editValue" 
+                    type="number" 
+                    class="edit-input"
+                  />
+
+                  <!-- String Type -->
+                  <input 
+                    v-else-if="!setting.is_sensitive"
+                    v-model="editValue" 
+                    type="text" 
+                    class="edit-input"
+                  />
+
+                  <!-- Sensitive String -->
+                  <input 
+                    v-else
+                    v-model="editValue" 
+                    :type="showSensitive[setting.key] ? 'text' : 'password'"
+                    class="edit-input"
+                  />
+
+                  <div class="edit-actions">
+                    <button @click="saveSetting(setting)" class="btn-sm btn-save">
+                      ✓ Save
+                    </button>
+                    <button @click="cancelEdit" class="btn-sm btn-cancel">
+                      ✗ Cancel
+                    </button>
+                  </div>
+                </div>
+
+                <div v-else class="setting-display">
+                  <span class="setting-current-value">
+                    <!-- Boolean Display -->
+                    <span v-if="setting.type === 'boolean'" :class="setting.value ? 'value-true' : 'value-false'">
+                      {{ setting.value ? '✓ Enabled' : '✗ Disabled' }}
+                    </span>
+
+                    <!-- Sensitive Value Display -->
+                    <span v-else-if="setting.is_sensitive">
+                      <span v-if="showSensitive[setting.key]">{{ setting.value || '(empty)' }}</span>
+                      <span v-else>••••••••</span>
+                      <button 
+                        @click="toggleSensitive(setting.key)" 
+                        class="btn-icon"
+                        :title="showSensitive[setting.key] ? 'Hide' : 'Show'"
+                      >
+                        {{ showSensitive[setting.key] ? '👁️' : '👁️‍🗨️' }}
+                      </button>
+                    </span>
+
+                    <!-- Regular Value Display -->
+                    <span v-else>{{ setting.value || '(empty)' }}</span>
+                  </span>
+
+                  <div class="setting-actions">
+                    <button @click="startEdit(setting)" class="btn-icon" title="Edit">
+                      ✏️
+                    </button>
+                    <button @click="viewHistory(setting.key)" class="btn-icon" title="View History">
+                      📜
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="configError" class="error">{{ configError }}</div>
+      <div v-if="configSuccess" class="success">{{ configSuccess }}</div>
+    </div>
+
     <!-- User Management Tab -->
     <div v-if="currentTab === 'users'" class="tab-content">
       <div class="header">
@@ -295,11 +468,56 @@
         </form>
       </div>
     </div>
+
+    <!-- History Modal -->
+    <div v-if="showHistoryModal" class="modal-overlay" @click="showHistoryModal = false">
+      <div class="modal-content modal-large" @click.stop>
+        <h3>Change History: {{ historyData?.setting?.key }}</h3>
+        <div v-if="historyData?.history && historyData.history.length > 0" class="history-list">
+          <div v-for="(change, index) in historyData.history" :key="index" class="history-item">
+            <div class="history-header">
+              <span class="history-date">{{ formatDate(change.changed_at) }}</span>
+              <span class="history-user">by User #{{ change.changed_by }}</span>
+            </div>
+            <div class="history-changes">
+              <div class="history-value">
+                <strong>Old:</strong> <code>{{ change.old_value || '(empty)' }}</code>
+              </div>
+              <div class="history-value">
+                <strong>New:</strong> <code>{{ change.new_value }}</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="no-history">No change history available</div>
+        <div class="modal-actions">
+          <button @click="showHistoryModal = false" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div v-if="showImportModal" class="modal-overlay" @click="showImportModal = false">
+      <div class="modal-content modal-large" @click.stop>
+        <h3>Import Configuration</h3>
+        <p>Paste your configuration JSON below:</p>
+        <textarea 
+          v-model="importData" 
+          class="import-textarea"
+          placeholder='{"settings": [...]}'
+          rows="15"
+        ></textarea>
+        <div class="modal-actions">
+          <button @click="importConfiguration" class="btn-primary">Import</button>
+          <button @click="showImportModal = false" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { adminAPI, userAPI, authAPI, roleAPI, matchingAPI } from '../services/api'
 
 const currentTab = ref('system')
@@ -343,6 +561,34 @@ const userForm = ref({
   is_active: true,
   role_id: ''
 })
+
+// Configuration Management
+const loadingConfig = ref(false)
+const configError = ref('')
+const configSuccess = ref('')
+const configSettings = ref([])
+const configSearch = ref('')
+const configCategoryFilter = ref('')
+const expandedCategories = ref({})
+const editingSetting = ref(null)
+const editValue = ref(null)
+const showSensitive = ref({})
+const showImportModal = ref(false)
+const showHistoryModal = ref(false)
+const historyData = ref(null)
+const importData = ref('')
+
+// Category configuration
+const categoryConfig = {
+  system: { label: 'System', icon: '⚙️' },
+  ai: { label: 'AI Configuration', icon: '🤖' },
+  document_parser: { label: 'Document Parser', icon: '📄' },
+  recruitment: { label: 'Recruitment', icon: '👥' },
+  storage: { label: 'Storage', icon: '💾' },
+  features: { label: 'Features', icon: '✨' },
+  services: { label: 'Services', icon: '🔗' }
+}
+
 
 const loadSystemHealth = async () => {
   loading.value = true
@@ -488,6 +734,153 @@ const deleteUser = async (id) => {
   }
 }
 
+// Configuration Management Methods
+const loadConfiguration = async () => {
+  loadingConfig.value = true
+  configError.value = ''
+  try {
+    const response = await adminAPI.getDetailedSettings()
+    configSettings.value = response.data.settings || []
+    // Initialize expanded categories
+    Object.keys(categoryConfig).forEach(cat => {
+      expandedCategories.value[cat] = true
+    })
+  } catch (err) {
+    console.error('Failed to load configuration:', err)
+    configError.value = 'Failed to load configuration settings'
+  } finally {
+    loadingConfig.value = false
+  }
+}
+
+const filteredCategories = computed(() => {
+  const categories = {}
+  
+  // Group settings by category
+  configSettings.value.forEach(setting => {
+    if (!categories[setting.category]) {
+      categories[setting.category] = {
+        name: setting.category,
+        label: categoryConfig[setting.category]?.label || setting.category,
+        icon: categoryConfig[setting.category]?.icon || '📋',
+        settings: []
+      }
+    }
+    categories[setting.category].settings.push(setting)
+  })
+  
+  // Apply filters
+  let filtered = Object.values(categories)
+  
+  if (configCategoryFilter.value) {
+    filtered = filtered.filter(cat => cat.name === configCategoryFilter.value)
+  }
+  
+  if (configSearch.value) {
+    const search = configSearch.value.toLowerCase()
+    filtered = filtered.map(cat => ({
+      ...cat,
+      settings: cat.settings.filter(s => 
+        s.key.toLowerCase().includes(search) ||
+        s.description?.toLowerCase().includes(search)
+      )
+    })).filter(cat => cat.settings.length > 0)
+  }
+  
+  return filtered
+})
+
+const toggleCategory = (categoryName) => {
+  expandedCategories.value[categoryName] = !expandedCategories.value[categoryName]
+}
+
+const startEdit = (setting) => {
+  editingSetting.value = setting.key
+  // Convert boolean string to actual boolean
+  if (setting.type === 'boolean') {
+    editValue.value = setting.value === true || setting.value === 'true'
+  } else {
+    editValue.value = setting.value
+  }
+}
+
+const cancelEdit = () => {
+  editingSetting.value = null
+  editValue.value = null
+}
+
+const saveSetting = async (setting) => {
+  configError.value = ''
+  configSuccess.value = ''
+  
+  try {
+    await adminAPI.updateSetting(setting.key, editValue.value)
+    configSuccess.value = `Successfully updated ${setting.key}`
+    
+    // Update local value
+    const settingIndex = configSettings.value.findIndex(s => s.key === setting.key)
+    if (settingIndex !== -1) {
+      configSettings.value[settingIndex].value = editValue.value
+    }
+    
+    editingSetting.value = null
+    editValue.value = null
+    
+    setTimeout(() => configSuccess.value = '', 3000)
+  } catch (err) {
+    console.error('Failed to save setting:', err)
+    configError.value = `Failed to save ${setting.key}: ${err.response?.data?.message || err.message}`
+  }
+}
+
+const toggleSensitive = (key) => {
+  showSensitive.value[key] = !showSensitive.value[key]
+}
+
+const viewHistory = async (key) => {
+  try {
+    const response = await adminAPI.getSettingHistory(key)
+    historyData.value = response.data
+    showHistoryModal.value = true
+  } catch (err) {
+    console.error('Failed to load history:', err)
+    configError.value = 'Failed to load change history'
+  }
+}
+
+const exportConfiguration = async () => {
+  try {
+    const response = await adminAPI.exportSettings()
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `configuration-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    configSuccess.value = 'Configuration exported successfully'
+    setTimeout(() => configSuccess.value = '', 3000)
+  } catch (err) {
+    console.error('Failed to export configuration:', err)
+    configError.value = 'Failed to export configuration'
+  }
+}
+
+const importConfiguration = async () => {
+  try {
+    const data = JSON.parse(importData.value)
+    await adminAPI.importSettings(data)
+    configSuccess.value = 'Configuration imported successfully'
+    showImportModal.value = false
+    importData.value = ''
+    loadConfiguration()
+    setTimeout(() => configSuccess.value = '', 3000)
+  } catch (err) {
+    console.error('Failed to import configuration:', err)
+    configError.value = `Failed to import: ${err.response?.data?.message || err.message}`
+  }
+}
+
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString()
 }
@@ -498,6 +891,8 @@ watch(currentTab, (newTab) => {
     loadSystemHealth()
   } else if (newTab === 'settings') {
     loadSettings()
+  } else if (newTab === 'configuration') {
+    loadConfiguration()
   } else if (newTab === 'users') {
     loadUsers()
   }
@@ -509,10 +904,13 @@ onMounted(() => {
     loadSystemHealth()
   } else if (currentTab.value === 'settings') {
     loadSettings()
+  } else if (newTab === 'configuration') {
+    loadConfiguration()
   } else if (currentTab.value === 'users') {
     loadUsers()
   }
 })
+
 </script>
 
 <style scoped>
@@ -804,5 +1202,320 @@ onMounted(() => {
   color: #999;
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Configuration Tab Styles */
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.config-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.config-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.filter-select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.config-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.config-category {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.category-header:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #65408b 100%);
+}
+
+.category-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.category-icon {
+  font-size: 1.5rem;
+}
+
+.category-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.setting-count {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.toggle-icon {
+  font-size: 1.2rem;
+}
+
+.category-content {
+  padding: 1rem;
+  background: #f8f9fa;
+}
+
+.setting-item {
+  background: white;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-key-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.setting-key {
+  background: #f0f0f0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.sensitive-badge {
+  background: #fff3cd;
+  color: #856404;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.scope-badge {
+  background: #e8f5e9;
+  color: #388e3c;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.setting-description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+.setting-value {
+  min-width: 300px;
+}
+
+.setting-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setting-current-value {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.value-true {
+  color: #388e3c;
+}
+
+.value-false {
+  color: #666;
+}
+
+.setting-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: #f0f0f0;
+}
+
+.setting-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.edit-control {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #667eea;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
+  color: white;
+}
+
+.btn-save:hover {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+}
+
+.btn-cancel {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background: #5a6268;
+}
+
+.modal-large {
+  max-width: 700px;
+}
+
+.history-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 1rem 0;
+}
+
+.history-item {
+  background: #f8f9fa;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.history-date {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.history-user {
+  color: #666;
+}
+
+.history-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.history-value {
+  font-size: 0.875rem;
+}
+
+.history-value code {
+  background: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+}
+
+.no-history {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+}
+
+.import-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  resize: vertical;
 }
 </style>
