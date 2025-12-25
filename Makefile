@@ -87,14 +87,17 @@ setup:
 	@echo "📋 Step 2/6: Building base Docker image..."
 	@docker build -f infrastructure/docker/Dockerfile.base -t candidacy-base:latest .
 	@echo ""
-	@echo "📋 Step 3/6: Initializing databases from DBML..."
+	@echo "📋 Step 3/6: Starting MySQL and Redis..."
+	@docker compose up -d mysql redis
+	@echo "   ⏳ Waiting for MySQL to be ready..."
+	@sleep 15
+	@echo ""
+	@echo "📋 Step 4/6: Initializing databases from DBML..."
 	@$(MAKE) dbml-init
 	@echo ""
-	@echo "📋 Step 4/6: Starting services..."
+	@echo "📋 Step 5/6: Starting all services..."
 	@docker compose up -d
-	@echo ""
-	@echo "📋 Step 5/6: Waiting for services to be ready..."
-	@echo "   ⏳ Waiting 10 seconds for services to initialize..."
+	@echo "   ⏳ Waiting for services to initialize..."
 	@sleep 10
 	@echo ""
 	@echo "📋 Step 6/6: Seeding configuration and sample data..."
@@ -118,6 +121,7 @@ setup:
 	@echo "📊 What was set up:"
 	@echo "  ✓ Environment configuration (.env)"
 	@echo "  ✓ Base Docker image built"
+	@echo "  ✓ MySQL and Redis started"
 	@echo "  ✓ 9 databases initialized from DBML"
 	@echo "  ✓ All microservices started"
 	@echo "  ✓ 27 configuration settings seeded"
