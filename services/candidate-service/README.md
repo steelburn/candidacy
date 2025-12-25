@@ -10,6 +10,9 @@ Candidate management, CV processing, and applicant portal service.
 
 ## Features
 
+- ✅ **Resume Persistence:** Stores original files and extracted text for permanent viewing
+- ✅ **Draft Mode:** Auto-creates draft candidates from parsed CVs for review
+- ✅ **Queue Isolation:** Dedicated `candidate_queue` for reliable background processing
 - ✅ Candidate CRUD operations
 - ✅ CV upload and parsing (PDF/DOCX)
 - ✅ AI-powered skill extraction
@@ -65,6 +68,12 @@ curl -X POST http://localhost:8080/api/candidates/1/generate-token \
 ```bash
 cd services/candidate-service
 composer install
-php artisan migrate
-php artisan serve --port=8082
+# Start services
+make up
+
+# View logs
+make logs-candidate
+
+# Run tests
+make test-service S=candidate-service
 ```

@@ -74,6 +74,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     volumes:
       - ./gateway/api-gateway:/var/www/html
+      - ./gateway/api-gateway/docker/php/conf.d/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     depends_on:
       - redis
     networks:
@@ -118,10 +119,12 @@ services:
       REDIS_HOST: redis
       AI_SERVICE_URL: http://ai-service:8080
       QUEUE_CONNECTION: redis
+      REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
       - ./shared:/var/www/shared
       - candidate_uploads:/var/www/html/storage/uploads
+      - ./services/candidate-service/docker/php/conf.d/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     depends_on:
       - mysql
       - redis
@@ -142,6 +145,7 @@ services:
       REDIS_HOST: redis
       AI_SERVICE_URL: http://ai-service:8080
       QUEUE_CONNECTION: redis
+      REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
       - ./shared:/var/www/shared
@@ -152,7 +156,7 @@ services:
       - candidate-service
     networks:
       - candidacy-network
-    command: php artisan queue:work --tries=3 --timeout=300
+    command: php artisan queue:work --queue=candidate_queue --tries=3 --timeout=300
     restart: unless-stopped
 
   # Document Parser Service
@@ -170,6 +174,7 @@ services:
       DB_DATABASE: candidacy_document_parser
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
+      REDIS_QUEUE: document_parser_queue
     volumes:
       - ./services/document-parser-service:/var/www/html
       - ./shared:/var/www/shared
@@ -193,6 +198,9 @@ services:
       DB_DATABASE: candidacy_document_parser
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
+      REDIS_QUEUE: document_parser_queue
+      FONTCONFIG_PATH: /var/www/html/storage
+      XDG_CACHE_HOME: /var/www/html/storage/cache
     volumes:
       - ./services/document-parser-service:/var/www/html
       - ./shared:/var/www/shared
@@ -274,6 +282,8 @@ services:
       AI_SERVICE_URL: http://ai-service:8080
       CANDIDATE_SERVICE_URL: http://candidate-service:8080
       VACANCY_SERVICE_URL: http://vacancy-service:8080
+      QUEUE_CONNECTION: redis
+      REDIS_QUEUE: matching_queue
     volumes:
       - ./services/matching-service:/var/www/html
       - ./shared:/var/www/shared
@@ -282,6 +292,36 @@ services:
       - redis
     networks:
       - candidacy-network
+
+  # Matching Queue Worker
+  matching-queue-worker:
+    build:
+      context: ./services/matching-service
+      dockerfile: Dockerfile
+    container_name: candidacy-matching-worker
+    user: "1000:1000"
+    environment:
+      <<: *laravel-env
+      LOG_CHANNEL: stderr
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_matching
+      REDIS_HOST: redis
+      AI_SERVICE_URL: http://ai-service:8080
+      CANDIDATE_SERVICE_URL: http://candidate-service:8080
+      VACANCY_SERVICE_URL: http://vacancy-service:8080
+      QUEUE_CONNECTION: redis
+      REDIS_QUEUE: matching_queue
+    volumes:
+      - ./services/matching-service:/var/www/html
+      - ./shared:/var/www/shared
+    depends_on:
+      - mysql
+      - redis
+      - matching-service
+    networks:
+      - candidacy-network
+    command: php artisan queue:work --queue=matching_queue --tries=3 --timeout=300
+    restart: unless-stopped
 
   # Interview Service
   interview-service:

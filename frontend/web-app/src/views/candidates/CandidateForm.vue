@@ -52,9 +52,20 @@
       </div>
       
       <div v-if="isEdit && !cvFile" class="current-cv-status">
-        <!-- In edit mode, if no new file selected, we don't show much unless we want to replace -->
-        <h3>Update Resume</h3>
-        <div class="file-upload-box">
+        <!-- In edit mode, if no new file selected, show existing if available -->
+        <h3>Current Resume</h3>
+        
+        <div v-if="existingCvUrl" class="pdf-preview existing-preview">
+            <iframe :src="existingCvUrl" width="100%" height="500px"></iframe>
+             <div class="file-actions">
+               <a :href="existingCvUrl" target="_blank" class="btn-text">Download / Open in New Tab</a>
+            </div>
+        </div>
+        <div v-else class="no-cv-message">
+            <p>No resume uploaded for this candidate.</p>
+        </div>
+
+        <div class="file-upload-box mt-4">
              <input 
                 type="file" 
                 id="resume-upload-edit" 
@@ -122,6 +133,20 @@
         </div>
       </div>
 
+      <div v-if="isEdit" class="form-group">
+        <label>Status</label>
+        <select v-model="form.status" class="form-control">
+          <option value="draft">Draft</option>
+          <option value="new">New</option>
+          <option value="reviewing">Reviewing</option>
+          <option value="shortlisted">Shortlisted</option>
+          <option value="interviewed">Interviewed</option>
+          <option value="offered">Offered</option>
+          <option value="hired">Hired</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+
       <div class="form-group">
         <label>Skills (Comma separated)</label>
         <input 
@@ -136,15 +161,71 @@
         <textarea v-model="form.summary" rows="4" placeholder="Brief professional summary..."></textarea>
       </div>
 
-      <!-- Extended Details (from Auto-fill) -->
-      <div v-if="parsedExperience || parsedEducation" class="extended-details">
-        <div v-if="parsedExperience" class="detail-block">
-          <h4>Parsed Experience</h4>
-          <pre>{{ parsedExperience }}</pre>
+      <!-- Work Experience Section -->
+      <div class="form-section">
+        <div class="section-header">
+            <h3>Work Experience</h3>
+            <button type="button" @click="addExperience" class="btn-sm btn-secondary">+ Add Position</button>
         </div>
-        <div v-if="parsedEducation" class="detail-block">
-          <h4>Parsed Education</h4>
-          <pre>{{ parsedEducation }}</pre>
+        
+        <div v-for="(exp, index) in form.experience" :key="index" class="dynamic-group">
+            <div class="group-header">
+                <h4>Position {{ index + 1 }}</h4>
+                <button type="button" @click="removeExperience(index)" class="btn-icon text-danger" title="Remove">✖</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Job Title</label>
+                    <input v-model="exp.title" type="text" placeholder="e.g. Senior Developer" />
+                </div>
+                <div class="form-group">
+                    <label>Company</label>
+                    <input v-model="exp.company" type="text" placeholder="e.g. Tech Corp" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Duration</label>
+                <input v-model="exp.duration" type="text" placeholder="e.g. Jan 2020 - Present" />
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea v-model="exp.description" rows="3" placeholder="Key responsibilities and achievements..."></textarea>
+            </div>
+        </div>
+        <div v-if="!form.experience || form.experience.length === 0" class="empty-state">
+            <p>No work experience added.</p>
+        </div>
+      </div>
+
+      <!-- Education Section -->
+      <div class="form-section">
+        <div class="section-header">
+            <h3>Education</h3>
+            <button type="button" @click="addEducation" class="btn-sm btn-secondary">+ Add Education</button>
+        </div>
+        
+        <div v-for="(edu, index) in form.education" :key="index" class="dynamic-group">
+            <div class="group-header">
+                <h4>Education {{ index + 1 }}</h4>
+                <button type="button" @click="removeEducation(index)" class="btn-icon text-danger" title="Remove">✖</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Degree / Certificate</label>
+                    <input v-model="edu.degree" type="text" placeholder="e.g. BSc Computer Science" />
+                </div>
+                <div class="form-group">
+                    <label>Institution</label>
+                    <input v-model="edu.institution" type="text" placeholder="e.g. University of Technology" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Year</label>
+                <input v-model="edu.year" type="text" placeholder="e.g. 2018" />
+            </div>
+        </div>
+        <div v-if="!form.education || form.education.length === 0" class="empty-state">
+            <p>No education added.</p>
         </div>
       </div>
       
@@ -163,8 +244,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { candidateAPI } from '../../services/api'
-import api from 'axios' // For direct API calls
+import { candidateAPI, default as api } from '../../services/api'
+// import api from 'axios' - REMOVED: using configured api instance
 
 const router = useRouter()
 const route = useRoute()
@@ -179,6 +260,7 @@ const processingResume = ref(false)
 const resumeProcessed = ref(false)
 const parseError = ref('')
 const previewUrl = ref('')
+const existingCvUrl = ref('')
 const fileType = ref('')
 
 const form = ref({
@@ -192,7 +274,8 @@ const form = ref({
   skills: '',
   years_of_experience: null,
   experience: null,
-  education: null
+  education: null,
+  status: 'new'
 })
 
 // Visual feedback only for complex data
@@ -253,6 +336,25 @@ const processResume = async () => {
   }
 }
 
+// Dynamic Field Helpers
+const addExperience = () => {
+    if (!form.value.experience) form.value.experience = []
+    form.value.experience.push({ title: '', company: '', duration: '', description: '' })
+}
+
+const removeExperience = (index) => {
+    form.value.experience.splice(index, 1)
+}
+
+const addEducation = () => {
+    if (!form.value.education) form.value.education = []
+    form.value.education.push({ degree: '', institution: '', year: '' })
+}
+
+const removeEducation = (index) => {
+    form.value.education.splice(index, 1)
+}
+
 // Poll for parsing results
 const pollForParsingResults = async (jobId) => {
   const maxAttempts = 60 // 60 attempts
@@ -260,15 +362,34 @@ const pollForParsingResults = async (jobId) => {
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const statusResponse = await api.get(`/api/cv-parsing/${jobId}/status`)
+      const statusResponse = await api.get(`/api/candidates/cv-parsing/${jobId}/status`)
       const status = statusResponse.data.status
       
       if (status === 'completed') {
         // Fetch the result
-        const resultResponse = await api.get(`/api/cv-parsing/${jobId}/result`)
-        const parsedData = resultResponse.data.parsed_data
-        applyParsedData(parsedData)
-        resumeProcessed.value = true
+        const resultResponse = await api.get(`/api/candidates/cv-parsing/${jobId}/result`)
+        let parsedData = resultResponse.data.parsed_data
+        
+        // Fallback: if parsed_data is null but raw_response exists, try to parse it
+        if (!parsedData && resultResponse.data.raw_response) {
+          try {
+            // Strip comments from JSON
+            let jsonString = resultResponse.data.raw_response
+            jsonString = jsonString.replace(/\/\/[^\n]*/g, '') // Remove // comments
+            jsonString = jsonString.replace(/\/\*.*?\*\//gs, '') // Remove /* */ comments
+            jsonString = jsonString.replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
+            parsedData = JSON.parse(jsonString)
+          } catch (e) {
+            console.error('Failed to parse raw_response:', e)
+          }
+        }
+        
+        if (parsedData) {
+          applyParsedData(parsedData)
+          resumeProcessed.value = true
+        } else {
+          throw new Error('No valid parsed data received')
+        }
         return
       } else if (status === 'failed') {
         throw new Error('AI parsing failed')
@@ -354,7 +475,9 @@ const handleSubmit = async () => {
     if (form.value.portfolio_url) formData.append('portfolio_url', form.value.portfolio_url)
     if (form.value.summary) formData.append('summary', form.value.summary)
     if (form.value.years_of_experience) formData.append('years_of_experience', form.value.years_of_experience)
+    if (form.value.years_of_experience) formData.append('years_of_experience', form.value.years_of_experience)
     if (form.value.skills) formData.append('skills', form.value.skills)
+    if (form.value.status) formData.append('status', form.value.status)
 
     // Include complex JSON fields - ALWAYS append if they exist, even if empty arrays
     // Convert arrays to JSON strings for the backend
@@ -376,12 +499,8 @@ const handleSubmit = async () => {
     if (cvFile.value) formData.append('cv_file', cvFile.value)
     
     if (isEdit.value) {
-      // Laravel doesn't parse FormData properly in PUT requests
-      // Use POST with _method=PUT (method spoofing)
-      formData.append('_method', 'PUT')
-      await api.post(`/api/candidates/${route.params.id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      // Use helper which handles method spoofing for FormData
+      await candidateAPI.update(route.params.id, formData)
     } else {
       await candidateAPI.create(formData)
     }
@@ -432,10 +551,17 @@ onMounted(async () => {
           github_url: data.github_url,
           portfolio_url: data.portfolio_url,
           summary: data.summary,
+          status: data.status || 'new', // Default to new if null
           years_of_experience: data.years_of_experience,
           skills: skillsValue,
           experience: parseJsonField(data.experience),
+          experience: parseJsonField(data.experience),
           education: parseJsonField(data.education)
+      }
+
+      // Check for existing CV
+      if (data.cv_files && data.cv_files.length > 0) {
+          existingCvUrl.value = `http://localhost:8080/api/candidates/${route.params.id}/cv/view`
       }
     } catch (err) {
       error.value = 'Failed to load candidate'
@@ -445,18 +571,45 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Modern Clean UI with Glassmorphism hints */
 .candidate-form {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  max-width: 800px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+  max-width: 900px;
+  margin: 0 auto;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+}
+
+h3 {
+  font-size: 1.25rem;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .form-group {
@@ -467,207 +620,236 @@ label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: #4a5568;
+  font-size: 0.95rem;
 }
 
 input, select, textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 1rem;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  color: #2d3748;
 }
 
-.error {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 6px;
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+  background: white;
+}
+
+/* Section Styling */
+.form-section {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid #edf2f7;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Dynamic Cards */
+.dynamic-group {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dynamic-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px rgba(0,0,0,0.05);
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
   margin-bottom: 1rem;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.group-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.875rem 2.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  color: #2d3748;
+}
+
+.btn-icon.text-danger {
+  color: #fc8181;
+  font-size: 1.25rem;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: background 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-icon.text-danger:hover {
+  background: #fff5f5;
+  color: #e53e3e;
 }
 
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  align-items: center;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.75rem 2rem;
-  border-radius: 6px;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-  padding: 0.75rem 2rem;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-block;
-}
-
+/* File Upload */
 .auto-fill-section {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 2rem;
-  border: 1px dashed #667eea;
+  background: linear-gradient(to bottom right, #f8fafc, #edf2f7);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e0;
+  margin-bottom: 2.5rem;
+  text-align: center;
+  transition: border-color 0.2s;
 }
 
-.auto-fill-section h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #667eea;
-}
-
-.file-upload-box {
-  position: relative;
-}
-
-.file-upload-box input[type="file"] {
-  display: none;
+.auto-fill-section:hover {
+  border-color: #667eea;
 }
 
 .upload-label {
   display: inline-block;
   background: white;
-  border: 1px solid #667eea;
   color: #667eea;
-  padding: 0.5rem 1.5rem;
-  border-radius: 4px;
+  padding: 0.75rem 2rem;
+  border-radius: 50px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   transition: all 0.2s;
+  border: 2px solid transparent;
 }
 
 .upload-label:hover {
   background: #667eea;
   color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(102, 126, 234, 0.2);
 }
 
-.hint {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 0.5rem;
+/* Status & Extras */
+.current-cv-status {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.parse-error {
-  color: #c33;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.file-name {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #28a745;
-}
-
-.extended-details {
-  margin: 2rem 0;
-  border-top: 1px solid #eee;
-  padding-top: 1rem;
-}
-
-.detail-block {
-  margin-bottom: 1.5rem;
-  background: #f8f9fa;
+.error {
+  background: #fff5f5;
+  color: #c53030;
   padding: 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #fc8181;
 }
 
-.detail-block h4 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
-  color: #495057;
-}
-
-.detail-block pre {
-  white-space: pre-wrap;
-  font-family: inherit;
-  font-size: 0.9rem;
-  color: #333;
-  margin: 0;
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
+/* File Preview */
 .pdf-preview {
-    margin-top: 1.5rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    padding: 1rem;
-    background: #fff;
+  margin-top: 2rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
 .pdf-preview h4 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    color: #495057;
+  margin-bottom: 1rem;
+  color: #2d3748;
 }
 
-.file-info {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: #e9ecef;
-    border-radius: 4px;
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  color: #a0aec0;
+  border: 2px dashed #edf2f7;
 }
 
-.file-info p {
-    margin: 0;
-    color: #495057;
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
-.file-actions {
-    margin-top: 1rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+/* Link as button override for styles */
+a.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-text {
-    background: none;
-    border: none;
-    color: #c33;
-    cursor: pointer;
-    font-size: 0.9rem;
-    text-decoration: underline;
-    padding: 0;
-}
 
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
 
-.btn-secondary:disabled {
-    background: #adb5bd;
-    cursor: not-allowed;
-}
-
-.current-cv-status {
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 8px;
-    margin-bottom: 2rem;
-    border: 1px solid #dee2e6;
-}
-
-.current-cv-status h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #495057;
+.mt-4 {
+    margin-top: 1.5rem;
 }
 </style>

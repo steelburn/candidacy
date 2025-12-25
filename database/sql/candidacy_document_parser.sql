@@ -12,10 +12,22 @@ CREATE TABLE `parse_jobs` (
   `updated_at` timestamp
 );
 
+CREATE TABLE `failed_jobs_parser` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(255) UNIQUE NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
+);
+
 CREATE INDEX `idx_parse_jobs_status` ON `parse_jobs` (`status`);
 
 CREATE INDEX `idx_parse_jobs_created_at` ON `parse_jobs` (`created_at`);
 
 ALTER TABLE `parse_jobs` COMMENT = 'Asynchronous document parsing jobs for PDF/DOCX files
 Statuses: pending, processing, completed, failed';
+
+ALTER TABLE `failed_jobs_parser` COMMENT = 'Failed queue jobs for document parser service';
 

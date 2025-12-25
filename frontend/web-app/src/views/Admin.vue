@@ -21,6 +21,12 @@
       >
         User Management
       </button>
+      <button 
+        @click="currentTab = 'cv_jobs'" 
+        :class="{ active: currentTab === 'cv_jobs' }"
+      >
+        CV Jobs
+      </button>
     </div>
 
     <!-- System Health Tab -->
@@ -254,6 +260,97 @@
       </table>
     </div>
 
+    <!-- CV Jobs Tab -->
+    <div v-if="currentTab === 'cv_jobs'" class="tab-content">
+      <div class="header">
+        <h2>CV Parsing Jobs</h2>
+        <div class="actions">
+          <button @click="loadCvJobs" class="btn-secondary">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-bar">
+        <select v-model="cvJobStatusFilter" @change="loadCvJobs">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="parsing_document">Parsing Document</option>
+          <option value="processing">Processing</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
+
+      <div v-if="loadingCvJobs" class="loading">Loading jobs...</div>
+      <table v-else class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Candidate</th>
+            <th>Created</th>
+            <th>Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="job in cvJobs" :key="job.id">
+            <td>#{{ job.id }}</td>
+            <td>
+              <span :class="'status-badge status-' + job.status">
+                {{ job.status }}
+              </span>
+            </td>
+            <td>
+              <span v-if="job.candidate">
+                {{ job.candidate.name || 'Unknown' }}
+                <span v-if="job.candidate.email" class="text-sm text-gray-500">
+                  ({{ job.candidate.email }})
+                </span>
+              </span>
+              <span v-else>-</span>
+            </td>
+            <td>{{ formatDateTime(job.created_at) }}</td>
+            <td>{{ formatDateTime(job.updated_at) }}</td>
+            <td>
+              <button 
+                v-if="['failed', 'pending'].includes(job.status)" 
+                @click="retryCvJob(job.id)" 
+                class="btn-sm"
+              >
+                Retry
+              </button>
+              <button 
+                @click="deleteCvJob(job.id)" 
+                class="btn-sm btn-danger ml-2"
+                style="margin-left: 0.5rem;"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Pagination -->
+      <div v-if="cvJobsPagination.total > cvJobsPagination.per_page" class="pagination">
+        <button 
+          :disabled="cvJobsPagination.current_page === 1"
+          @click="changeCvJobsPage(cvJobsPagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span>Page {{ cvJobsPagination.current_page }} of {{ cvJobsPagination.last_page }}</span>
+        <button 
+          :disabled="cvJobsPagination.current_page === cvJobsPagination.last_page"
+          @click="changeCvJobsPage(cvJobsPagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+
     <!-- Create/Edit User Modal -->
     <div v-if="showCreateUser" class="modal-overlay" @click="showCreateUser = false">
       <div class="modal-content" @click.stop>
@@ -357,8 +454,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { adminAPI, userAPI, authAPI, roleAPI } from '../services/api'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { adminAPI, userAPI, authAPI, roleAPI, candidateAPI } from '../services/api'
 
 const currentTab = ref('system')
 const loading = ref(false)
@@ -398,6 +495,18 @@ const showImportModal = ref(false)
 const showHistoryModal = ref(false)
 const historyData = ref(null)
 const importData = ref('')
+
+// CV Jobs
+const cvJobs = ref([])
+const loadingCvJobs = ref(false)
+const cvJobStatusFilter = ref('')
+const cvJobsPagination = ref({
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+  per_page: 20
+})
+let cvJobsRefreshInterval = null
 
 // Category configuration
 const categoryConfig = {
@@ -500,6 +609,74 @@ const deleteUser = async (id) => {
     console.error('Failed to delete user:', err)
     alert('Failed to delete user')
   }
+}
+
+// CV Jobs Methods
+const loadCvJobs = async (page = 1) => {
+  // Handle event object or invalid page
+  if (typeof page !== 'number') {
+    page = 1
+  }
+  
+  loadingCvJobs.value = true
+  try {
+    const params = {
+      page,
+      per_page: cvJobsPagination.value.per_page,
+      status: cvJobStatusFilter.value
+    }
+    const response = await candidateAPI.listCvJobs(params)
+    const data = response.data
+    
+    // Handle both straight array response and paginated response
+    if (data.data) {
+      cvJobs.value = data.data
+      cvJobsPagination.value = {
+        current_page: data.current_page,
+        last_page: data.last_page,
+        total: data.total,
+        per_page: data.per_page
+      }
+    } else {
+      cvJobs.value = data
+    }
+  } catch (err) {
+    console.error('Failed to load CV jobs:', err)
+  } finally {
+    loadingCvJobs.value = false
+  }
+}
+
+const changeCvJobsPage = (page) => {
+  loadCvJobs(page)
+}
+
+const retryCvJob = async (id) => {
+  try {
+    await candidateAPI.retryCvJob(id)
+    alert('Job queued for retry')
+    loadCvJobs(cvJobsPagination.value.current_page)
+  } catch (err) {
+    console.error('Failed to retry job:', err)
+    alert('Failed to retry job')
+  }
+}
+
+const deleteCvJob = async (id) => {
+  if (!confirm('Are you sure you want to delete this job? This action cannot be undone.')) return
+  
+  try {
+    await candidateAPI.deleteCvJob(id)
+    loadCvJobs(cvJobsPagination.value.current_page)
+  } catch (err) {
+    console.error('Failed to delete job:', err)
+    alert('Failed to delete job')
+  }
+}
+
+const formatDateTime = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleString()
 }
 
 // Configuration Management Methods
@@ -661,6 +838,29 @@ watch(currentTab, (newTab) => {
     loadConfiguration()
   } else if (newTab === 'users') {
     loadUsers()
+  } else if (newTab === 'cv_jobs') {
+    loadCvJobs()
+    // Auto-refresh every 30 seconds
+    if (cvJobsRefreshInterval) clearInterval(cvJobsRefreshInterval)
+    cvJobsRefreshInterval = setInterval(() => {
+      // Only refresh if tab is still active and not loading
+      if (currentTab.value === 'cv_jobs' && !loadingCvJobs.value) {
+        // Silent refresh
+        const params = {
+          page: cvJobsPagination.value.current_page,
+          per_page: cvJobsPagination.value.per_page,
+          status: cvJobStatusFilter.value
+        }
+        candidateAPI.listCvJobs(params).then(response => {
+           if (response.data.data) {
+             cvJobs.value = response.data.data
+             cvJobsPagination.value = { ...cvJobsPagination.value, total: response.data.total }
+           }
+        })
+      }
+    }, 30000)
+  } else {
+    if (cvJobsRefreshInterval) clearInterval(cvJobsRefreshInterval)
   }
 })
 
@@ -673,6 +873,11 @@ onMounted(() => {
   } else if (currentTab.value === 'users') {
     loadUsers()
   }
+})
+
+
+onUnmounted(() => {
+  if (cvJobsRefreshInterval) clearInterval(cvJobsRefreshInterval)
 })
 
 </script>
@@ -752,9 +957,72 @@ onMounted(() => {
 }
 
 .status-badge.status-offline,
-.status-badge.status-inactive {
+.status-badge.status-inactive,
+.status-badge.status-failed {
   background: #ffebee;
   color: #c62828;
+}
+
+.status-badge.status-pending {
+  background: #f5f5f5;
+  color: #616161;
+}
+
+.status-badge.status-processing,
+.status-badge.status-parsing_document {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-badge.status-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table th {
+  font-weight: 600;
+  color: #666;
+  background: #f8f9fa;
+}
+
+.filters-bar {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.pagination {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .health-details p {

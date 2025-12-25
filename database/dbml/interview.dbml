@@ -1,0 +1,64 @@
+//==============================================================================
+// INTERVIEW SERVICE DATABASE (candidacy_interview)
+//==============================================================================
+
+Table interviews {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  interviewer_id bigint [null]
+  stage varchar(255) [default: 'screening', not null]
+  scheduled_at datetime [not null]
+  duration_minutes int [default: 60, not null]
+  location varchar(255) [null]
+  type varchar(255) [default: 'video', not null]
+  status varchar(255) [default: 'scheduled', not null]
+  notes text [null]
+  interviewer_ids json [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_interviews_candidate_id']
+    vacancy_id [name: 'idx_interviews_vacancy_id']
+    interviewer_id [name: 'idx_interviews_interviewer_id']
+    status [name: 'idx_interviews_status']
+    type [name: 'idx_interviews_type']
+    scheduled_at [name: 'idx_interviews_scheduled_at']
+    created_at [name: 'idx_interviews_created_at']
+    (interviewer_id, scheduled_at) [name: 'idx_interviews_interviewer_schedule']
+    (candidate_id, scheduled_at) [name: 'idx_interviews_candidate_schedule']
+    (status, scheduled_at) [name: 'idx_interviews_status_schedule']
+  }
+  
+  Note: '''
+    Interview scheduling and management
+    Stages: screening, technical, behavioral, final
+    Types: in_person, video, phone
+    Statuses: scheduled, completed, cancelled, rescheduled
+    Logical FKs to candidate, vacancy, and user (interviewer) services
+  '''
+}
+
+Table interview_feedback {
+  id bigint [pk, increment]
+  interview_id bigint [not null, ref: > interviews.id]
+  reviewer_id bigint [not null]
+  technical_score int [null]
+  communication_score int [null]
+  cultural_fit_score int [null]
+  overall_score int [null]
+  strengths text [null]
+  weaknesses text [null]
+  comments text [null]
+  recommendation varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+    Interview feedback and scoring
+    Scores: 1-10 scale
+    Recommendations: strong_hire, hire, maybe, no_hire
+    Logical FK to user (reviewer) service
+  '''
+}

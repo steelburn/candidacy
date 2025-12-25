@@ -65,14 +65,18 @@ Candidacy is a complete recruitment management system with AI-powered capabiliti
   - Strengths (what candidate brings)
   - Gaps (what's missing)
   - Hiring recommendation
+- **Quality Controls**:
+  - Matches scoring below **40%** are automatically discarded (not saved)
+  - Missing RECOMMENDATION triggers automatic retry (up to 3 attempts)
+  - Typo-proof parsing handles AI output inconsistencies
 - **Threshold Filtering**: Configurable minimum match percentage (default: 70)
 - **Batch Matching**: Match one candidate against all vacancies or vice versa
 
 **Match Recommendations:**
 - **Strong Match** (75-100): Highly recommended for interview
 - **Good Match** (60-74): Worth considering
-- **Weak Match** (40-59): Has significant gaps
-- **No Match** (0-39): Not suitable
+- **Weak Match** (40-59): Has some gaps but worth reviewing
+- **Discarded** (0-39): Not saved - insufficient match quality
 
 ### Interview Questionnaire Generation
 **AI-generated interview questions based on job requirements**

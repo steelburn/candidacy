@@ -1,0 +1,88 @@
+//==============================================================================
+// ENUMERATIONS AND CONSTANTS
+//==============================================================================
+
+Enum employment_type {
+  full_time
+  part_time
+  contract
+  intern
+}
+
+Enum experience_level {
+  entry
+  mid
+  senior
+  lead
+  executive
+}
+
+Enum vacancy_status {
+  draft
+  open
+  closed
+  on_hold
+}
+
+Enum work_mode {
+  on_site
+  remote
+  hybrid
+}
+
+Enum match_status {
+  pending
+  reviewed
+  accepted
+  rejected
+  shortlisted
+  applied
+}
+
+Enum interview_stage {
+  screening
+  technical
+  behavioral
+  final
+}
+
+Enum interview_type {
+  in_person
+  video
+  phone
+}
+
+Enum interview_status {
+  scheduled
+  completed
+  cancelled
+  rescheduled
+}
+
+Enum recommendation {
+  strong_hire
+  hire
+  maybe
+  no_hire
+}
+
+Enum offer_status {
+  pending
+  accepted
+  rejected
+  withdrawn
+  expired
+}
+
+Enum onboarding_status {
+  pending
+  in_progress
+  completed
+}
+
+Enum parse_job_status {
+  pending
+  processing
+  completed
+  failed
+}

@@ -132,7 +132,7 @@ class OllamaService
                 'prompt_preview' => substr($prompt, 0, 200) . '...'
             ]);
             
-            $response = Http::timeout(90)->post("{$this->baseUrl}/api/generate", [
+            $response = Http::timeout(300)->post("{$this->baseUrl}/api/generate", [
                 'model' => $modelName,
                 'prompt' => $prompt,
                 'stream' => false,

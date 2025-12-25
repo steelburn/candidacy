@@ -1,0 +1,107 @@
+//==============================================================================
+// AUTH SERVICE DATABASE (candidacy_auth)
+//==============================================================================
+
+Table users {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  email_verified_at timestamp [null]
+  password varchar(255) [not null]
+  remember_token varchar(100) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  is_active boolean [default: true, not null]
+  
+  indexes {
+    created_at [name: 'idx_users_created_at']
+  }
+  
+  Note: 'System users (HR managers, recruiters, interviewers, admins)'
+}
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar(255) [unique, not null]
+  display_name varchar(255) [not null]
+  description text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'User roles: admin, hr_manager, recruiter, interviewer, viewer'
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  name varchar(255) [unique, not null]
+  display_name varchar(255) [not null]
+  description text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Granular permissions for access control'
+}
+
+Table role_user {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  role_id bigint [not null, ref: > roles.id]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (user_id, role_id) [unique]
+  }
+  
+  Note: 'Many-to-many relationship between users and roles'
+}
+
+Table permission_role {
+  id bigint [pk, increment]
+  permission_id bigint [not null, ref: > permissions.id]
+  role_id bigint [not null, ref: > roles.id]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (permission_id, role_id) [unique]
+  }
+  
+  Note: 'Many-to-many relationship between permissions and roles'
+}
+
+Table password_reset_tokens {
+  email varchar(255) [pk]
+  token varchar(255) [not null]
+  created_at timestamp [null]
+}
+
+Table personal_access_tokens {
+  id bigint [pk, increment]
+  tokenable_type varchar(255) [not null]
+  tokenable_id bigint [not null]
+  name varchar(255) [not null]
+  token varchar(64) [unique, not null]
+  abilities text [null]
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (tokenable_type, tokenable_id) [name: 'personal_access_tokens_tokenable']
+  }
+  
+  Note: 'Laravel Sanctum API tokens'
+}
+
+Table failed_jobs {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+}

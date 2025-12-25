@@ -1,0 +1,15 @@
+//==============================================================================
+// AI SERVICE DATABASE (candidacy_ai)
+//==============================================================================
+
+// Note: AI Service is a stateless processing service that handles:
+// - CV parsing and text extraction
+// - Job description generation
+// - Candidate-vacancy matching algorithms
+// - Interview question generation
+// - AI-powered analysis and recommendations
+//
+// This service does not maintain persistent data tables as it processes
+// requests in real-time using external AI providers (Ollama/OpenRouter).
+// All processed data is stored in the respective service databases
+// (e.g., parsed CV data in candidate service, match scores in matching service).

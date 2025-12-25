@@ -1,0 +1,14 @@
+//==============================================================================
+// NOTIFICATION SERVICE DATABASE (candidacy_notification)
+//==============================================================================
+
+// Note: Notification Service is a stateless service that handles:
+// - Email notifications
+// - SMS notifications (future)
+// - Push notifications (future)
+// - Notification templates
+// - Delivery tracking
+//
+// This service processes notification requests in real-time and does not
+// maintain persistent data tables. Notification history and preferences
+// are managed by individual services that trigger notifications.

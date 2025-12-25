@@ -1,0 +1,38 @@
+//==============================================================================
+// OFFER SERVICE DATABASE (candidacy_offer)
+//==============================================================================
+
+Table offers {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  salary_offered decimal(12,2) [not null]
+  currency varchar(255) [default: 'USD', not null]
+  benefits json [null]
+  start_date date [null]
+  offer_date date [not null]
+  expiry_date date [null]
+  status varchar(255) [default: 'pending', not null]
+  terms text [null]
+  candidate_response text [null]
+  responded_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_offers_candidate_id']
+    vacancy_id [name: 'idx_offers_vacancy_id']
+    status [name: 'idx_offers_status']
+    expiry_date [name: 'idx_offers_expiry_date']
+    start_date [name: 'idx_offers_start_date']
+    created_at [name: 'idx_offers_created_at']
+    (status, expiry_date) [name: 'idx_offers_status_expiry']
+    (candidate_id, status) [name: 'idx_offers_candidate_status']
+  }
+  
+  Note: '''
+    Job offers extended to candidates
+    Statuses: pending, accepted, rejected, withdrawn, expired
+    Logical FKs to candidate and vacancy services
+  '''
+}

@@ -1,0 +1,68 @@
+//==============================================================================
+// VACANCY SERVICE DATABASE (candidacy_vacancy)
+//==============================================================================
+
+Table vacancies {
+  id bigint [pk, increment]
+  title varchar(255) [not null]
+  description text [not null]
+  requirements text [null]
+  responsibilities text [null]
+  department varchar(255) [null]
+  location varchar(255) [not null]
+  employment_type varchar(255) [default: 'full_time', not null]
+  experience_level varchar(255) [default: 'mid', not null]
+  min_experience_years int [null]
+  max_experience_years int [null]
+  min_salary decimal(10,2) [null]
+  max_salary decimal(10,2) [null]
+  currency varchar(255) [default: 'USD', not null]
+  required_skills json [null]
+  preferred_skills json [null]
+  benefits json [null]
+  status varchar(255) [default: 'draft', not null]
+  closing_date date [null]
+  positions_available int [default: 1, not null]
+  work_mode varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_vacancies_status']
+    department [name: 'idx_vacancies_department']
+    location [name: 'idx_vacancies_location']
+    employment_type [name: 'idx_vacancies_employment_type']
+    created_at [name: 'idx_vacancies_created_at']
+    updated_at [name: 'idx_vacancies_updated_at']
+    (status, department) [name: 'idx_vacancies_status_dept']
+    (status, created_at) [name: 'idx_vacancies_status_created']
+  }
+  
+  Note: '''
+    Job vacancies/positions
+    Employment types: full_time, part_time, contract, intern
+    Experience levels: entry, mid, senior, lead, executive
+    Statuses: draft, open, closed, on_hold
+    Work modes: on-site, remote, hybrid
+  '''
+}
+
+Table vacancy_questions {
+  id bigint [pk, increment]
+  vacancy_id bigint [not null, ref: > vacancies.id]
+  question_text varchar(255) [not null]
+  question_type varchar(255) [default: 'text', not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Custom questions for vacancy applications'
+}
+
+Table required_skills {
+  id bigint [pk, increment]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Placeholder table for required skills (currently unused)'
+}

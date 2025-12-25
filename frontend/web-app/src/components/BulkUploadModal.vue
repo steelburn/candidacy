@@ -144,8 +144,35 @@ const startUpload = async () => {
       uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
     })
     
-    results.value = response.data.results
-    summary.value = response.data.summary
+    // Handle new async response format
+    if (response.data.jobs) {
+      const pendingJobs = response.data.jobs.map(job => ({
+        file: job.file,
+        status: 'pending', // New status
+        candidate_name: 'Processing in background...',
+        job_id: job.job_id
+      }))
+      
+      const failedUploads = response.data.failures ? response.data.failures.map(f => ({
+        file: f.file,
+        status: 'failed',
+        error: f.error
+      })) : []
+      
+      results.value = [...pendingJobs, ...failedUploads]
+      
+      // Map summary
+      summary.value = {
+        total: response.data.summary.total,
+        success: response.data.summary.queued, // Treat queued as success for summary count
+        failed: response.data.summary.failed
+      }
+    } else {
+      // Fallback for old format (if any)
+      results.value = response.data.results
+      summary.value = response.data.summary
+    }
+
   } catch (error) {
     console.error('Bulk upload failed:', error)
     results.value = [{ file: 'Upload', status: 'failed', error: error.message || 'Upload failed' }]
@@ -157,6 +184,7 @@ const startUpload = async () => {
 </script>
 
 <style scoped>
+/* ... existing styles ... */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -397,6 +425,7 @@ const startUpload = async () => {
 .result-success { background: #d4edda; }
 .result-skipped { background: #fff3cd; }
 .result-failed { background: #f8d7da; }
+.result-pending { background: #e2e8f0; color: #4a5568; }
 
 .result-icon {
   font-weight: bold;

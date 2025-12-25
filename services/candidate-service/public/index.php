@@ -1,5 +1,9 @@
 <?php
 
+
+// Low-level debug log
+error_log("Raw Request Hit: " . $_SERVER['REQUEST_URI'] . " Method: " . $_SERVER['REQUEST_METHOD']);
+
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 

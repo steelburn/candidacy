@@ -40,3 +40,9 @@ coverage/
 # Temporary files
 *.tmp
 *.bak
+
+# Generated Schema Files
+/schema.dbml
+/database/schema.sql
+/database/sql/*.sql
+

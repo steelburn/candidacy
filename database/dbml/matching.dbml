@@ -1,0 +1,81 @@
+//==============================================================================
+// MATCHING SERVICE DATABASE (candidacy_matching)
+//==============================================================================
+
+Table matches {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  match_score int [default: 0, not null]
+  analysis json [null]
+  status varchar(255) [default: 'pending', not null]
+  interview_questions json [null]
+  applied_at timestamp [null]
+  questionnaire_completed boolean [default: false]
+  questionnaire_metadata json [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    candidate_id [name: 'idx_matches_candidate_id']
+    vacancy_id [name: 'idx_matches_vacancy_id']
+    match_score [name: 'idx_matches_score']
+    status [name: 'idx_matches_status']
+    created_at [name: 'idx_matches_created_at']
+    (match_score, status) [name: 'idx_matches_score_status']
+    (candidate_id, match_score) [name: 'idx_matches_candidate_score']
+    (vacancy_id, match_score) [name: 'idx_matches_vacancy_score']
+    (candidate_id, vacancy_id) [unique, name: 'matches_candidate_id_vacancy_id_unique']
+  }
+  
+  Note: '''
+    AI-generated candidate-vacancy matches
+    Statuses: pending, reviewed, accepted, rejected, shortlisted, applied, dismissed
+    Logical FKs to candidate and vacancy services
+    
+    Business Rules:
+    - Matches with scores below 40% are automatically discarded (not saved)
+    - Missing RECOMMENDATION in analysis triggers retry (up to 3 attempts)
+  '''
+}
+
+Table job_statuses_matching {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  vacancy_id bigint [not null]
+  status varchar(255) [not null]
+  notes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Job application status tracking (logical FKs to candidate and vacancy services)'
+}
+
+Table matching_job_statuses {
+  id bigint [pk, increment]
+  type varchar(255) [not null]
+  status varchar(255) [not null]
+  result json [null]
+  error text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_matching_job_statuses_status']
+    created_at [name: 'idx_matching_job_statuses_created']
+  }
+  
+  Note: 'Background job tracking for matching service'
+}
+
+Table failed_jobs_matching {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Failed queue jobs for matching service'
+}

@@ -9,6 +9,8 @@ class JobStatus extends Model
 {
     use HasFactory;
 
+    protected $table = 'matching_job_statuses';
+
     protected $fillable = [
         'type',
         'status', // pending, processing, completed, failed

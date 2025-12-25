@@ -24,6 +24,7 @@
       />
       <select v-model="statusFilter" @change="fetchCandidates" class="filter-select">
         <option value="">All Statuses</option>
+        <option value="draft">Draft</option>
         <option value="new">New</option>
         <option value="reviewing">Reviewing</option>
         <option value="shortlisted">Shortlisted</option>
@@ -217,6 +218,7 @@ td:last-child {
   font-weight: 500;
 }
 
+.status-draft { background: #eceff1; color: #607d8b; }
 .status-new { background: #e3f2fd; color: #1976d2; }
 .status-reviewing { background: #fff3e0; color: #f57c00; }
 .status-shortlisted { background: #e8f5e9; color: #388e3c; }

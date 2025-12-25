@@ -9,7 +9,7 @@ SHELL := /bin/bash
 .PHONY: test-backend test-api test-integration test-e2e test-service
 .PHONY: test-auth test-candidate test-vacancy
 .PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
-.PHONY: logs-document-parser
+.PHONY: logs-document-parser clear-matches
 
 help:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -28,6 +28,7 @@ help:
 	@echo "  make seed           - Seed all databases with sample data"
 	@echo "  make seed-config    - Seed configuration settings (27 settings)"
 	@echo "  make db-reset       - Reset all databases (WARNING: destructive)"
+	@echo "  make clear-matches  - Clear all candidate matches (for re-running matching)"
 	@echo ""
 	@echo "🗄️  DBML Commands (Database-as-Code):"
 	@echo "  make dbml-validate  - Validate DBML schema syntax"
@@ -226,6 +227,11 @@ db-reset:
 		make seed; \
 		echo "✅ Database reset complete"; \
 	fi
+
+clear-matches:
+	@echo "🧹 Clearing all candidate matches..."
+	@docker exec candidacy-matching sh -c "php -r \"require 'vendor/autoload.php'; \$$app = require_once 'bootstrap/app.php'; \$$kernel = \$$app->make(Illuminate\Contracts\Console\Kernel::class); \$$kernel->bootstrap(); \App\Models\CandidateMatch::query()->delete(); echo 'Deleted all matches. Count: ' . \App\Models\CandidateMatch::count();\""
+	@echo "✅ Matches cleared. Run 'Run Matching' in the UI to regenerate."
 
 test:
 	@echo "🧪 Running all tests..."

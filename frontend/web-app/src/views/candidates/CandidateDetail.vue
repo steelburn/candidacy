@@ -60,6 +60,10 @@
           :class="{ active: currentTab === 'generated' }"
         >Generated CV</button>
         <button 
+          @click="currentTab = 'parsing'" 
+          :class="{ active: currentTab === 'parsing' }"
+        >Parsing Details</button>
+        <button 
           @click="currentTab = 'matches'" 
           :class="{ active: currentTab === 'matches' }"
         >Matches</button>
@@ -130,6 +134,70 @@
             <h3>Standardized Profile for Matching</h3>
             <p class="hint">This is the text representation used by the AI Model for matching analysis.</p>
             <MarkdownRenderer :content="candidate.generated_cv_content || 'No generated content available.'" />
+        </div>
+      </div>
+
+      <!-- TAB: Parsing Details -->
+      <div v-if="currentTab === 'parsing'" class="tab-content">
+        <div class="parsing-controls">
+          <div class="parsing-tabs">
+            <button 
+              @click="parsingSubTab = 'original'" 
+              :class="{ active: parsingSubTab === 'original' }"
+            >Original Document</button>
+            <button 
+              @click="parsingSubTab = 'text'" 
+              :class="{ active: parsingSubTab === 'text' }"
+            >Extracted Text</button>
+            <button 
+              @click="parsingSubTab = 'json'" 
+              :class="{ active: parsingSubTab === 'json' }"
+            >Raw Data (JSON)</button>
+          </div>
+          <button @click="loadParsingDetails" class="btn-sm" :disabled="loadingParsing">
+            🔄 Refresh
+          </button>
+        </div>
+
+        <div v-if="loadingParsing" class="loading-state">
+            Loading parsing details...
+        </div>
+
+        <div v-else-if="parsingError" class="error-state">
+            {{ parsingError }}
+        </div>
+
+        <div v-else class="parsing-content">
+            <!-- Original PDF -->
+            <div v-if="parsingSubTab === 'original'" class="sub-tab-content">
+                <div v-if="parsingDetails?.file_path" class="pdf-container">
+                    <!-- We use the same preview URL logic -->
+                    <iframe :src="previewUrl || getCvViewUrl()" width="100%" height="800px"></iframe>
+                </div>
+                <div v-else class="no-data">
+                    No document file found.
+                </div>
+            </div>
+
+            <!-- Extracted Text -->
+            <div v-if="parsingSubTab === 'text'" class="sub-tab-content">
+                <div class="text-actions">
+                    <button @click="copyText(parsingDetails?.extracted_text)" class="btn-sm">Copy Text</button>
+                </div>
+                <div class="raw-text-viewer">
+                    <pre>{{ parsingDetails?.extracted_text || 'No extracted text available.' }}</pre>
+                </div>
+            </div>
+
+            <!-- Raw JSON -->
+            <div v-if="parsingSubTab === 'json'" class="sub-tab-content">
+                 <div class="text-actions">
+                    <button @click="copyText(JSON.stringify(parsingDetails?.parsed_data, null, 2))" class="btn-sm">Copy JSON</button>
+                </div>
+                <div class="json-viewer">
+                    <pre><code>{{ JSON.stringify(parsingDetails?.parsed_data, null, 2) || 'No parsed data available.' }}</code></pre>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -215,20 +283,22 @@
                         
                         <div class="analysis-section strengths">
                         <h4><span class="icon">✅</span> Strengths</h4>
-                        <ul>
+                        <ul v-if="parseAnalysis(match.analysis).strengths.length > 0">
                             <li v-for="(point, i) in parseAnalysis(match.analysis).strengths" :key="i">
                             {{ point }}
                             </li>
                         </ul>
+                        <p v-else class="text-muted" style="font-style: italic;">No specific strengths highlighted.</p>
                         </div>
 
                         <div class="analysis-section gaps">
                         <h4><span class="icon">⚠️</span> Gaps</h4>
-                        <ul>
+                        <ul v-if="parseAnalysis(match.analysis).gaps.length > 0">
                             <li v-for="(point, i) in parseAnalysis(match.analysis).gaps" :key="i">
                             {{ point }}
                             </li>
                         </ul>
+                        <p v-else class="text-muted" style="font-style: italic;">No specific gaps identified.</p>
                         </div>
 
                         <div class="analysis-section recommendation">
@@ -359,7 +429,11 @@ const matches = ref([])
 const loading = ref(false)
 const loadingMatches = ref(false)
 const currentTab = ref('overview')
+const parsingSubTab = ref('original')
 const previewUrl = ref('')
+const parsingDetails = ref(null)
+const loadingParsing = ref(false)
+const parsingError = ref('')
 
 const fetchCandidate = async () => {
   loading.value = true
@@ -399,6 +473,38 @@ const fetchCvUrl = async (cvId) => {
         console.error('Error fetching CV url', e)
     }
 }
+
+const getCvViewUrl = () => {
+    return `http://localhost:8080/api/candidates/${route.params.id}/cv/view`
+}
+
+const loadParsingDetails = async () => {
+    loadingParsing.value = true
+    parsingError.value = ''
+    try {
+        const response = await candidateAPI.getParsingDetails(route.params.id)
+        parsingDetails.value = response.data
+    } catch (err) {
+        console.error('Failed to load parsing details:', err)
+        parsingError.value = 'Failed to load parsing details. ' + (err.response?.data?.message || err.message)
+    } finally {
+        loadingParsing.value = false
+    }
+}
+
+const copyText = (text) => {
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    alert('Copied to clipboard!')
+}
+
+// Watch for tab change to load parsing details
+import { watch } from 'vue'
+watch(currentTab, (newTab) => {
+    if (newTab === 'parsing' && !parsingDetails.value) {
+        loadParsingDetails()
+    }
+})
 
 const viewMatches = async () => {
   loadingMatches.value = true
@@ -504,48 +610,61 @@ const formatAnalysis = (text) => {
 const parseAnalysis = (text) => {
   if (!text) return null
   
-  // Check if it follows the structured format
-  const hasStructure = text.includes('SCORE:') && text.includes('STRENGTHS:') && text.includes('GAPS:')
-  if (!hasStructure) return null
-  
-  try {
-    const sections = {
+  // Try to parse structured sections even if some keywords are missing
+  // We look for the standardized markers
+  const sections = {
       strengths: [],
       gaps: [],
       recommendation: ''
-    }
-    
-    // Extract Strengths
-    const strengthsMatch = text.match(/STRENGTHS:([\s\S]*?)GAPS:/)
-    if (strengthsMatch && strengthsMatch[1]) {
-      sections.strengths = strengthsMatch[1]
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.startsWith('-') || line.startsWith('•'))
-        .map(line => line.substring(1).trim())
-    }
-    
-    // Extract Gaps
-    const gapsMatch = text.match(/GAPS:([\s\S]*?)RECOMMENDATION:/)
-    if (gapsMatch && gapsMatch[1]) {
-      sections.gaps = gapsMatch[1]
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.startsWith('-') || line.startsWith('•'))
-        .map(line => line.substring(1).trim())
-    }
-    
-    // Extract Recommendation
-    const recMatch = text.match(/RECOMMENDATION:([\s\S]*)/)
-    if (recMatch && recMatch[1]) {
-      sections.recommendation = recMatch[1].trim()
-    }
-    
-    return sections
-  } catch (e) {
-    console.error('Error parsing analysis:', e)
-    return null
   }
+  
+  let foundAny = false
+
+  // Extract Strengths
+  // Look for STRENGTHS: ... (until GAPS: or end)
+  // Handle typos like STRENGHTHS, STRENTHS, separate with spaces
+  const strengthsMatch = text.match(/(?:STRENGTHS?|STRENGHTHS?|STRENTHS?)\s*:([\s\S]*?)(?=(?:GAPS?|WEAKNESS(?:ES)?)\s*:|RECOMMENDATION\s*:|$)/i)
+  if (strengthsMatch && strengthsMatch[1]) {
+      foundAny = true
+      sections.strengths = strengthsMatch[1]
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
+      .map(line => line.substring(1).trim())
+  }
+
+  // Extract Gaps
+  const gapsMatch = text.match(/(?:GAPS?|WEAKNESS(?:ES)?)\s*:([\s\S]*?)(?=RECOMMENDATION\s*:|$)/i)
+  if (gapsMatch && gapsMatch[1]) {
+      foundAny = true
+      sections.gaps = gapsMatch[1]
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
+      .map(line => line.substring(1).trim())
+  }
+
+  // Extract Recommendation
+  const recMatch = text.match(/RECOMMENDATION\s*:([\s\S]*)/i)
+  if (recMatch && recMatch[1]) {
+      foundAny = true
+      sections.recommendation = recMatch[1].trim()
+  }
+
+  // Also check if we simply have a score but maybe missing other tags, 
+  // though usually if we have score we have the rest.
+  // If we found ANY structured tags, return the object. 
+  // If we found NOTHING, return null to fallback to basic Markdown rendering.
+  if (foundAny) {
+      return sections
+  }
+
+  // Fallback: If text is short and doesn't look like analysis, maybe return null
+  // But if the user says "Always mandatory", maybe we should try to force it?
+  // If the AI failed completely to use tags, we can't force structure.
+  // But if it used *some* tags, we used them above.
+  
+  return null
 }
 
 // Parse JSON string fields to arrays
@@ -553,9 +672,12 @@ const parsedSkills = computed(() => {
   if (!candidate.value?.skills) return []
   if (Array.isArray(candidate.value.skills)) return candidate.value.skills
   try {
-    return JSON.parse(candidate.value.skills)
+    const parsed = JSON.parse(candidate.value.skills)
+    // If it parses to a string, split it. If array, return it.
+    return Array.isArray(parsed) ? parsed : String(parsed).split(',').map(s => s.trim())
   } catch {
-    return []
+    // If JSON parse fails, assume it's a comma-separated string
+    return candidate.value.skills.split(',').map(s => s.trim())
   }
 })
 
@@ -719,11 +841,37 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
+/* Global Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+}
+
+/* Layout & Header */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
 }
 
 .status {
@@ -738,104 +886,16 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.detail-grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.info-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.info-card h3 {
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: #667eea;
-}
-
-.skills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.skill-tag {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-}
-
-.experience-item, .education-item {
-  padding: 1rem 0;
-  border-bottom: 1px solid #eee;
-}
-
-.experience-item:last-child, .education-item:last-child {
-  border-bottom: none;
-}
-
-.experience-item h4, .education-item h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-}
-
-.company, .institution {
-  color: #667eea;
-  font-weight: 500;
-  margin: 0.25rem 0;
-}
-
-.description {
-  color: #666;
-  margin: 0.5rem 0 0 0;
-  line-height: 1.6;
-}
-
-.match-item {
-  padding: 1rem;
-  border-bottom: 1px solid #eee;
-}
-
-.match-item:last-child {
-  border-bottom: none;
-}
-
-.match-score {
-  color: #667eea;
-  font-weight: 600;
-  margin-left: 1rem;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  text-decoration: none;
-  display: inline-block;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
+/* Tabs */
 .tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid #eee;
   padding-bottom: 0.5rem;
+  background: transparent;
+  width: auto;
+  border-radius: 0;
 }
 
 .tabs button {
@@ -847,18 +907,24 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  border-radius: 0;
   transition: all 0.2s;
 }
 
 .tabs button.active {
   color: #667eea;
   border-bottom-color: #667eea;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .tabs button:hover:not(.active) {
   color: #333;
+  background: transparent;
 }
 
+/* Tab Content */
 .tab-content {
   animation: fadeIn 0.3s ease;
 }
@@ -868,565 +934,387 @@ onMounted(() => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.pdf-container {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 8px;
-    height: 820px;
+/* Common Card Styles */
+.info-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  border: none;
 }
 
-.no-data {
-    text-align: center;
-    padding: 3rem;
-    color: #999;
-    font-size: 1.1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
+.info-card:hover {
+  transform: none;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.generated-cv-content {
-    white-space: pre-wrap;
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: #333;
-    border: 1px solid #eee;
+.info-card h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #667eea;
+  font-size: 1.17em;
 }
 
+.detail-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Detail Items */
+.experience-item, .education-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #eee;
+}
+.experience-item:last-child { border-bottom: none; }
+
+.experience-item h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+.company {
+  color: #667eea;
+  font-weight: 500;
+  margin: 0.25rem 0;
+}
+.description {
+  color: #666;
+  margin: 0.5rem 0 0 0;
+  line-height: 1.6;
+}
+
+/* Matches List */
 .matches-list {
-    display: grid;
-    gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .match-card {
-    background: white;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background: white;
+  border-radius: 20px;
+  padding: 0; 
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.match-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.1), 0 10px 20px -6px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
 }
 
 .match-header {
+  padding: 2rem;
+  background: linear-gradient(to right, #ffffff, #f8fafc);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.match-header h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.match-meta {
+  padding: 0 2rem;
+  margin-top: -1rem; /* Visual overlap adjustment */
+  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Score Badge */
+.match-score-badge {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid #f0f0f0;
-    padding-bottom: 0.75rem;
+    justify-content: center;
+    width: 90px;
+    height: 90px;
+    border-radius: 20px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
 }
 
-.match-header h4 {
-    margin: 0;
-    color: #333;
+.match-score-badge::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 60%);
+    transform: rotate(45deg);
 }
 
-.match-score {
-    font-weight: 600;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
+.score-value {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.score-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+    z-index: 1;
 }
 
 .score-high {
-    background: #d4edda;
-    color: #155724;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
 }
 
 .score-medium {
-    background: #fff3cd;
-    color: #856404;
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3);
 }
 
 .score-low {
-    background: #f8d7da;
-    color: #721c24;
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
 }
 
-.match-analysis {
-    color: #555;
-    line-height: 1.6;
-}
-
+/* Vacancy Details */
 .vacancy-details {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 4px solid #667eea;
-}
-
-.vacancy-details h4 {
-    margin: 0 0 1rem 0;
-    color: #555;
-    font-size: 1rem;
-    font-weight: 600;
+    padding: 2rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
 }
 
 .vacancy-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.vacancy-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .vacancy-item .label {
     font-size: 0.75rem;
-    font-weight: 600;
-    color: #666;
+    font-weight: 700;
+    color: #94a3b8;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    display: block;
 }
 
 .vacancy-item .value {
-    font-size: 0.9rem;
-    color: #333;
-}
-
-.vacancy-skills {
-    margin-top: 1rem;
-}
-
-.vacancy-skills .label {
-    font-size: 0.85rem;
+    font-size: 1rem;
+    color: #334155;
     font-weight: 600;
-    color: #555;
-    display: block;
-    margin-bottom: 0.5rem;
 }
 
 .skills-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .skill-tag {
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 0.35rem 0.75rem;
-    border-radius: 16px;
-    font-size: 0.85rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
     font-weight: 500;
-}
-
-.vacancy-description {
-    margin-top: 1rem;
-}
-
-.desc-toggle {
-    background: #fff;
-    border: 1px solid #ddd;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    color: #555;
-    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    justify-content: center;
 }
 
-.desc-toggle:hover {
-    background: #f5f5f5;
-    border-color: #bbb;
+.skill-tag:hover {
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
 }
 
-.desc-content {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #fff;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-}
-
-.match-score-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: bold;
-    min-width: 80px;
-}
-
-.score-value {
-    font-size: 1.25rem;
-    line-height: 1;
-}
-
-.score-label {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    opacity: 0.8;
-}
-
-.match-meta {
-    display: flex;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-    color: #666;
-}
-
+/* Analysis Grid */
 .analysis-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-    animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 0 2rem 2rem 2rem;
 }
 
 .analysis-section {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    padding: 1.75rem;
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 2rem;
+    border-radius: 20px;
     position: relative;
     overflow: hidden;
-}
-
-.analysis-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    transition: all 0.3s ease;
+    height: 100%;
+    transition: transform 0.3s ease;
 }
 
 .analysis-section:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    transform: translateY(-5px);
 }
 
 .analysis-section h4 {
-    margin: 0 0 1.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    color: #1a202c;
-    font-size: 1.125rem;
-    font-weight: 700;
 }
 
-.analysis-section h4 .icon {
-    font-size: 1.5rem;
-    animation: pulse 2s ease-in-out infinite;
+.strengths {
+    background: linear-gradient(145deg, #f0fdf4 0%, #ffffff 100%);
+    border: 1px solid #dcfce7;
+    box-shadow: 0 10px 30px rgba(22, 163, 74, 0.05);
 }
+.strengths h4 { color: #166534; }
+.strengths li::before { content: '✓'; color: #22c55e; position: absolute; left: 0; font-weight: 800; }
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+.gaps {
+    background: linear-gradient(145deg, #fffbeb 0%, #ffffff 100%);
+    border: 1px solid #fef3c7;
+    box-shadow: 0 10px 30px rgba(217, 119, 6, 0.05);
+}
+.gaps h4 { color: #92400e; }
+.gaps li::before { content: '!'; color: #f59e0b; position: absolute; left: 0; font-weight: 800; }
+
+.recommendation {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+    border: 1px solid #dbeafe;
+}
+.recommendation h4 { color: #1e40af; }
+.recommendation p { 
+    color: #1e3a8a; 
+    font-size: 1.1rem; 
+    line-height: 1.7; 
+    font-weight: 500;
 }
 
 .analysis-section ul {
-    margin: 0;
-    padding-left: 1.5rem;
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .analysis-section li {
-    margin-bottom: 0.75rem;
-    color: #4a5568;
-    line-height: 1.6;
+    padding-left: 1.75rem;
     position: relative;
-    padding-left: 0.5rem;
-}
-
-.analysis-section li::before {
-    content: '▸';
-    position: absolute;
-    left: -1rem;
-    font-weight: bold;
-}
-
-.analysis-section.strengths {
-    border-left: none;
-    background: linear-gradient(135deg, rgba(240, 255, 244, 0.9), rgba(220, 252, 231, 0.9));
-}
-
-.analysis-section.strengths::before {
-    background: linear-gradient(90deg, #10b981, #059669);
-}
-
-.analysis-section.strengths li::before {
-    color: #10b981;
-}
-
-.analysis-section.gaps {
-    border-left: none;
-    background: linear-gradient(135deg, rgba(255, 249, 230, 0.9), rgba(254, 243, 199, 0.9));
-}
-
-.analysis-section.gaps::before {
-    background: linear-gradient(90deg, #f59e0b, #d97706);
-}
-
-.analysis-section.gaps li::before {
-    color: #f59e0b;
-}
-
-.analysis-section.recommendation {
-    grid-column: 1 / -1;
-    border-left: none;
-    background: linear-gradient(135deg, rgba(227, 242, 253, 0.9), rgba(219, 234, 254, 0.9));
-}
-
-.analysis-section.recommendation::before {
-    background: linear-gradient(90deg, #3b82f6, #2563eb);
-}
-
-.analysis-section.recommendation p {
-    margin: 0;
-    color: #1e40af;
-    font-weight: 500;
-    line-height: 1.7;
-    font-size: 1.0625rem;
-}
-
-@media (max-width: 768px) {
-    .analysis-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.match-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-text {
-    background: none;
-    border: none;
-    color: #667eea;
-    cursor: pointer;
-    font-weight: 500;
-    text-decoration: none;
-}
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-}
-
-.modal-content h3 { margin-top: 0; }
-
-.modal-actions {
-    margin-top: 2rem;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.copy-box {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.copy-box input {
-    flex: 1;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #f8f9fa;
-}
-
-/* Match UI Improvements */
-.matches-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.section-title {
     margin-bottom: 1rem;
-    color: #444;
-    font-size: 1.1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #eee;
+    color: #475569;
+    line-height: 1.6;
 }
 
-.text-muted {
-    color: #999;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0.25rem;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-}
-
-.btn-icon:hover {
-    opacity: 1;
-}
-
-.match-card.dismissed {
-    opacity: 0.7;
-    background: #f8f9fa;
-}
-
+/* Question Section */
 .questions-section {
-    margin-top: 2rem;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    margin: 2rem;
     border-radius: 16px;
-    padding: 0;
+    border: 1px solid #e2e8f0;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-}
-
-.questions-section:hover {
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
 }
 
 .questions-header {
+    background: white;
+    padding: 1.5rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, rgba(248, 249, 250, 0.95), rgba(241, 245, 249, 0.95));
-    backdrop-filter: blur(10px);
-    padding: 1.5rem 1.75rem;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-}
-
-.questions-header h4 {
-    margin: 0;
-    color: #1a202c;
-    font-weight: 700;
-    font-size: 1.125rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.questions-placeholder {
-    padding: 3rem 2rem;
-    text-align: center;
-    color: #64748b;
-    font-style: italic;
-    font-size: 1rem;
-}
-
-.questions-list {
-    display: flex;
-    flex-direction: column;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .q-item {
-    display: flex;
-    gap: 1.25rem;
-    padding: 1.75rem;
-    border-bottom: 1px solid rgba(241, 245, 249, 0.8);
-    transition: all 0.3s ease;
+    background: white;
+    padding: 2rem;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
 }
 
-.q-item:hover {
-    background: rgba(248, 250, 252, 0.6);
-}
-
-.q-item:last-child {
-    border-bottom: none;
-}
+.q-item:hover { background: #f8fafc; }
 
 .q-number {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     color: white;
-    font-weight: 700;
-    font-size: 0.875rem;
-    height: 40px;
-    width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
 }
 
-.q-content {
-    flex: 1;
-}
-
-.q-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.875rem;
-}
-
-.q-meta {
-    display: flex;
-    gap: 0.625rem;
-    flex-wrap: wrap;
-}
+.q-meta { margin-top: 0.5rem; display: flex; gap: 0.5rem; }
 
 .q-type, .q-difficulty {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    padding: 0.375rem 0.875rem;
-    border-radius: 50px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* Parsing Details & Buttons */
+.parsing-controls {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.raw-text-viewer, .json-viewer {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #1e293b; 
+    color: #e2e8f0;
+}
+.json-viewer pre { color: #a5d6ff; }
+
+/* Buttons */
+.btn-primary, .btn-secondary {
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+}
+
+.match-actions button {
+    font-weight: 600;
+}
+
+/* Modal */
+.modal-content {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+
 
 .type-technical {
     background: linear-gradient(135deg, #3b82f6, #2563eb);

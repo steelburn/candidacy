@@ -145,41 +145,73 @@ class MatchJob implements ShouldQueue
                 $jobReqs .= "Skills: " . $safeEncode($vacancy['required_skills'] ?? []) . "\n";
 
                 try {
-                    $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post("{$aiServiceUrl}/api/match", [
-                        'candidate_profile' => $candidateProfile,
-                        'job_requirements' => $jobReqs
-                    ]);
+                    $maxRetries = 3;
+                    $finalMatchData = null;
+                    
+                    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                        try {
+                            $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post("{$aiServiceUrl}/api/match", [
+                                'candidate_profile' => $candidateProfile,
+                                'job_requirements' => $jobReqs
+                            ]);
 
-                    if ($aiResponse->successful()) {
-                        $matchResult = $aiResponse->json();
-                        $score = $matchResult['match_score'] ?? 0;
-                        
-                        // Always save, regardless of threshold, so we can see low matches too? 
-                        // Or only above threshold? Requirement usually implies filtering.
-                        // But let's save all computed matches so we don't re-compute. status can be 'new' or 'rejected'.
-                        
+                            if ($aiResponse->successful()) {
+                                $matchResult = $aiResponse->json();
+                                $score = $matchResult['match_score'] ?? 0;
+                                
+                                // Filter out low scores - Do NOT save
+                                if ($score < 40) {
+                                    $finalMatchData = null; // Explicitly null to ensure we don't save previous attempts
+                                    break; // Stop retrying, this is a valid "no match"
+                                }
+                                
+                                $analysis = $matchResult['analysis'] ?? '';
+                                $hasRecommendation = stripos($analysis, 'RECOMMENDATION:') !== false;
+
+                                $matchResultToSave = [
+                                    'vacancy_title' => $vacancy['title'],
+                                    'match_score' => $score,
+                                    'analysis' => $analysis,
+                                    'status' => 'pending'
+                                ];
+
+                                $finalMatchData = $matchResultToSave;
+
+                                if ($hasRecommendation) {
+                                    break; // Good result
+                                }
+                                
+                                Log::warning("MatchJob: Analysis missing RECOMMENDATION. Retrying... (Attempt $attempt)", [
+                                    'candidate' => $this->candidateId,
+                                    'vacancy' => $vacancy['id']
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                             Log::error("MatchJob: AI Attempt $attempt failed: " . $e->getMessage());
+                        }
+                    }
+
+                    // Only save if we have valid match data (score >= 40)
+                    if ($finalMatchData) {
                         \App\Models\CandidateMatch::updateOrCreate(
                             [
                                 'candidate_id' => $candidate['id'],
                                 'vacancy_id' => $vacancy['id']
                             ],
-                            [
-                                'vacancy_title' => $vacancy['title'],
-                                'match_score' => $score,
-                                'analysis' => $matchResult['analysis'] ?? '',
-                                'status' => 'pending' // Default status
-                            ]
+                            $finalMatchData
                         );
-                        
-                        if ($score >= $threshold) {
-                            $results[] = [
+
+                        if ($finalMatchData['match_score'] >= $threshold) {
+                             $results[] = [
                                 'vacancy' => $vacancy['title'],
-                                'score' => $score
+                                'score' => $finalMatchData['match_score']
                             ];
                         }
                     } else {
-                        Log::error("AI match failed for vacancy {$vacancy['id']}: " . $aiResponse->body());
+                        // If strict, we might want to delete existing match if score dropped below 40?
+                        // For now, just don't create/update.
                     }
+
                 } catch (\Exception $aiEx) {
                    Log::error("AI Service Error: " . $aiEx->getMessage()); 
                 }

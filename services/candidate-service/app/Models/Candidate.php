@@ -61,4 +61,36 @@ class Candidate extends Model
     {
         return $query->where('status', $status);
     }
+
+    /**
+     * Helper to normalize JSON fields (array, string, or null)
+     * 
+     * @param mixed $value
+     * @param bool $allowCommaSeparated For 'skills' field
+     * @return array|null
+     */
+    public static function normalizeJsonField($value, $allowCommaSeparated = false)
+    {
+        if (is_null($value)) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            // If not valid JSON and allowCommaSeparated is true (e.g. skills)
+            if ($allowCommaSeparated) {
+                return array_map('trim', explode(',', $value));
+            }
+        }
+
+        return null;
+    }
 }

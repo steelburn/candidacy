@@ -83,17 +83,48 @@ class GatewayController extends Controller
 
         try {
             // Forward request
-            $httpClient = Http::timeout(300)->withHeaders($request->header());
+            $headers = collect($request->header())
+                ->except(['content-type', 'content-length', 'host'])
+                ->all();
+
+            $httpClient = Http::timeout(300)->withHeaders($headers);
             
-            // Only add body if there's content and a valid Content-Type
-            $contentType = $request->header('Content-Type');
-            $content = $request->getContent();
-            
-            if ($content && $contentType) {
-                $httpClient = $httpClient->withBody($content, $contentType);
+            // Handle Multipart Requests (Files)
+            if (str_contains($request->header('Content-Type'), 'multipart')) {
+                $httpClient = $httpClient->asMultipart();
+                
+                // Attach all files
+                foreach ($request->allFiles() as $name => $file) {
+                    if (is_array($file)) {
+                        foreach ($file as $subFile) {
+                            $httpClient->attach($name . '[]', file_get_contents($subFile->getPathname()), $subFile->getClientOriginalName());
+                        }
+                    } else {
+                        $httpClient->attach($name, file_get_contents($file->getPathname()), $file->getClientOriginalName());
+                    }
+                }
+                
+                // Attach other inputs
+                foreach ($request->except($request->keys()) as $name => $value) {
+                     // Note: http client attach also handles fields as 'contents' key map if needed, 
+                     // but asMultipart() usually implies using post fields for non-file data.
+                     // A safer way in Laravel Http client with multipart is just passing the data array as second arg to post()
+                }
+                
+                // For multipart, we pass data in the send/post method
+                $response = $httpClient->post($targetUrl, $request->except(array_keys($request->allFiles())));
+                
+            } else {
+                // Handle JSON/Raw Requests
+                $contentType = $request->header('Content-Type');
+                $content = $request->getContent();
+                
+                if ($content && $contentType) {
+                    $httpClient = $httpClient->withBody($content, $contentType);
+                }
+                
+                $response = $httpClient->send($request->method(), $targetUrl);
             }
-            
-            $response = $httpClient->send($request->method(), $targetUrl);
 
             // Build response with proper CORS headers
             $proxyResponse = response($response->body(), $response->status());

@@ -1,0 +1,42 @@
+//==============================================================================
+// CROSS-SERVICE RELATIONSHIPS (Logical Foreign Keys)
+//==============================================================================
+
+// Note: The following relationships exist logically across microservices
+// but are not enforced at the database level due to the distributed architecture
+
+// Candidate Service -> Vacancy Service
+// - candidate_tokens.vacancy_id -> vacancies.id
+// - applicant_answers.vacancy_id -> vacancies.id
+// - applicant_answers.question_id -> vacancy_questions.id
+// - job_statuses.vacancy_id -> vacancies.id
+
+// Matching Service -> Candidate Service
+// - matches.candidate_id -> candidates.id
+// - job_statuses_matching.candidate_id -> candidates.id
+
+// Matching Service -> Vacancy Service
+// - matches.vacancy_id -> vacancies.id
+// - job_statuses_matching.vacancy_id -> vacancies.id
+
+// Interview Service -> Candidate Service
+// - interviews.candidate_id -> candidates.id
+
+// Interview Service -> Vacancy Service
+// - interviews.vacancy_id -> vacancies.id
+
+// Interview Service -> Auth Service
+// - interviews.interviewer_id -> users.id
+// - interview_feedback.reviewer_id -> users.id
+
+// Offer Service -> Candidate Service
+// - offers.candidate_id -> candidates.id
+
+// Offer Service -> Vacancy Service
+// - offers.vacancy_id -> vacancies.id
+
+// Onboarding Service -> Candidate Service
+// - onboarding_checklists.candidate_id -> candidates.id
+
+// Document Parser Service -> Candidate Service
+// - parse_jobs.candidate_id -> candidates.id

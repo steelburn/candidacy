@@ -320,41 +320,75 @@ class MatchController extends BaseApiController
             $candidateProfile = $this->buildCandidateProfile($candidate);
             $jobRequirements = $this->buildJobRequirements($vacancy);
 
-            try {
-                $response = Http::timeout(AppConstants::API_TIMEOUT)->post($this->aiServiceUrl . '/api/match', [
-                    'candidate_profile' => $candidateProfile,
-                    'job_requirements' => $jobRequirements,
-                ]);
+            $maxRetries = 3;
+            $finalMatchData = null;
 
-                if ($response->successful()) {
-                    $aiResult = $response->json();
-                    
-                    $matchData = [
-                        'candidate_id' => $candidate['id'],
-                        'vacancy_id' => $vacancy['id'],
-                        'vacancy_title' => $vacancy['title'] ?? 'Untitled Vacancy',
-                        'match_score' => $aiResult['match_score'],
-                        'analysis' => $aiResult['analysis'] ?? '', // Store full analysis as text/JSON
-                        'status' => 'pending',
-                    ];
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                try {
+                    $response = Http::timeout(AppConstants::API_TIMEOUT)->post($this->aiServiceUrl . '/api/match', [
+                        'candidate_profile' => $candidateProfile,
+                        'job_requirements' => $jobRequirements,
+                    ]);
 
-                    // Try to store in database, but don't fail if it doesn't work
-                    try {
-                        CandidateMatch::updateOrCreate(
-                            [
-                                'candidate_id' => $candidate['id'],
-                                'vacancy_id' => $vacancy['id']
-                            ],
-                            $matchData
-                        );
-                    } catch (\Exception $dbError) {
-                        Log::warning('Failed to save match to database: ' . $dbError->getMessage());
+                    if ($response->successful()) {
+                        $aiResult = $response->json();
+                        
+                        $score = isset($aiResult['match_score']) ? (int)$aiResult['match_score'] : 0;
+                        
+                        // Filter out low scores immediately, no need to retry
+                        if ($score < 40) {
+                            return null;
+                        }
+
+                        $analysis = $aiResult['analysis'] ?? '';
+                        
+                        // Check if we have a recommendation
+                        $hasRecommendation = stripos($analysis, 'RECOMMENDATION:') !== false;
+
+                        // Prepare match data
+                        $matchData = [
+                            'candidate_id' => $candidate['id'],
+                            'vacancy_id' => $vacancy['id'],
+                            'vacancy_title' => $vacancy['title'] ?? 'Untitled Vacancy',
+                            'match_score' => $score,
+                            'analysis' => $analysis,
+                            'status' => 'pending',
+                        ];
+
+                        // Keep this result as a candidate
+                        $finalMatchData = $matchData;
+
+                        if ($hasRecommendation) {
+                            // Perfect result, stop retrying
+                            break;
+                        }
+
+                        Log::warning("Match analysis missing RECOMMENDATION. Retrying...", [
+                            'candidate' => $candidate['id'], 
+                            'attempt' => $attempt
+                        ]);
+                        
                     }
-
-                    return $matchData;
+                } catch (\Exception $e) {
+                    Log::error('Matching error (Attempt ' . $attempt . '): ' . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                Log::error('Matching error: ' . $e->getMessage());
+            }
+
+            if ($finalMatchData) {
+                // Try to store in database
+                try {
+                    CandidateMatch::updateOrCreate(
+                        [
+                            'candidate_id' => $candidate['id'],
+                            'vacancy_id' => $vacancy['id']
+                        ],
+                        $finalMatchData
+                    );
+                } catch (\Exception $dbError) {
+                    Log::warning('Failed to save match to database: ' . $dbError->getMessage());
+                }
+
+                return $finalMatchData;
             }
 
             return null;
@@ -424,7 +458,10 @@ class MatchController extends BaseApiController
         $expText = '';
         if (is_array($experience) && !empty($experience)) {
             foreach ($experience as $exp) {
-                $expText .= "- {$exp['title']} at {$exp['company']} ({$exp['duration']})\n";
+                $title = $exp['title'] ?? 'Unknown Role';
+                $company = $exp['company'] ?? 'Unknown Company';
+                $duration = $exp['duration'] ?? '';
+                $expText .= "- {$title} at {$company} ({$duration})\n";
             }
         }
         
@@ -432,17 +469,22 @@ class MatchController extends BaseApiController
         $eduText = '';
         if (is_array($education) && !empty($education)) {
             foreach ($education as $edu) {
-                $eduText .= "- {$edu['degree']} from {$edu['institution']} ({$edu['year']})\n";
+                $degree = $edu['degree'] ?? 'Unknown Degree';
+                $institution = $edu['institution'] ?? 'Unknown Institution';
+                $year = $edu['year'] ?? '';
+                $eduText .= "- {$degree} from {$institution} ({$year})\n";
             }
         }
         
         $yearsExp = $candidate['years_of_experience'] ?? 'Not specified';
+        $name = $candidate['name'] ?? 'Candidate';
+        $summary = $candidate['summary'] ?? '';
         
         return <<<PROFILE
-Name: {$candidate['name']}
+Name: {$name}
 Years of Experience: {$yearsExp}
 Skills: {$skillsList}
-Summary: {$candidate['summary']}
+Summary: {$summary}
 
 Work Experience:
 {$expText}

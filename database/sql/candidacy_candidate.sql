@@ -1,7 +1,7 @@
 CREATE TABLE `candidates` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `email` varchar(255) UNIQUE NOT NULL,
+  `name` varchar(255),
+  `email` varchar(255),
   `phone` varchar(255),
   `summary` text,
   `linkedin_url` varchar(255),
@@ -27,6 +27,7 @@ CREATE TABLE `cv_files` (
   `file_name` varchar(255) NOT NULL,
   `file_type` varchar(50) NOT NULL,
   `file_size` int NOT NULL,
+  `extracted_text` longtext,
   `parsed_data` json,
   `parsing_status` varchar(50) DEFAULT "pending",
   `parsing_error` text,
@@ -64,6 +65,38 @@ CREATE TABLE `job_statuses` (
   `updated_at` timestamp
 );
 
+CREATE TABLE `cv_parsing_jobs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint,
+  `file_path` varchar(255) NOT NULL,
+  `extracted_text` longtext,
+  `status` varchar(50) NOT NULL DEFAULT "pending",
+  `parsed_data` json,
+  `error_message` text,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `jobs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `queue` varchar(255) NOT NULL,
+  `payload` longtext NOT NULL,
+  `attempts` tinyint NOT NULL,
+  `reserved_at` int,
+  `available_at` int NOT NULL,
+  `created_at` int NOT NULL
+);
+
+CREATE TABLE `failed_jobs_candidate` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(255) UNIQUE NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
+);
+
 CREATE INDEX `idx_candidates_status` ON `candidates` (`status`);
 
 CREATE INDEX `idx_candidates_created_at` ON `candidates` (`created_at`);
@@ -71,6 +104,14 @@ CREATE INDEX `idx_candidates_created_at` ON `candidates` (`created_at`);
 CREATE INDEX `idx_candidates_updated_at` ON `candidates` (`updated_at`);
 
 CREATE INDEX `idx_candidates_status_created` ON `candidates` (`status`, `created_at`);
+
+CREATE INDEX `idx_cv_parsing_jobs_status` ON `cv_parsing_jobs` (`status`);
+
+CREATE INDEX `idx_cv_parsing_jobs_candidate_id` ON `cv_parsing_jobs` (`candidate_id`);
+
+CREATE INDEX `idx_cv_parsing_jobs_created_at` ON `cv_parsing_jobs` (`created_at`);
+
+CREATE INDEX `jobs_queue_index` ON `jobs` (`queue`);
 
 ALTER TABLE `candidates` COMMENT = 'Job candidates with their profiles and information';
 
@@ -82,6 +123,12 @@ ALTER TABLE `applicant_answers` COMMENT = 'Candidate answers to vacancy question
 
 ALTER TABLE `job_statuses` COMMENT = 'Candidate application status tracking (logical FK to vacancy service)';
 
+ALTER TABLE `cv_parsing_jobs` COMMENT = 'Async AI CV parsing jobs - tracks background processing of CV text extraction';
+
+ALTER TABLE `jobs` COMMENT = 'Database queue jobs table for fallback when Redis is unavailable';
+
+ALTER TABLE `failed_jobs_candidate` COMMENT = 'Failed queue jobs for candidate service';
+
 ALTER TABLE `cv_files` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
 
 ALTER TABLE `candidate_tokens` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
@@ -89,4 +136,6 @@ ALTER TABLE `candidate_tokens` ADD FOREIGN KEY (`candidate_id`) REFERENCES `cand
 ALTER TABLE `applicant_answers` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
 
 ALTER TABLE `job_statuses` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
+
+ALTER TABLE `cv_parsing_jobs` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
 

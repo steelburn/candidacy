@@ -1,0 +1,23 @@
+//==============================================================================
+// ONBOARDING SERVICE DATABASE (candidacy_onboarding)
+//==============================================================================
+
+Table onboarding_checklists {
+  id bigint [pk, increment]
+  candidate_id bigint [not null]
+  task_name varchar(255) [not null]
+  description text [null]
+  status varchar(255) [default: 'pending', not null]
+  due_date date [null]
+  completed_at timestamp [null]
+  notes text [null]
+  order int [default: 0, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+    Onboarding tasks and checklists for new hires
+    Statuses: pending, in_progress, completed
+    Logical FK to candidate service
+  '''
+}

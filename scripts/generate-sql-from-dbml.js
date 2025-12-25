@@ -4,11 +4,53 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔨 Generating SQL from DBML...\n');
+console.log('🔨 Generating SQL from DBML modules...\n');
+
+// DBML Modules Directory
+const dbmlDir = path.join(__dirname, '..', 'database', 'dbml');
+const rootSchemaPath = path.join(__dirname, '..', 'schema.dbml');
+
+// Combine DBML files
+try {
+    console.log('📦 Combining DBML modules...');
+
+    // Order matters: Project -> Enums -> Service/Tables -> Relationships
+    const priorityFiles = ['project.dbml', 'enums.dbml'];
+    const lastFiles = ['relationships.dbml'];
+
+    // Get all .dbml files
+    const allFiles = fs.readdirSync(dbmlDir).filter(f => f.endsWith('.dbml'));
+
+    // Filter out priority and last files to get the middle ones
+    const middleFiles = allFiles.filter(f => !priorityFiles.includes(f) && !lastFiles.includes(f));
+
+    // Sort logic: Project, Enums, then alphabetical middle, then Relationships
+    const sortedFiles = [
+        ...priorityFiles.filter(f => allFiles.includes(f)),
+        ...middleFiles.sort(),
+        ...lastFiles.filter(f => allFiles.includes(f))
+    ];
+
+    let combinedDbml = '';
+    for (const file of sortedFiles) {
+        console.log(`   + ${file}`);
+        const content = fs.readFileSync(path.join(dbmlDir, file), 'utf8');
+        combinedDbml += content + '\n\n';
+    }
+
+    // Write to root schema.dbml
+    fs.writeFileSync(rootSchemaPath, combinedDbml);
+    console.log(`✅ Generated combined ${rootSchemaPath}\n`);
+
+} catch (error) {
+    console.error('❌ Error combining DBML files:', error.message);
+    process.exit(1);
+}
 
 // Service to database mapping
 const services = {
     'auth-service': 'candidacy_auth',
+    'ai-service': 'candidacy_ai',
     'candidate-service': 'candidacy_candidate',
     'vacancy-service': 'candidacy_vacancy',
     'matching-service': 'candidacy_matching',
@@ -120,6 +162,8 @@ function getDatabaseForTable(tableName, services) {
         // Matching service
         'matches': 'candidacy_matching',
         'job_statuses_matching': 'candidacy_matching',
+        'matching_job_statuses': 'candidacy_matching', // Added
+        'failed_jobs_matching': 'candidacy_matching', // Added
 
         // Interview service
         'interviews': 'candidacy_interview',
@@ -133,9 +177,16 @@ function getDatabaseForTable(tableName, services) {
 
         // Admin service
         'settings': 'candidacy_admin',
+        'setting_change_logs': 'candidacy_admin',
 
         // Document parser service
-        'parse_jobs': 'candidacy_document_parser'
+        'parse_jobs': 'candidacy_document_parser',
+        'failed_jobs_parser': 'candidacy_document_parser',
+
+        // Candidate service (additional)
+        'cv_parsing_jobs': 'candidacy_candidate',
+        'jobs': 'candidacy_candidate', // Database queue fallback
+        'failed_jobs_candidate': 'candidacy_candidate',
     };
 
     return tableToDatabase[tableName] || null;

@@ -15,7 +15,9 @@ Centralized AI operations service providing semantic analysis, matching, and gen
 - ✅ Intelligent candidate-vacancy matching
 - ✅ Job description generation from keywords
 - ✅ Automated interview questionnaire generation
+- ✅ Automated interview questionnaire generation
 - ✅ Configurable models per task type
+- ✅ **Extended Timeout**: 300s timeout for handling complex/local model generation
 
 ## API Endpoints
 

@@ -217,7 +217,18 @@ curl http://localhost:8080/api/system-health
 - ✅ Migrated to JWT-based authentication with `auth:api`
 - ✅ Fixed shared namespace configuration
 - ✅ Standardized API responses across all services
+- ✅ Standardized API responses across all services
 - ✅ Centralized system health monitoring via API Gateway
+- ✅ **Resume Persistence & Reliability (Dec 25)**
+  - Persisted parsed CV text in database (`extracted_text`)
+  - Implemented "Draft" candidate status for incomplete parsings
+  - Automated `CvFile` record creation for persistent viewing
+  - Isolated queues for Candidate and Matching services
+- ✅ **AI Matching Quality Improvements (Dec 26)**
+  - Matches below 40% score are automatically discarded
+  - Missing RECOMMENDATION triggers automatic retry (up to 3 attempts)
+  - Typo-proof parsing handles AI output inconsistencies (STRENGHTHS, GAPs :)
+  - Beautified Matches tab with glassmorphism UI
 
 ### Monitoring
 - **Grafana Dashboard**: http://localhost:3050

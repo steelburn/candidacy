@@ -15,7 +15,7 @@ class DocumentParserClient
     {
         try {
             // Submit file for parsing
-            $response = Http::attach(
+            $response = Http::timeout(30)->attach(
                 'file',
                 file_get_contents($filePath),
                 basename($filePath)
@@ -31,7 +31,7 @@ class DocumentParserClient
             // Poll for completion
             $startTime = time();
             while (time() - $startTime < $this->maxWaitSeconds) {
-                $statusResponse = Http::get($this->baseUrl . "/parse/{$jobId}/status");
+                $statusResponse = Http::timeout(30)->get($this->baseUrl . "/parse/{$jobId}/status");
                 
                 if (!$statusResponse->successful()) {
                     throw new \Exception('Failed to check status');
@@ -40,7 +40,7 @@ class DocumentParserClient
                 $status = $statusResponse->json('status');
 
                 if ($status === 'completed') {
-                    $resultResponse = Http::get($this->baseUrl . "/parse/{$jobId}/result");
+                    $resultResponse = Http::timeout(30)->get($this->baseUrl . "/parse/{$jobId}/result");
                     
                     if (!$resultResponse->successful()) {
                         throw new \Exception('Failed to get result');

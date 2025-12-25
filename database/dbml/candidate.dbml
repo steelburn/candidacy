@@ -1,0 +1,135 @@
+//==============================================================================
+// CANDIDATE SERVICE DATABASE (candidacy_candidate)
+//==============================================================================
+
+Table candidates {
+  id bigint [pk, increment]
+  name varchar(255) [null]
+  email varchar(255) [null]
+  phone varchar(255) [null]
+  summary text [null]
+  linkedin_url varchar(255) [null]
+  github_url varchar(255) [null]
+  portfolio_url varchar(255) [null]
+  skills json [null]
+  experience json [null]
+  education json [null]
+  status varchar(255) [default: 'new', not null]
+  notes text [null]
+  years_of_experience int [null]
+  generated_cv_content longtext [null]
+  pin_code varchar(255) [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_candidates_status']
+    created_at [name: 'idx_candidates_created_at']
+    updated_at [name: 'idx_candidates_updated_at']
+    (status, created_at) [name: 'idx_candidates_status_created']
+  }
+  
+  Note: 'Job candidates with their profiles and information'
+}
+
+Table cv_files {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  file_path varchar(255) [not null]
+  file_name varchar(255) [not null]
+  file_type varchar(50) [not null]
+  file_size int [not null]
+  extracted_text longtext [null]
+  parsed_data json [null]
+  parsing_status varchar(50) [default: 'pending']
+  parsing_error text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Uploaded CV/resume files and their parsing status'
+}
+
+Table candidate_tokens {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  token varchar(255) [unique, not null]
+  vacancy_id bigint [null]
+  expires_at timestamp [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Access tokens for candidate portal (logical FK to vacancy service)'
+}
+
+Table applicant_answers {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  vacancy_id bigint [not null]
+  question_id bigint [not null]
+  answer text [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Candidate answers to vacancy questions (logical FKs to vacancy service)'
+}
+
+Table job_statuses {
+  id bigint [pk, increment]
+  candidate_id bigint [not null, ref: > candidates.id]
+  vacancy_id bigint [not null]
+  status varchar(255) [not null]
+  notes text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Candidate application status tracking (logical FK to vacancy service)'
+}
+
+Table cv_parsing_jobs {
+  id bigint [pk, increment]
+  candidate_id bigint [null, ref: > candidates.id]
+  file_path varchar(255) [not null]
+  extracted_text longtext [null]
+  status varchar(50) [default: 'pending', not null]
+  parsed_data json [null]
+  error_message text [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_cv_parsing_jobs_status']
+    candidate_id [name: 'idx_cv_parsing_jobs_candidate_id']
+    created_at [name: 'idx_cv_parsing_jobs_created_at']
+  }
+  
+  Note: 'Async AI CV parsing jobs - tracks background processing of CV text extraction'
+}
+
+Table jobs {
+  id bigint [pk, increment]
+  queue varchar(255) [not null]
+  payload longtext [not null]
+  attempts tinyint [not null]
+  reserved_at int [null]
+  available_at int [not null]
+  created_at int [not null]
+  
+  indexes {
+    queue [name: 'jobs_queue_index']
+  }
+  
+  Note: 'Database queue jobs table for fallback when Redis is unavailable'
+}
+
+Table failed_jobs_candidate {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Failed queue jobs for candidate service'
+}

@@ -1,3 +1,33 @@
+CREATE TABLE `settings` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `key` varchar(255) UNIQUE NOT NULL,
+  `value` text,
+  `type` varchar(255) NOT NULL DEFAULT "string",
+  `category` varchar(255),
+  `description` text,
+  `is_public` boolean NOT NULL DEFAULT false,
+  `is_sensitive` boolean NOT NULL DEFAULT false,
+  `validation_rules` json,
+  `default_value` text,
+  `service_scope` varchar(255),
+  `requires_restart` boolean NOT NULL DEFAULT false,
+  `version` int NOT NULL DEFAULT 1,
+  `updated_by` bigint,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `setting_change_logs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `setting_id` bigint NOT NULL,
+  `old_value` text,
+  `new_value` text,
+  `changed_by` bigint,
+  `changed_at` timestamp DEFAULT (CURRENT_TIMESTAMP),
+  `ip_address` varchar(45),
+  `user_agent` varchar(255)
+);
+
 CREATE TABLE `users` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
@@ -76,8 +106,8 @@ CREATE TABLE `failed_jobs` (
 
 CREATE TABLE `candidates` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `email` varchar(255) UNIQUE NOT NULL,
+  `name` varchar(255),
+  `email` varchar(255),
   `phone` varchar(255),
   `summary` text,
   `linkedin_url` varchar(255),
@@ -103,6 +133,7 @@ CREATE TABLE `cv_files` (
   `file_name` varchar(255) NOT NULL,
   `file_type` varchar(50) NOT NULL,
   `file_size` int NOT NULL,
+  `extracted_text` longtext,
   `parsed_data` json,
   `parsing_status` varchar(50) DEFAULT "pending",
   `parsing_error` text,
@@ -144,10 +175,164 @@ CREATE TABLE `cv_parsing_jobs` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `candidate_id` bigint,
   `file_path` varchar(255) NOT NULL,
-  `extracted_text` longtext NOT NULL,
+  `extracted_text` longtext,
   `status` varchar(50) NOT NULL DEFAULT "pending",
   `parsed_data` json,
   `error_message` text,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `jobs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `queue` varchar(255) NOT NULL,
+  `payload` longtext NOT NULL,
+  `attempts` tinyint NOT NULL,
+  `reserved_at` int,
+  `available_at` int NOT NULL,
+  `created_at` int NOT NULL
+);
+
+CREATE TABLE `failed_jobs_candidate` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(255) UNIQUE NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
+);
+
+CREATE TABLE `parse_jobs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `file_path` varchar(255) NOT NULL,
+  `file_type` varchar(50) NOT NULL,
+  `original_filename` varchar(255) NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT "pending",
+  `extracted_text` longtext,
+  `error_message` text,
+  `file_size` int,
+  `page_count` int,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `failed_jobs_parser` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(255) UNIQUE NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
+);
+
+CREATE TABLE `interviews` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint NOT NULL,
+  `vacancy_id` bigint NOT NULL,
+  `interviewer_id` bigint,
+  `stage` varchar(255) NOT NULL DEFAULT "screening",
+  `scheduled_at` datetime NOT NULL,
+  `duration_minutes` int NOT NULL DEFAULT 60,
+  `location` varchar(255),
+  `type` varchar(255) NOT NULL DEFAULT "video",
+  `status` varchar(255) NOT NULL DEFAULT "scheduled",
+  `notes` text,
+  `interviewer_ids` json,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `interview_feedback` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `interview_id` bigint NOT NULL,
+  `reviewer_id` bigint NOT NULL,
+  `technical_score` int,
+  `communication_score` int,
+  `cultural_fit_score` int,
+  `overall_score` int,
+  `strengths` text,
+  `weaknesses` text,
+  `comments` text,
+  `recommendation` varchar(255),
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `matches` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint NOT NULL,
+  `vacancy_id` bigint NOT NULL,
+  `match_score` int NOT NULL DEFAULT 0,
+  `analysis` json,
+  `status` varchar(255) NOT NULL DEFAULT "pending",
+  `interview_questions` json,
+  `applied_at` timestamp,
+  `questionnaire_completed` boolean DEFAULT false,
+  `questionnaire_metadata` json,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `job_statuses_matching` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint NOT NULL,
+  `vacancy_id` bigint NOT NULL,
+  `status` varchar(255) NOT NULL,
+  `notes` text,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `matching_job_statuses` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `type` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL,
+  `result` json,
+  `error` text,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `failed_jobs_matching` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(255) UNIQUE NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
+);
+
+CREATE TABLE `offers` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint NOT NULL,
+  `vacancy_id` bigint NOT NULL,
+  `salary_offered` decimal(12,2) NOT NULL,
+  `currency` varchar(255) NOT NULL DEFAULT "USD",
+  `benefits` json,
+  `start_date` date,
+  `offer_date` date NOT NULL,
+  `expiry_date` date,
+  `status` varchar(255) NOT NULL DEFAULT "pending",
+  `terms` text,
+  `candidate_response` text,
+  `responded_at` timestamp,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `onboarding_checklists` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `candidate_id` bigint NOT NULL,
+  `task_name` varchar(255) NOT NULL,
+  `description` text,
+  `status` varchar(255) NOT NULL DEFAULT "pending",
+  `due_date` date,
+  `completed_at` timestamp,
+  `notes` text,
+  `order` int NOT NULL DEFAULT 0,
   `created_at` timestamp,
   `updated_at` timestamp
 );
@@ -194,145 +379,23 @@ CREATE TABLE `required_skills` (
   `updated_at` timestamp
 );
 
-CREATE TABLE `matches` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `candidate_id` bigint NOT NULL,
-  `vacancy_id` bigint NOT NULL,
-  `match_score` int NOT NULL DEFAULT 0,
-  `analysis` json,
-  `status` varchar(255) NOT NULL DEFAULT "pending",
-  `interview_questions` json,
-  `applied_at` timestamp,
-  `questionnaire_completed` boolean DEFAULT false,
-  `questionnaire_metadata` json,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_settings_category` ON `settings` (`category`);
 
-CREATE TABLE `job_statuses_matching` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `candidate_id` bigint NOT NULL,
-  `vacancy_id` bigint NOT NULL,
-  `status` varchar(255) NOT NULL,
-  `notes` text,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_settings_service_scope` ON `settings` (`service_scope`);
 
-CREATE TABLE `interviews` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `candidate_id` bigint NOT NULL,
-  `vacancy_id` bigint NOT NULL,
-  `interviewer_id` bigint,
-  `stage` varchar(255) NOT NULL DEFAULT "screening",
-  `scheduled_at` datetime NOT NULL,
-  `duration_minutes` int NOT NULL DEFAULT 60,
-  `location` varchar(255),
-  `type` varchar(255) NOT NULL DEFAULT "video",
-  `status` varchar(255) NOT NULL DEFAULT "scheduled",
-  `notes` text,
-  `interviewer_ids` json,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_settings_is_public` ON `settings` (`is_public`);
 
-CREATE TABLE `interview_feedback` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `interview_id` bigint NOT NULL,
-  `reviewer_id` bigint NOT NULL,
-  `technical_score` int,
-  `communication_score` int,
-  `cultural_fit_score` int,
-  `overall_score` int,
-  `strengths` text,
-  `weaknesses` text,
-  `comments` text,
-  `recommendation` varchar(255),
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_setting_logs_setting_id` ON `setting_change_logs` (`setting_id`);
 
-CREATE TABLE `offers` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `candidate_id` bigint NOT NULL,
-  `vacancy_id` bigint NOT NULL,
-  `salary_offered` decimal(12,2) NOT NULL,
-  `currency` varchar(255) NOT NULL DEFAULT "USD",
-  `benefits` json,
-  `start_date` date,
-  `offer_date` date NOT NULL,
-  `expiry_date` date,
-  `status` varchar(255) NOT NULL DEFAULT "pending",
-  `terms` text,
-  `candidate_response` text,
-  `responded_at` timestamp,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_setting_logs_changed_at` ON `setting_change_logs` (`changed_at`);
 
-CREATE TABLE `onboarding_checklists` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `candidate_id` bigint NOT NULL,
-  `task_name` varchar(255) NOT NULL,
-  `description` text,
-  `status` varchar(255) NOT NULL DEFAULT "pending",
-  `due_date` date,
-  `completed_at` timestamp,
-  `notes` text,
-  `order` int NOT NULL DEFAULT 0,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
-
-CREATE TABLE `settings` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `key` varchar(255) UNIQUE NOT NULL,
-  `value` text,
-  `type` varchar(255) NOT NULL DEFAULT "string",
-  `category` varchar(255),
-  `description` text,
-  `is_public` boolean NOT NULL DEFAULT false,
-  `is_sensitive` boolean NOT NULL DEFAULT false,
-  `validation_rules` json,
-  `default_value` text,
-  `service_scope` varchar(255),
-  `requires_restart` boolean NOT NULL DEFAULT false,
-  `version` int NOT NULL DEFAULT 1,
-  `updated_by` bigint,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
-
-CREATE TABLE `setting_change_logs` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `setting_id` bigint NOT NULL,
-  `old_value` text,
-  `new_value` text,
-  `changed_by` bigint NOT NULL,
-  `changed_at` timestamp DEFAULT (CURRENT_TIMESTAMP),
-  `ip_address` varchar(45),
-  `user_agent` varchar(255)
-);
-
-CREATE TABLE `parse_jobs` (
-  `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `file_path` varchar(255) NOT NULL,
-  `file_type` varchar(50) NOT NULL,
-  `original_filename` varchar(255) NOT NULL,
-  `status` varchar(50) NOT NULL DEFAULT "pending",
-  `extracted_text` longtext,
-  `error_message` text,
-  `file_size` int,
-  `page_count` int,
-  `created_at` timestamp,
-  `updated_at` timestamp
-);
+CREATE INDEX `idx_setting_logs_changed_by` ON `setting_change_logs` (`changed_by`);
 
 CREATE INDEX `idx_users_created_at` ON `users` (`created_at`);
 
-CREATE UNIQUE INDEX `role_user_index_1` ON `role_user` (`user_id`, `role_id`);
+CREATE UNIQUE INDEX `role_user_index_7` ON `role_user` (`user_id`, `role_id`);
 
-CREATE UNIQUE INDEX `permission_role_index_2` ON `permission_role` (`permission_id`, `role_id`);
+CREATE UNIQUE INDEX `permission_role_index_8` ON `permission_role` (`permission_id`, `role_id`);
 
 CREATE INDEX `personal_access_tokens_tokenable` ON `personal_access_tokens` (`tokenable_type`, `tokenable_id`);
 
@@ -350,39 +413,11 @@ CREATE INDEX `idx_cv_parsing_jobs_candidate_id` ON `cv_parsing_jobs` (`candidate
 
 CREATE INDEX `idx_cv_parsing_jobs_created_at` ON `cv_parsing_jobs` (`created_at`);
 
-CREATE INDEX `idx_vacancies_status` ON `vacancies` (`status`);
+CREATE INDEX `jobs_queue_index` ON `jobs` (`queue`);
 
-CREATE INDEX `idx_vacancies_department` ON `vacancies` (`department`);
+CREATE INDEX `idx_parse_jobs_status` ON `parse_jobs` (`status`);
 
-CREATE INDEX `idx_vacancies_location` ON `vacancies` (`location`);
-
-CREATE INDEX `idx_vacancies_employment_type` ON `vacancies` (`employment_type`);
-
-CREATE INDEX `idx_vacancies_created_at` ON `vacancies` (`created_at`);
-
-CREATE INDEX `idx_vacancies_updated_at` ON `vacancies` (`updated_at`);
-
-CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
-
-CREATE INDEX `idx_vacancies_status_created` ON `vacancies` (`status`, `created_at`);
-
-CREATE INDEX `idx_matches_candidate_id` ON `matches` (`candidate_id`);
-
-CREATE INDEX `idx_matches_vacancy_id` ON `matches` (`vacancy_id`);
-
-CREATE INDEX `idx_matches_score` ON `matches` (`match_score`);
-
-CREATE INDEX `idx_matches_status` ON `matches` (`status`);
-
-CREATE INDEX `idx_matches_created_at` ON `matches` (`created_at`);
-
-CREATE INDEX `idx_matches_score_status` ON `matches` (`match_score`, `status`);
-
-CREATE INDEX `idx_matches_candidate_score` ON `matches` (`candidate_id`, `match_score`);
-
-CREATE INDEX `idx_matches_vacancy_score` ON `matches` (`vacancy_id`, `match_score`);
-
-CREATE UNIQUE INDEX `matches_candidate_id_vacancy_id_unique` ON `matches` (`candidate_id`, `vacancy_id`);
+CREATE INDEX `idx_parse_jobs_created_at` ON `parse_jobs` (`created_at`);
 
 CREATE INDEX `idx_interviews_candidate_id` ON `interviews` (`candidate_id`);
 
@@ -404,6 +439,28 @@ CREATE INDEX `idx_interviews_candidate_schedule` ON `interviews` (`candidate_id`
 
 CREATE INDEX `idx_interviews_status_schedule` ON `interviews` (`status`, `scheduled_at`);
 
+CREATE INDEX `idx_matches_candidate_id` ON `matches` (`candidate_id`);
+
+CREATE INDEX `idx_matches_vacancy_id` ON `matches` (`vacancy_id`);
+
+CREATE INDEX `idx_matches_score` ON `matches` (`match_score`);
+
+CREATE INDEX `idx_matches_status` ON `matches` (`status`);
+
+CREATE INDEX `idx_matches_created_at` ON `matches` (`created_at`);
+
+CREATE INDEX `idx_matches_score_status` ON `matches` (`match_score`, `status`);
+
+CREATE INDEX `idx_matches_candidate_score` ON `matches` (`candidate_id`, `match_score`);
+
+CREATE INDEX `idx_matches_vacancy_score` ON `matches` (`vacancy_id`, `match_score`);
+
+CREATE UNIQUE INDEX `matches_candidate_id_vacancy_id_unique` ON `matches` (`candidate_id`, `vacancy_id`);
+
+CREATE INDEX `idx_matching_job_statuses_status` ON `matching_job_statuses` (`status`);
+
+CREATE INDEX `idx_matching_job_statuses_created` ON `matching_job_statuses` (`created_at`);
+
 CREATE INDEX `idx_offers_candidate_id` ON `offers` (`candidate_id`);
 
 CREATE INDEX `idx_offers_vacancy_id` ON `offers` (`vacancy_id`);
@@ -420,21 +477,32 @@ CREATE INDEX `idx_offers_status_expiry` ON `offers` (`status`, `expiry_date`);
 
 CREATE INDEX `idx_offers_candidate_status` ON `offers` (`candidate_id`, `status`);
 
-CREATE INDEX `idx_settings_category` ON `settings` (`category`);
+CREATE INDEX `idx_vacancies_status` ON `vacancies` (`status`);
 
-CREATE INDEX `idx_settings_service_scope` ON `settings` (`service_scope`);
+CREATE INDEX `idx_vacancies_department` ON `vacancies` (`department`);
 
-CREATE INDEX `idx_settings_is_public` ON `settings` (`is_public`);
+CREATE INDEX `idx_vacancies_location` ON `vacancies` (`location`);
 
-CREATE INDEX `idx_setting_logs_setting_id` ON `setting_change_logs` (`setting_id`);
+CREATE INDEX `idx_vacancies_employment_type` ON `vacancies` (`employment_type`);
 
-CREATE INDEX `idx_setting_logs_changed_at` ON `setting_change_logs` (`changed_at`);
+CREATE INDEX `idx_vacancies_created_at` ON `vacancies` (`created_at`);
 
-CREATE INDEX `idx_setting_logs_changed_by` ON `setting_change_logs` (`changed_by`);
+CREATE INDEX `idx_vacancies_updated_at` ON `vacancies` (`updated_at`);
 
-CREATE INDEX `idx_parse_jobs_status` ON `parse_jobs` (`status`);
+CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
 
-CREATE INDEX `idx_parse_jobs_created_at` ON `parse_jobs` (`created_at`);
+CREATE INDEX `idx_vacancies_status_created` ON `vacancies` (`status`, `created_at`);
+
+ALTER TABLE `settings` COMMENT = 'Application-wide settings and configuration
+Types: string, integer, boolean, json
+Public settings are accessible without authentication
+Sensitive settings are masked in UI (API keys, passwords)
+Service scope indicates which service(s) use this setting
+Validation rules stored as JSON schema';
+
+ALTER TABLE `setting_change_logs` COMMENT = 'Audit trail for configuration changes
+Tracks who changed what configuration, when, and from where
+Enables configuration rollback and compliance tracking';
 
 ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins)';
 
@@ -460,21 +528,14 @@ ALTER TABLE `job_statuses` COMMENT = 'Candidate application status tracking (log
 
 ALTER TABLE `cv_parsing_jobs` COMMENT = 'Async AI CV parsing jobs - tracks background processing of CV text extraction';
 
-ALTER TABLE `vacancies` COMMENT = 'Job vacancies/positions
-Employment types: full_time, part_time, contract, intern
-Experience levels: entry, mid, senior, lead, executive
-Statuses: draft, open, closed, on_hold
-Work modes: on-site, remote, hybrid';
+ALTER TABLE `jobs` COMMENT = 'Database queue jobs table for fallback when Redis is unavailable';
 
-ALTER TABLE `vacancy_questions` COMMENT = 'Custom questions for vacancy applications';
+ALTER TABLE `failed_jobs_candidate` COMMENT = 'Failed queue jobs for candidate service';
 
-ALTER TABLE `required_skills` COMMENT = 'Placeholder table for required skills (currently unused)';
+ALTER TABLE `parse_jobs` COMMENT = 'Asynchronous document parsing jobs for PDF/DOCX files
+Statuses: pending, processing, completed, failed';
 
-ALTER TABLE `matches` COMMENT = 'AI-generated candidate-vacancy matches
-Statuses: pending, reviewed, accepted, rejected, shortlisted, applied
-Logical FKs to candidate and vacancy services';
-
-ALTER TABLE `job_statuses_matching` COMMENT = 'Job application status tracking (logical FKs to candidate and vacancy services)';
+ALTER TABLE `failed_jobs_parser` COMMENT = 'Failed queue jobs for document parser service';
 
 ALTER TABLE `interviews` COMMENT = 'Interview scheduling and management
 Stages: screening, technical, behavioral, final
@@ -487,6 +548,20 @@ Scores: 1-10 scale
 Recommendations: strong_hire, hire, maybe, no_hire
 Logical FK to user (reviewer) service';
 
+ALTER TABLE `matches` COMMENT = 'AI-generated candidate-vacancy matches
+Statuses: pending, reviewed, accepted, rejected, shortlisted, applied, dismissed
+Logical FKs to candidate and vacancy services
+
+Business Rules:
+- Matches with scores below 40% are automatically discarded (not saved)
+- Missing RECOMMENDATION in analysis triggers retry (up to 3 attempts)';
+
+ALTER TABLE `job_statuses_matching` COMMENT = 'Job application status tracking (logical FKs to candidate and vacancy services)';
+
+ALTER TABLE `matching_job_statuses` COMMENT = 'Background job tracking for matching service';
+
+ALTER TABLE `failed_jobs_matching` COMMENT = 'Failed queue jobs for matching service';
+
 ALTER TABLE `offers` COMMENT = 'Job offers extended to candidates
 Statuses: pending, accepted, rejected, withdrawn, expired
 Logical FKs to candidate and vacancy services';
@@ -495,19 +570,17 @@ ALTER TABLE `onboarding_checklists` COMMENT = 'Onboarding tasks and checklists f
 Statuses: pending, in_progress, completed
 Logical FK to candidate service';
 
-ALTER TABLE `settings` COMMENT = 'Application-wide settings and configuration
-Types: string, integer, boolean, json
-Public settings are accessible without authentication
-Sensitive settings are masked in UI (API keys, passwords)
-Service scope indicates which service(s) use this setting
-Validation rules stored as JSON schema';
+ALTER TABLE `vacancies` COMMENT = 'Job vacancies/positions
+Employment types: full_time, part_time, contract, intern
+Experience levels: entry, mid, senior, lead, executive
+Statuses: draft, open, closed, on_hold
+Work modes: on-site, remote, hybrid';
 
-ALTER TABLE `setting_change_logs` COMMENT = 'Audit trail for configuration changes
-Tracks who changed what configuration, when, and from where
-Enables configuration rollback and compliance tracking';
+ALTER TABLE `vacancy_questions` COMMENT = 'Custom questions for vacancy applications';
 
-ALTER TABLE `parse_jobs` COMMENT = 'Asynchronous document parsing jobs for PDF/DOCX files
-Statuses: pending, processing, completed, failed';
+ALTER TABLE `required_skills` COMMENT = 'Placeholder table for required skills (currently unused)';
+
+ALTER TABLE `setting_change_logs` ADD FOREIGN KEY (`setting_id`) REFERENCES `settings` (`id`);
 
 ALTER TABLE `role_user` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
@@ -527,9 +600,7 @@ ALTER TABLE `job_statuses` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidat
 
 ALTER TABLE `cv_parsing_jobs` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
 
-ALTER TABLE `vacancy_questions` ADD FOREIGN KEY (`vacancy_id`) REFERENCES `vacancies` (`id`);
-
 ALTER TABLE `interview_feedback` ADD FOREIGN KEY (`interview_id`) REFERENCES `interviews` (`id`);
 
-ALTER TABLE `setting_change_logs` ADD FOREIGN KEY (`setting_id`) REFERENCES `settings` (`id`);
+ALTER TABLE `vacancy_questions` ADD FOREIGN KEY (`vacancy_id`) REFERENCES `vacancies` (`id`);
 

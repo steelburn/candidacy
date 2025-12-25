@@ -69,8 +69,13 @@ export const candidateAPI = {
         return api.post('/api/candidates', data, config)
     },
     update: (id, data) => {
-        const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
-        return api.put(`/api/candidates/${id}`, data, config)
+        if (data instanceof FormData) {
+            data.append('_method', 'PUT')
+            return api.post(`/api/candidates/${id}`, data, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+        }
+        return api.put(`/api/candidates/${id}`, data)
     },
     delete: (id) => api.delete(`/api/candidates/${id}`),
     uploadCV: (id, file) => {
@@ -99,7 +104,14 @@ export const candidateAPI = {
     },
     generateToken: (id, vacancyId) => api.post(`/api/candidates/${id}/generate-token`, { vacancy_id: vacancyId }),
     validateToken: (token) => api.get(`/api/portal/validate-token/${token}`),
-    submitAnswers: (token, data) => api.post(`/api/portal/submit-answers/${token}`, data)
+    validateToken: (token) => api.get(`/api/portal/validate-token/${token}`),
+    submitAnswers: (token, data) => api.post(`/api/portal/submit-answers/${token}`, data),
+    // Admin CV Jobs
+    listCvJobs: (params) => api.get('/api/candidates/cv-jobs', { params }),
+    retryCvJob: (id) => api.post(`/api/candidates/cv-jobs/${id}/retry`),
+    deleteCvJob: (id) => api.delete(`/api/candidates/cv-jobs/${id}`),
+    // Parsing Details
+    getParsingDetails: (id) => api.get(`/api/candidates/${id}/parsing-details`)
 }
 
 // Vacancy API

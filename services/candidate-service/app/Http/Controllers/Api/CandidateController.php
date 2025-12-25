@@ -42,6 +42,65 @@ class CandidateController extends BaseApiController
         return response()->json($candidates);
     }
 
+    public function listCvJobs(Request $request)
+    {
+        $query = \App\Models\CvParsingJob::with('candidate')
+            ->orderBy('created_at', 'desc');
+
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        return response()->json($query->paginate($request->get('per_page', 20)));
+    }
+
+    public function retryCvJob(Request $request, $id)
+    {
+        $job = \App\Models\CvParsingJob::findOrFail($id);
+        
+        // Reset status
+        $job->update(['status' => 'parsing_document']);
+
+        // Dispatch to database queue for reliability
+        try {
+            \App\Jobs\ProcessCvParsingJob::dispatch($job->id)->onConnection('database');
+            
+            Log::info('Admin retry: Job dispatched to database queue', [
+                'job_id' => $job->id,
+                'user_id' => $request->user()->id ?? 'admin'
+            ]);
+            
+            return response()->json([
+                'message' => 'Job queued for retry',
+                'job_id' => $job->id,
+                'status' => 'parsing_document'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to retry job',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteCvJob($id)
+    {
+        try {
+            $job = \App\Models\CvParsingJob::findOrFail($id);
+            $job->delete();
+            
+            return response()->json([
+                'message' => 'CV job deleted successfully',
+                'id' => $id
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to delete job',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -111,16 +170,26 @@ class CandidateController extends BaseApiController
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:candidates,email,' . $id,
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                \Illuminate\Validation\Rule::unique('candidates')->ignore($id)->whereNull('deleted_at')
+            ],
             'phone' => 'nullable|string',
             'summary' => 'nullable|string',
             'years_of_experience' => 'nullable|integer',
             'skills' => 'nullable',
-            'status' => 'sometimes|in:new,reviewing,shortlisted,interviewed,offered,hired,rejected',
+            'status' => 'sometimes|in:draft,new,reviewing,shortlisted,interviewed,offered,hired,rejected',
             'cv_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Candidate update validation failed', [
+                'id' => $id,
+                'errors' => $validator->errors()->toArray(),
+                'input' => $request->except(['cv_file'])
+            ]);
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
@@ -403,6 +472,8 @@ PROFILE;
 
     public function parseCv(Request $request)
     {
+        Log::info('CV parse: Controller reached', ['has_file' => $request->hasFile('file')]);
+
         $validator = Validator::make($request->all(), [
             'file' => 'required|file|mimes:pdf,doc,docx|max:10240',
             'candidate_id' => 'nullable|exists:candidates,id',
@@ -418,51 +489,71 @@ PROFILE;
             
             // Store file permanently for async processing
             $path = $file->store('cvs');
-            $fullPath = storage_path('app/' . $path);
             
-            Log::info('CV parse: Starting document parsing', [
+            Log::info('CV parse: File uploaded, creating job', [
                 'file' => $originalName,
-                'path' => $fullPath
-            ]);
-            
-            // Use document parser service to extract text
-            $parser = new \App\Services\DocumentParserClient();
-            $result = $parser->parseDocument($fullPath);
-            $extractedText = $result['text'];
-            
-            Log::info('CV parse: Text extracted via document-parser-service', [
-                'file' => $originalName,
-                'text_length' => strlen($extractedText ?? ''),
-                'page_count' => $result['page_count'] ?? 'unknown'
+                'path' => $path
             ]);
 
-            if (!$extractedText) {
-                Storage::delete($path);
-                return response()->json([
-                    'error' => 'Could not extract text from file'
-                ], 422);
-            }
-
-            // Create CV parsing job
+            // Create CV parsing job immediately (without extracted text)
             $parsingJob = \App\Models\CvParsingJob::create([
                 'candidate_id' => $request->input('candidate_id'),
                 'file_path' => $path,
-                'extracted_text' => $extractedText,
-                'status' => 'pending',
+                'extracted_text' => null, // Will be filled by the job
+                'status' => 'parsing_document', // Indicates document parsing in progress
             ]);
 
-            // Dispatch async AI parsing job
-            \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id);
-
-            Log::info('CV parse: Job created and dispatched', [
-                'job_id' => $parsingJob->id,
-                'file' => $originalName
-            ]);
+            // Dispatch async job for document parsing + AI parsing with verification
+            try {
+                \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id);
+                
+                // Verify job was actually queued (check Redis)
+                $queueLength = \Illuminate\Support\Facades\Redis::connection()->llen('queues:default');
+                
+                if ($queueLength === 0 || $queueLength === false) {
+                    // Job didn't make it to queue - retry with database queue
+                    Log::warning('CV parse: Job not in Redis queue, retrying with database', [
+                        'job_id' => $parsingJob->id,
+                        'queue_length' => $queueLength
+                    ]);
+                    
+                    // Dispatch to database queue as fallback
+                    \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id)->onConnection('database');
+                }
+                
+                Log::info('CV parse: Job created and dispatched', [
+                    'job_id' => $parsingJob->id,
+                    'file' => $originalName,
+                    'queue_length' => $queueLength
+                ]);
+            } catch (\Exception $e) {
+                Log::error('CV parse: Failed to dispatch job', [
+                    'job_id' => $parsingJob->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                // Try database queue as last resort
+                try {
+                    \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id)->onConnection('database');
+                    Log::info('CV parse: Dispatched to database queue as fallback', [
+                        'job_id' => $parsingJob->id
+                    ]);
+                } catch (\Exception $fallbackError) {
+                    // Mark job as failed
+                    $parsingJob->update(['status' => 'failed']);
+                    
+                    return response()->json([
+                        'error' => 'Failed to queue CV processing job',
+                        'message' => 'Please try again'
+                    ], 500);
+                }
+            }
             
             return response()->json([
                 'message' => 'CV uploaded successfully. Processing in background.',
                 'job_id' => $parsingJob->id,
-                'status' => 'pending'
+                'status' => 'parsing_document'
             ], 202);
             
         } catch (\Exception $e) {
@@ -473,7 +564,7 @@ PROFILE;
             ]);
             
             return response()->json([
-                'error' => 'CV parsing failed',
+                'error' => 'CV upload failed',
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -537,6 +628,10 @@ PROFILE;
      * Bulk upload multiple resumes
      * Each file is parsed by AI and a candidate record is created
      */
+    /**
+     * Bulk upload multiple resumes
+     * Dispatches async jobs for each file
+     */
     public function bulkUploadResumes(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -549,238 +644,81 @@ PROFILE;
         }
 
         $files = $request->file('files');
-        $results = [];
-        $successCount = 0;
-        $failedCount = 0;
+        $queuedJobs = [];
+        $failedUploads = [];
 
-        foreach ($files as $index => $file) {
+        foreach ($files as $file) {
             $originalName = $file->getClientOriginalName();
             
             try {
-                // Store temporarily for processing
-                $tempPath = $file->store('temp');
-                $fullPath = storage_path('app/' . $tempPath);
-
-                // Use document parser service
-                $parser = new \App\Services\DocumentParserClient();
-                $result = $parser->parseDocument($fullPath);
-                $extractedText = $result['text'];
-
-                if (empty($extractedText)) {
-                    Storage::delete($tempPath);
-                    $results[] = [
-                        'file' => $originalName,
-                        'status' => 'failed',
-                        'error' => 'Could not extract text from file'
-                    ];
-                    $failedCount++;
-                    continue;
-                }
-
-                // Send to AI service for parsing
-                Log::info('Bulk upload: Calling AI service for CV parsing', [
-                    'file' => $originalName,
-                    'text_length' => strlen($extractedText),
-                    'ai_service_url' => 'http://ai-service:8080/api/parse-cv'
-                ]);
-                
-                $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post('http://ai-service:8080/api/parse-cv', [
-                    'text' => $extractedText
-                ]);
-                
-                Log::info('Bulk upload: AI service response received', [
-                    'file' => $originalName,
-                    'status' => $aiResponse->status(),
-                    'successful' => $aiResponse->successful()
-                ]);
-
-                if (!$aiResponse->successful()) {
-                    Storage::delete($tempPath);
-                    Log::error('AI CV parsing failed for bulk upload', [
-                        'file' => $originalName,
-                        'status' => $aiResponse->status(),
-                    ]);
-                    $results[] = [
-                        'file' => $originalName,
-                        'status' => 'failed',
-                        'error' => 'AI parsing failed'
-                    ];
-                    $failedCount++;
-                    continue;
-                }
-
-                $parsedData = $aiResponse->json();
-                $aiData = $parsedData['parsed_data'] ?? $parsedData;
-                
-                Log::info('Bulk upload: CV data parsed', [
-                    'file' => $originalName,
-                    'name' => $aiData['name'] ?? 'Unknown',
-                    'email' => $aiData['email'] ?? 'Not found',
-                    'skills_count' => count($aiData['skills'] ?? []),
-                    'experience_count' => count($aiData['experience'] ?? [])
-                ]);
-
-                // Extract email from parsed data
-                $email = $aiData['email'] ?? null;
-                if (is_array($email)) $email = $email[0] ?? null; // Take first if array
-
-                $name = $aiData['name'] ?? pathinfo($originalName, PATHINFO_FILENAME);
-                if (is_array($name)) $name = $name[0] ?? pathinfo($originalName, PATHINFO_FILENAME);
-
-                // Sanitize other string fields (moved here to be available for restore section)
-                $phone = $aiData['phone'] ?? null;
-                if (is_array($phone)) $phone = $phone[0] ?? null;
-
-                $summary = $aiData['summary'] ?? null;
-                if (is_array($summary)) $summary = implode("\n", $summary);
-
-                if (empty($email)) {
-                    // Generate a placeholder email if not found
-                    $email = Str::slug($name) . '-' . Str::random(6) . '@placeholder.local';
-                }
-
-                // Check for duplicate email (including soft-deleted)
-                $existingCandidate = Candidate::withTrashed()->where('email', $email)->first();
-                if ($existingCandidate) {
-                    // If soft-deleted, restore and update
-                    if ($existingCandidate->trashed()) {
-                        $existingCandidate->restore();
-                        // Update with new data
-                        $candidateData = [
-                            'name' => $name,
-                            'email' => $email,
-                            'phone' => $phone,
-                            'summary' => $summary,
-                            'years_of_experience' => $aiData['years_of_experience'] ?? null,
-                            'skills' => !empty($aiData['skills']) ? $aiData['skills'] : null,
-                            'experience' => !empty($aiData['experience']) ? $aiData['experience'] : null,
-                            'education' => !empty($aiData['education']) ? $aiData['education'] : null,
-                            'linkedin_url' => $aiData['linkedin_url'] ?? null,
-                            'github_url' => $aiData['github_url'] ?? null,
-                            'status' => 'new',
-                        ];
-                        $candidateData['generated_cv_content'] = $this->generateCvContent($candidateData);
-                        $existingCandidate->update($candidateData);
-                        
-                        // Move temp file to permanent storage and create CV record
-                        $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
-                        $permanentPath = 'cvs/' . $storedName;
-                        Storage::move($tempPath, $permanentPath);
-
-                        CvFile::create([
-                            'candidate_id' => $existingCandidate->id,
-                            'original_filename' => $originalName,
-                            'stored_filename' => $storedName,
-                            'file_path' => $permanentPath,
-                            'mime_type' => $file->getClientMimeType(),
-                            'file_size' => $file->getSize(),
-                            'extracted_text' => $extractedText,
-                            'parsed_data' => $parsedData,
-                        ]);
-
-                        $results[] = [
-                            'file' => $originalName,
-                            'status' => 'restored',
-                            'candidate_id' => $existingCandidate->id,
-                            'candidate_name' => $existingCandidate->name,
-                            'candidate_email' => $existingCandidate->email,
-                            'message' => 'Previously deleted candidate restored and updated'
-                        ];
-                        $successCount++;
-                        continue;
-                    } else {
-                        // Active candidate exists
-                        Storage::delete($tempPath);
-                        $results[] = [
-                            'file' => $originalName,
-                            'status' => 'skipped',
-                            'error' => 'Duplicate email: ' . $email,
-                            'existing_candidate_id' => $existingCandidate->id
-                        ];
-                        $failedCount++;
-                        continue;
-                    }
-                }
-
-                // Create candidate data
-                // Note: skills, experience, education are cast to array in Candidate model, so we pass arrays directly.
-                $candidateData = [
-                    'name' => $name,
-                    'email' => $email,
-                    'phone' => $phone,
-                    'summary' => $summary,
-                    'years_of_experience' => $aiData['years_of_experience'] ?? null,
-                    'skills' => !empty($aiData['skills']) ? $aiData['skills'] : null,
-                    'experience' => !empty($aiData['experience']) ? $aiData['experience'] : null,
-                    'education' => !empty($aiData['education']) ? $aiData['education'] : null,
-                    'linkedin_url' => $aiData['linkedin_url'] ?? null,
-                    'github_url' => $aiData['github_url'] ?? null,
-                    'status' => 'new',
-                ];
-
-                // Generate standardized CV content
-                $candidateData['generated_cv_content'] = $this->generateCvContent($candidateData);
-
-                // Create the candidate
-                $candidate = Candidate::create($candidateData);
-
-                // Move temp file to permanent storage and create CV record
+                // Generate permanent storage path immediately
+                // We store directly to 'cvs/' to ensure worker has access
                 $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
                 $permanentPath = 'cvs/' . $storedName;
-                Storage::move($tempPath, $permanentPath);
+                
+                // Store file
+                Storage::put($permanentPath, file_get_contents($file));
 
-                CvFile::create([
-                    'candidate_id' => $candidate->id,
-                    'original_filename' => $originalName,
-                    'stored_filename' => $storedName,
+                // Create tracking job
+                $parsingJob = \App\Models\CvParsingJob::create([
+                    'candidate_id' => null, // Will be linked after creation
                     'file_path' => $permanentPath,
-                    'mime_type' => $file->getClientMimeType(),
-                    'file_size' => $file->getSize(),
-                    'extracted_text' => $extractedText,
-                    'parsed_data' => $parsedData,
+                    'status' => 'pending',
                 ]);
 
-                // Publish CandidateCreated event
-                event(new \App\Events\CandidateCreated($candidate));
+                // Dispatch Job
+                try {
+                    \App\Jobs\ProcessCvParsingJob::dispatch($parsingJob->id);
+                    
+                    $queuedJobs[] = [
+                        'file' => $originalName,
+                        'job_id' => $parsingJob->id,
+                        'status' => 'pending'
+                    ];
 
-                $results[] = [
-                    'file' => $originalName,
-                    'status' => 'success',
-                    'candidate_id' => $candidate->id,
-                    'candidate_name' => $candidate->name,
-                    'candidate_email' => $candidate->email 
-                ];
-                $successCount++;
+                    Log::info('Bulk upload: Job dispatched', [
+                        'file' => $originalName,
+                        'job_id' => $parsingJob->id
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::error('Bulk upload: Failed to dispatch job', [
+                        'file' => $originalName,
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    // Mark as failed
+                    $parsingJob->update(['status' => 'failed', 'error_message' => 'Dispatch failed']);
+                    
+                    $failedUploads[] = [
+                        'file' => $originalName,
+                        'error' => 'Failed to queue processing'
+                    ];
+                }
 
             } catch (\Exception $e) {
-                Log::error('Bulk upload failed for file', [
+                Log::error('Bulk upload: File storage failed', [
                     'file' => $originalName,
                     'error' => $e->getMessage()
                 ]);
                 
-                // Clean up temp file if exists
-                if (isset($tempPath) && Storage::exists($tempPath)) {
-                    Storage::delete($tempPath);
-                }
-                
-                $results[] = [
+                $failedUploads[] = [
                     'file' => $originalName,
-                    'status' => 'failed',
-                    'error' => $e->getMessage()
+                    'error' => 'Storage failed: ' . $e->getMessage()
                 ];
-                $failedCount++;
             }
         }
 
         return response()->json([
-            'message' => 'Bulk upload completed',
-            'results' => $results,
+            'message' => 'Bulk upload processing started',
+            'jobs' => $queuedJobs,
+            'failures' => $failedUploads,
             'summary' => [
                 'total' => count($files),
-                'success' => $successCount,
-                'failed' => $failedCount
+                'queued' => count($queuedJobs),
+                'failed' => count($failedUploads)
             ]
-        ]);
+        ], 202);
     }
     public function metrics()
     {
@@ -1064,5 +1002,38 @@ PROFILE;
         }
 
         return response()->json(['message' => 'Application updated successfully']);
+    }
+    public function getParsingDetails($id)
+    {
+        $candidate = \App\Models\Candidate::findOrFail($id);
+        
+        // Find the latest completed parsing job for this candidate
+        $job = \App\Models\CvParsingJob::where('candidate_id', $id)
+            ->where('status', 'completed')
+            ->latest()
+            ->first();
+
+        if (!$job) {
+            // Check for processing jobs
+             $job = \App\Models\CvParsingJob::where('candidate_id', $id)
+                ->latest()
+                ->first();
+        }
+
+        if (!$job) {
+            return response()->json([
+                'message' => 'No parsing data available for this candidate'
+            ], 404);
+        }
+
+        return response()->json([
+            'job_id' => $job->id,
+            'file_path' => $job->file_path,
+            'extracted_text' => $job->extracted_text,
+            'parsed_data' => $job->parsed_data,
+            'status' => $job->status,
+            'created_at' => $job->created_at,
+            'error_message' => $job->error_message
+        ]);
     }
 }

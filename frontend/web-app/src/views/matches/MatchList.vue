@@ -382,27 +382,27 @@ const parseAnalysis = (text) => {
     }
     
     // Extract Strengths
-    const strengthsMatch = text.match(/STRENGTHS:([\s\S]*?)GAPS:/)
+    const strengthsMatch = text.match(/(?:STRENGTHS?|STRENGHTHS?|STRENTHS?)\s*:([\s\S]*?)(?=(?:GAPS?|WEAKNESS(?:ES)?)\s*:|RECOMMENDATION\s*:|$)/i)
     if (strengthsMatch && strengthsMatch[1]) {
       sections.strengths = strengthsMatch[1]
         .split('\n')
         .map(line => line.trim())
-        .filter(line => line.startsWith('-') || line.startsWith('•'))
+        .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
         .map(line => line.substring(1).trim())
     }
     
     // Extract Gaps
-    const gapsMatch = text.match(/GAPS:([\s\S]*?)RECOMMENDATION:/)
+    const gapsMatch = text.match(/(?:GAPS?|WEAKNESS(?:ES)?)\s*:([\s\S]*?)(?=RECOMMENDATION\s*:|$)/i)
     if (gapsMatch && gapsMatch[1]) {
       sections.gaps = gapsMatch[1]
         .split('\n')
         .map(line => line.trim())
-        .filter(line => line.startsWith('-') || line.startsWith('•'))
+        .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
         .map(line => line.substring(1).trim())
     }
     
     // Extract Recommendation
-    const recMatch = text.match(/RECOMMENDATION:([\s\S]*)/)
+    const recMatch = text.match(/RECOMMENDATION\s*:([\s\S]*)/i)
     if (recMatch && recMatch[1]) {
       sections.recommendation = recMatch[1].trim()
     }

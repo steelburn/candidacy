@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2025-12-26
+
+#### AI Matching Quality Improvements
+- **Match Score Filtering** - Matches with scores below 40% are now automatically discarded
+  - Prevents low-relevance matches from cluttering the UI
+  - Applied in both synchronous (`MatchController`) and async (`MatchJob`) flows
+- **Recommendation Retry Logic** - If AI fails to provide a RECOMMENDATION section:
+  - System automatically retries up to 3 times
+  - Logs warning on each retry attempt
+  - Saves best available result after all attempts
+- **Typo-Proof Analysis Parsing** - Frontend parsers now handle AI output inconsistencies:
+  - Spelling variants: `STRENGTHS`, `STRENGHTHS`, `STRENTHS`
+  - Flexible spacing: `GAPS :`, `GAPs:`, `GAPS:`
+  - Label variants: `WEAKNESSES` as alternative to `GAPS`
+  - Case-insensitive matching throughout
+
+#### UI Enhancements
+- **Beautified Matches Tab** (`CandidateDetail.vue`)
+  - Modern glassmorphism cards for analysis sections
+  - Color-coded panels: Green (Strengths), Amber (Gaps), Blue (Recommendation)
+  - Smooth hover animations and transitions
+  - Improved typography and spacing
+- **Graceful Empty States** - Empty Strengths/Gaps sections now show placeholder text
+  - "No specific strengths highlighted" / "No specific gaps identified"
+  - Maintains layout integrity even with partial AI responses
+
+### Fixed - 2025-12-26
+- **MatchJob Ignoring Score Threshold** - Background matching job was saving all matches regardless of score
+- **Analysis Parsing Failures** - Strict regex was failing on AI typos, now uses permissive patterns
+
 ### Fixed - 2025-12-24
 
 #### Build System

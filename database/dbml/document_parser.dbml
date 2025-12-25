@@ -1,0 +1,39 @@
+//==============================================================================
+// DOCUMENT PARSER SERVICE DATABASE (candidacy_document_parser)
+//==============================================================================
+
+Table parse_jobs {
+  id bigint [pk, increment]
+  file_path varchar(255) [not null]
+  file_type varchar(50) [not null]
+  original_filename varchar(255) [not null]
+  status varchar(50) [default: 'pending', not null]
+  extracted_text longtext [null]
+  error_message text [null]
+  file_size int [null]
+  page_count int [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    status [name: 'idx_parse_jobs_status']
+    created_at [name: 'idx_parse_jobs_created_at']
+  }
+  
+  Note: '''
+    Asynchronous document parsing jobs for PDF/DOCX files
+    Statuses: pending, processing, completed, failed
+  '''
+}
+
+Table failed_jobs_parser {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Failed queue jobs for document parser service'
+}

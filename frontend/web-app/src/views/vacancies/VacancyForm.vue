@@ -252,6 +252,9 @@ const generateDescription = async () => {
     const response = await aiAPI.generateJD({
       title: form.value.title,
       department: form.value.department || 'General',
+      location: form.value.location,
+      work_mode: form.value.work_mode,
+      type: form.value.employment_type,
       level: form.value.experience_level,
       skills: [...keywords, ...skills] // Combine keywords and skills
     })
