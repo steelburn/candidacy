@@ -26,6 +26,7 @@ class GatewayController extends Controller
         'generate-jd' => 'ai-service', // AI service handles job description generation
         'parse-cv' => 'ai-service', // AI service handles CV parsing
         'match' => 'ai-service', // AI service handles matching
+        'discuss-question' => 'ai-service', // AI service handles question discussions
     ];
 
     public function handle(Request $request, $path)

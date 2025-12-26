@@ -271,6 +271,79 @@ PROMPT;
         return 0;
     }
 
+    /**
+     * Generate AI discussion points for an interview question
+     */
+    public function discussQuestion(Request $request)
+    {
+        Log::info("Question discussion request", [
+            'question_length' => strlen($request->question ?? '')
+        ]);
+        
+        $request->validate([
+            'question' => 'required|string',
+            'question_type' => 'nullable|string',
+            'job_title' => 'nullable|string',
+            'candidate_name' => 'nullable|string',
+            'context' => 'nullable|string',
+        ]);
+
+        $prompt = $this->buildQuestionDiscussionPrompt($request->all());
+        
+        $response = $this->aiProvider->generate($prompt);
+
+        Log::info("Question discussion generated", [
+            'response_length' => strlen($response ?? '')
+        ]);
+
+        return response()->json([
+            'discussion' => $response,
+        ]);
+    }
+
+    /**
+     * Build prompt for question discussion
+     */
+    protected function buildQuestionDiscussionPrompt($data)
+    {
+        $question = $data['question'];
+        $type = $data['question_type'] ?? 'general';
+        $jobTitle = $data['job_title'] ?? 'the position';
+        $candidateName = $data['candidate_name'] ?? 'the candidate';
+        $context = $data['context'] ?? '';
+
+        $contextSection = $context ? "\nAdditional Context: {$context}" : '';
+
+        return <<<PROMPT
+You are an expert interviewer helping prepare for a candidate interview.
+
+INTERVIEW QUESTION: "{$question}"
+
+Question Type: {$type}
+Position: {$jobTitle}
+Candidate: {$candidateName}{$contextSection}
+
+Please provide a comprehensive discussion guide for this interview question:
+
+1. **Purpose**: What is this question designed to assess? (1-2 sentences)
+
+2. **What to Listen For**: Key indicators of a strong answer (3-4 bullet points)
+
+3. **Red Flags**: Warning signs in weak or concerning answers (2-3 bullet points)
+
+4. **Follow-up Questions**: Suggested probing questions to dig deeper (2-3 examples)
+
+5. **Scoring Guide**:
+   - Excellent (9-10): Characteristics of an outstanding response
+   - Good (7-8): What a solid answer looks like
+   - Acceptable (5-6): Minimum acceptable response
+   - Poor (1-4): Indicators of an inadequate answer
+
+Keep your response concise but actionable. Use markdown formatting.
+PROMPT;
+    }
+
+
     public function generateInterviewQuestions(Request $request)
     {
         Log::info("Interview questions generation request", [

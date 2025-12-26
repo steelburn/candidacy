@@ -9,6 +9,7 @@ Route::get('/vacancies/{id}/matches', [MatchController::class, 'matchVacancyToCa
 Route::post('/matches/vacancy/{vacancyId}', [MatchController::class, 'matchVacancyToCandidates']);
 Route::post('/matches/apply', [MatchController::class, 'apply']);
 Route::post('/matches/{candidateId}/{vacancyId}/questions', [MatchController::class, 'generateQuestions']);
+Route::post('/matches/{candidateId}/{vacancyId}/questions/{questionIndex}/discussion', [MatchController::class, 'saveDiscussion']);
 Route::post('/matches/{candidateId}/{vacancyId}/dismiss', [MatchController::class, 'dismissMatch']);
 Route::post('/matches/{candidateId}/{vacancyId}/restore', [MatchController::class, 'restoreMatch']);
 Route::get('/matches', [MatchController::class, 'getMatches']);

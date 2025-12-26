@@ -10,6 +10,20 @@ Main frontend application for HR/Recruiters to manage the recruitment process.
 - **State Management**: Vue Composition API
 - **HTTP Client**: Axios
 
+## UI Layout
+
+The application uses a modern **sidebar-based dashboard layout**:
+
+- **Collapsible Sidebar** - Left-side navigation with icons and labels, can collapse to icon-only mode
+- **Top Header Bar** - Contains sidebar toggle, page breadcrumb, search, and theme switch
+- **Responsive Design** - Sidebar becomes an overlay on mobile devices (< 768px)
+- **Dark Mode Support** - Toggle available in header
+
+Layout components located in `src/components/layout/`:
+- `DashboardLayout.vue` - Main layout wrapper
+- `AppSidebar.vue` - Navigation sidebar with user section
+- `AppHeader.vue` - Top header bar
+
 ## Features
 
 ### Candidate Management

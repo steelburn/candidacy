@@ -371,6 +371,23 @@
                                             {{ q.hint }}
                                         </div>
                                     </div>
+                                    
+                                    <!-- Discussion Section -->
+                                    <div class="q-discussion">
+                                        <button 
+                                            @click="toggleDiscussion(match, idx)" 
+                                            class="discussion-toggle"
+                                            :disabled="discussingQuestion[`${match.vacancy_id}-${idx}`]"
+                                        >
+                                            <span v-if="discussingQuestion[`${match.vacancy_id}-${idx}`]">⏳ Generating...</span>
+                                            <span v-else-if="expandedDiscussions[`${match.vacancy_id}-${idx}`]">▼ Hide Discussion</span>
+                                            <span v-else-if="q.discussion">💬 Show Discussion</span>
+                                            <span v-else>💬 Discuss with AI</span>
+                                        </button>
+                                        <div v-if="expandedDiscussions[`${match.vacancy_id}-${idx}`] && q.discussion" class="discussion-content">
+                                            <MarkdownRenderer :content="q.discussion" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -419,7 +436,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { candidateAPI, matchingAPI, vacancyAPI } from '../../services/api'
+import { candidateAPI, matchingAPI, vacancyAPI, aiAPI } from '../../services/api'
 import MarkdownRenderer from '../../components/MarkdownRenderer.vue'
 
 const route = useRoute()
@@ -594,6 +611,55 @@ const copyLink = () => {
     }
 }
 
+// Discussion functionality
+const discussingQuestion = ref({})
+const expandedDiscussions = ref({})
+
+const toggleDiscussion = async (match, questionIndex) => {
+    const key = `${match.vacancy_id}-${questionIndex}`
+    const question = match.interview_questions[questionIndex]
+    
+    // If discussion already exists, just toggle visibility
+    if (question.discussion) {
+        expandedDiscussions.value[key] = !expandedDiscussions.value[key]
+        return
+    }
+    
+    // Generate discussion via AI
+    discussingQuestion.value[key] = true
+    
+    try {
+        // Call AI to generate discussion
+        const aiResponse = await aiAPI.discussQuestion({
+            question: question.question,
+            question_type: question.type || 'general',
+            job_title: match.vacancy_title || 'the position',
+            candidate_name: candidate.value?.name || 'the candidate',
+            context: question.context || ''
+        })
+        
+        const discussion = aiResponse.data.discussion
+        
+        // Save discussion to backend
+        await matchingAPI.saveDiscussion(
+            route.params.id, // candidateId
+            match.vacancy_id,
+            questionIndex,
+            discussion
+        )
+        
+        // Update local state
+        match.interview_questions[questionIndex].discussion = discussion
+        expandedDiscussions.value[key] = true
+        
+    } catch (error) {
+        console.error('Failed to generate discussion:', error)
+        alert('Failed to generate discussion. Please try again.')
+    } finally {
+        discussingQuestion.value[key] = false
+    }
+}
+
 // Helpers
 const getScoreClass = (score) => {
     if (score >= 80) return 'score-high'
@@ -610,8 +676,6 @@ const formatAnalysis = (text) => {
 const parseAnalysis = (text) => {
   if (!text) return null
   
-  // Try to parse structured sections even if some keywords are missing
-  // We look for the standardized markers
   const sections = {
       strengths: [],
       gaps: [],
@@ -620,28 +684,37 @@ const parseAnalysis = (text) => {
   
   let foundAny = false
 
+  // Helper to extract list items from text block
+  // Handles: - item, • item, * item, 1. item, 1) item, and plain lines
+  const extractListItems = (block) => {
+    if (!block) return []
+    return block
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 2)
+      .map(line => {
+        // Remove common list prefixes
+        return line
+          .replace(/^[-•*]\s*/, '')           // - or • or *
+          .replace(/^\d+[.)]\s*/, '')          // 1. or 1)
+          .replace(/^[a-z][.)]\s*/i, '')       // a. or a)
+          .trim()
+      })
+      .filter(line => line.length > 2 && !line.match(/^(GAPS?|STRENGTHS?|RECOMMENDATION|SCORE)/i))
+  }
+
   // Extract Strengths
-  // Look for STRENGTHS: ... (until GAPS: or end)
-  // Handle typos like STRENGHTHS, STRENTHS, separate with spaces
   const strengthsMatch = text.match(/(?:STRENGTHS?|STRENGHTHS?|STRENTHS?)\s*:([\s\S]*?)(?=(?:GAPS?|WEAKNESS(?:ES)?)\s*:|RECOMMENDATION\s*:|$)/i)
   if (strengthsMatch && strengthsMatch[1]) {
       foundAny = true
-      sections.strengths = strengthsMatch[1]
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
-      .map(line => line.substring(1).trim())
+      sections.strengths = extractListItems(strengthsMatch[1])
   }
 
   // Extract Gaps
   const gapsMatch = text.match(/(?:GAPS?|WEAKNESS(?:ES)?)\s*:([\s\S]*?)(?=RECOMMENDATION\s*:|$)/i)
   if (gapsMatch && gapsMatch[1]) {
       foundAny = true
-      sections.gaps = gapsMatch[1]
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => (line.startsWith('-') || line.startsWith('•')) && line.length > 2)
-      .map(line => line.substring(1).trim())
+      sections.gaps = extractListItems(gapsMatch[1])
   }
 
   // Extract Recommendation
@@ -651,18 +724,9 @@ const parseAnalysis = (text) => {
       sections.recommendation = recMatch[1].trim()
   }
 
-  // Also check if we simply have a score but maybe missing other tags, 
-  // though usually if we have score we have the rest.
-  // If we found ANY structured tags, return the object. 
-  // If we found NOTHING, return null to fallback to basic Markdown rendering.
   if (foundAny) {
       return sections
   }
-
-  // Fallback: If text is short and doesn't look like analysis, maybe return null
-  // But if the user says "Always mandatory", maybe we should try to force it?
-  // If the AI failed completely to use tags, we can't force structure.
-  // But if it used *some* tags, we used them above.
   
   return null
 }
@@ -1420,6 +1484,88 @@ onMounted(() => {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Discussion Section */
+.q-discussion {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.discussion-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.discussion-toggle:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+}
+
+.discussion-toggle:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.discussion-content {
+    margin-top: 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), rgba(241, 245, 249, 0.95));
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    animation: slideDown 0.3s ease-out;
+}
+
+.discussion-content :deep(h1),
+.discussion-content :deep(h2),
+.discussion-content :deep(h3),
+.discussion-content :deep(h4),
+.discussion-content :deep(h5) {
+    color: #1e293b;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.discussion-content :deep(h1:first-child),
+.discussion-content :deep(h2:first-child),
+.discussion-content :deep(h3:first-child) {
+    margin-top: 0;
+}
+
+.discussion-content :deep(ul),
+.discussion-content :deep(ol) {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+}
+
+.discussion-content :deep(li) {
+    margin-bottom: 0.5rem;
+    color: #475569;
+    line-height: 1.6;
+}
+
+.discussion-content :deep(strong) {
+    color: #1e293b;
+}
+
+.discussion-content :deep(p) {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 0.75rem;
 }
 
 .context-icon {

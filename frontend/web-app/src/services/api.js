@@ -133,7 +133,8 @@ export const aiAPI = {
     match: (candidateProfile, jobRequirements) => api.post('/api/match', {
         candidate_profile: candidateProfile,
         job_requirements: jobRequirements
-    })
+    }),
+    discussQuestion: (data) => api.post('/api/discuss-question', data)
 }
 
 // Matching API
@@ -146,6 +147,8 @@ export const matchingAPI = {
     clear: () => api.delete('/api/matches/clear'),
     getJobStatus: (id) => api.get(`http://localhost:8085/api/matches/jobs/${id}`),
     generateQuestions: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/questions`),
+    saveDiscussion: (candidateId, vacancyId, questionIndex, discussion) =>
+        api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/questions/${questionIndex}/discussion`, { discussion }),
     dismiss: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/dismiss`),
     restore: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/restore`)
 }

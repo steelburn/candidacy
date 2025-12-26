@@ -1,0 +1,27 @@
+/* Layout Styles */
+
+:root {
+    --sidebar-width-expanded: 260px;
+    --sidebar-width-collapsed: 72px;
+    --sidebar-bg: #1e1e2d;
+    --header-height: 64px;
+}
+
+/* Dark mode sidebar variables */
+body.dark-mode {
+    --sidebar-bg: #111827;
+}
+
+/* Ensure body has no default margins for full layout */
+body {
+    margin: 0;
+    background: var(--bg-secondary, #f9fafb);
+}
+
+/* App container reset */
+#app {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}

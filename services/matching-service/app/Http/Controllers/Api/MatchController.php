@@ -204,6 +204,55 @@ class MatchController extends BaseApiController
         }
     }
 
+    /**
+     * Save a discussion for a specific interview question
+     */
+    public function saveDiscussion(Request $request, $candidateId, $vacancyId, $questionIndex)
+    {
+        $request->validate([
+            'discussion' => 'required|string',
+        ]);
+
+        $match = CandidateMatch::where('candidate_id', $candidateId)
+            ->where('vacancy_id', $vacancyId)
+            ->first();
+
+        if (!$match) {
+            return response()->json(['error' => 'Match not found'], 404);
+        }
+
+        // Get existing questions
+        $questions = $match->interview_questions ?? [];
+        
+        // Ensure it's an array
+        if (is_string($questions)) {
+            $questions = json_decode($questions, true) ?? [];
+        }
+
+        // Check if question index exists
+        if (!isset($questions[$questionIndex])) {
+            return response()->json(['error' => 'Question not found at index ' . $questionIndex], 404);
+        }
+
+        // Add discussion to the question
+        $questions[$questionIndex]['discussion'] = $request->discussion;
+
+        // Save back to database
+        $match->interview_questions = $questions;
+        $match->save();
+
+        Log::info("Saved discussion for question", [
+            'candidate_id' => $candidateId,
+            'vacancy_id' => $vacancyId,
+            'question_index' => $questionIndex
+        ]);
+
+        return response()->json([
+            'message' => 'Discussion saved successfully',
+            'question' => $questions[$questionIndex]
+        ]);
+    }
+
     public function apply(Request $request) 
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [

@@ -1,28 +1,16 @@
 <template>
   <div id="app">
-    <nav v-if="authStore.isAuthenticated" class="navbar">
-      <div class="nav-container">
-        <h1 class="logo">Candidacy</h1>
-        <div class="nav-links">
-          <router-link to="/dashboard">Dashboard</router-link>
-          <router-link to="/candidates">Candidates</router-link>
-          <router-link to="/vacancies">Vacancies</router-link>
-          <router-link to="/matches">Matches</router-link>
-          <router-link to="/interviews">Interviews</router-link>
-          <router-link to="/offers">Offers</router-link>
-          <router-link to="/reports">Reports</router-link>
-          <router-link to="/admin">Admin</router-link>
-        </div>
-        <div class="user-menu">
-          <span>{{ authStore.user?.name }}</span>
-          <button @click="showChangePassword = true" class="btn-link">Change Password</button>
-          <button @click="logout" class="btn-logout">Logout</button>
-        </div>
-      </div>
-    </nav>
-    <main class="main-content">
+    <!-- Authenticated Layout with Sidebar -->
+    <DashboardLayout 
+      v-if="authStore.isAuthenticated && !isGuestRoute"
+      @logout="logout"
+      @changePassword="showChangePassword = true"
+    >
       <router-view />
-    </main>
+    </DashboardLayout>
+
+    <!-- Guest Routes (Login, Setup, Portal) -->
+    <router-view v-else />
 
     <!-- Change Password Modal -->
     <div v-if="showChangePassword" class="modal-overlay" @click.self="showChangePassword = false">
@@ -56,13 +44,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { authAPI, adminAPI } from './services/api'
+import DashboardLayout from './components/layout/DashboardLayout.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+
+// Check if current route is a guest route (login, setup, portal)
+const isGuestRoute = computed(() => {
+  const guestRoutes = ['Login', 'Setup', 'ApplicantPortal']
+  return guestRoutes.includes(route.name)
+})
 
 const showChangePassword = ref(false)
 const changingPassword = ref(false)
@@ -131,7 +127,7 @@ const applyUISettings = () => {
   
   // Apply CSS variables
   root.style.setProperty('--max-content-width', `${uiSettings.value.maxContentWidth}px`)
-  root.style.setProperty('--sidebar-width', `${uiSettings.value.sidebarWidth}px`)
+  root.style.setProperty('--sidebar-width-expanded', `${uiSettings.value.sidebarWidth}px`)
   root.style.setProperty('--primary-color', uiSettings.value.primaryColor)
   root.style.setProperty('--items-per-page', uiSettings.value.itemsPerPage)
   
@@ -202,86 +198,6 @@ const handleChangePassword = async () => {
 </script>
 
 <style scoped>
-.navbar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1rem 0;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.nav-container {
-  max-width: var(--max-content-width, 1400px);
-  margin: 0 auto;
-  padding: 0 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.nav-links {
-  display: flex;
-  gap: 2rem;
-}
-
-.nav-links a {
-  color: white;
-  text-decoration: none;
-  font-weight: 500;
-  transition: opacity 0.3s;
-}
-
-.nav-links a:hover,
-.nav-links a.router-link-active {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
-.user-menu {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.8);
-  cursor: pointer;
-  font-size: 0.875rem;
-  text-decoration: underline;
-}
-
-.btn-link:hover {
-  color: white;
-}
-
-.btn-logout {
-  background: rgba(255,255,255,0.2);
-  border: 1px solid white;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-logout:hover {
-  background: white;
-  color: #667eea;
-}
-
-.main-content {
-  max-width: var(--max-content-width, 1400px);
-  margin: 2rem auto;
-  padding: 0 2rem;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -325,6 +241,7 @@ const handleChangePassword = async () => {
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 1rem;
+  box-sizing: border-box;
 }
 
 .modal-actions {
@@ -334,7 +251,7 @@ const handleChangePassword = async () => {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -374,4 +291,3 @@ const handleChangePassword = async () => {
   margin-bottom: 1rem;
 }
 </style>
-

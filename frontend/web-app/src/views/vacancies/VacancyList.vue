@@ -47,8 +47,20 @@
         </div>
         
         <div class="vacancy-actions">
-          <router-link :to="`/vacancies/${vacancy.id}`" class="btn-sm btn-view">View Details</router-link>
-          <button @click="deleteVacancy(vacancy.id)" class="btn-sm btn-danger">Delete</button>
+          <router-link :to="`/vacancies/${vacancy.id}`" class="btn-sm btn-view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            View
+          </router-link>
+          <button @click="deleteVacancy(vacancy.id)" class="btn-sm btn-danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -304,6 +316,12 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-sm svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .btn-view {
