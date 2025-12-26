@@ -17,8 +17,27 @@ use App\Models\CandidateToken;
 use App\Models\ApplicantAnswer;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * CandidateController - Manages candidate profiles and CV operations.
+ * 
+ * This controller handles all candidate-related operations including:
+ * - CRUD operations for candidate profiles
+ * - CV upload, parsing, and text extraction
+ * - Async CV parsing job management
+ * - Candidate portal token generation and authentication
+ * - Bulk resume upload processing
+ * 
+ * @package App\Http\Controllers\Api
+ * @author Candidacy Development Team
+ */
 class CandidateController extends BaseApiController
 {
+    /**
+     * List all candidates with optional filtering.
+     *
+     * @param Request $request Query params: status, search
+     * @return \Illuminate\Http\JsonResponse Paginated candidate list
+     */
     public function index(Request $request)
     {
         $query = Candidate::with('latestCv');
@@ -42,6 +61,12 @@ class CandidateController extends BaseApiController
         return response()->json($candidates);
     }
 
+    /**
+     * List CV parsing jobs with optional status filter.
+     *
+     * @param Request $request Query params: status, per_page
+     * @return \Illuminate\Http\JsonResponse Paginated job list
+     */
     public function listCvJobs(Request $request)
     {
         $query = \App\Models\CvParsingJob::with('candidate')
@@ -54,6 +79,13 @@ class CandidateController extends BaseApiController
         return response()->json($query->paginate($request->get('per_page', 20)));
     }
 
+    /**
+     * Retry a failed CV parsing job.
+     *
+     * @param Request $request
+     * @param int $id CV parsing job ID
+     * @return \Illuminate\Http\JsonResponse Job retry status
+     */
     public function retryCvJob(Request $request, $id)
     {
         $job = \App\Models\CvParsingJob::findOrFail($id);
@@ -83,6 +115,12 @@ class CandidateController extends BaseApiController
         }
     }
 
+    /**
+     * Delete a CV parsing job record.
+     *
+     * @param int $id CV parsing job ID
+     * @return \Illuminate\Http\JsonResponse Deletion confirmation
+     */
     public function deleteCvJob($id)
     {
         try {
@@ -101,6 +139,12 @@ class CandidateController extends BaseApiController
         }
     }
 
+    /**
+     * Create a new candidate.
+     *
+     * @param Request $request Candidate data and optional CV file
+     * @return \Illuminate\Http\JsonResponse Created candidate (201)
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [

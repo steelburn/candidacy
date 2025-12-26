@@ -70,6 +70,12 @@ make dbml-reset
 # View logs
 make logs
 
+# Generate PHP API documentation
+make docs-php
+
+# Serve documentation at http://localhost:8000
+make docs-serve
+
 # View all available commands
 make help
 ```

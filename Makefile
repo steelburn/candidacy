@@ -10,6 +10,7 @@ SHELL := /bin/bash
 .PHONY: test-auth test-candidate test-vacancy
 .PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
 .PHONY: logs-document-parser clear-matches
+.PHONY: docs-php docs-serve
 
 help:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -64,6 +65,9 @@ help:
 	@echo "  make test-integration - Run integration tests"
 	@echo "  make test-e2e       - Run end-to-end workflow tests"
 	@echo "  make test-service S=<service> - Run tests for specific service"
+	@echo ""
+	@echo "📚 Documentation Commands:"
+	@echo "  make docs-php       - Generate PHP API documentation (PHPDoc)"
 	@echo ""
 	@echo "🛠️  Utility Commands:"
 	@echo "  make shell S=<service> - Access service shell (e.g., make shell S=auth-service)"
@@ -390,3 +394,19 @@ generate-secrets:
 	@echo "🔐 Generating secrets for all services..."
 	@echo "This feature will be implemented in setup-services.sh"
 	@echo "For now, manually update JWT_SECRET and APP_KEY in .env files"
+
+# Documentation Commands
+docs-php:
+	@echo "📚 Generating PHP API documentation..."
+	@mkdir -p docs/api
+	@docker run --rm -v "$(PWD):/data" phpdoc/phpdoc:3 run -c phpdoc.dist.xml
+	@echo ""
+	@echo "✅ Documentation generated!"
+	@echo "   Open docs/api/index.html in your browser"
+	@echo "   Or run: make docs-serve"
+
+docs-serve:
+	@echo "🌐 Serving PHP documentation at http://localhost:8000"
+	@echo "   Press Ctrl+C to stop"
+	@cd docs/api && python3 -m http.server 8000
+

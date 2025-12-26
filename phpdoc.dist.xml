@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<phpdocumentor configVersion="3.0">
+    <title>Candidacy API Documentation</title>
+    <paths>
+        <output>docs/api</output>
+        <cache>.phpdoc/cache</cache>
+    </paths>
+    
+    <versions>
+        <version number="1.0.0">
+            <api>
+                <source dsn=".">
+                    <path>services/auth-service/app</path>
+                    <path>services/admin-service/app</path>
+                    <path>services/candidate-service/app</path>
+                    <path>services/vacancy-service/app</path>
+                    <path>services/ai-service/app</path>
+                    <path>services/matching-service/app</path>
+                    <path>services/interview-service/app</path>
+                    <path>services/offer-service/app</path>
+                    <path>services/onboarding-service/app</path>
+                    <path>services/reporting-service/app</path>
+                    <path>services/notification-service/app</path>
+                    <path>services/document-parser-service/app</path>
+                    <path>gateway/api-gateway/app</path>
+                    <path>shared</path>
+                </source>
+                <visibility>public</visibility>
+                <visibility>protected</visibility>
+            </api>
+        </version>
+    </versions>
+    
+    <settings>
+        <setting name="graphs.enabled" value="false"/>
+    </settings>
+</phpdocumentor>

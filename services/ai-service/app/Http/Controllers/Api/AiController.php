@@ -8,6 +8,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * AiController - Centralized AI operations for the Candidacy platform.
+ * 
+ * Provides AI-powered functionality including:
+ * - CV/Resume parsing and data extraction
+ * - Job description generation
+ * - Candidate-vacancy matching with scoring
+ * - Interview question generation
+ * - Question discussion/analysis
+ * 
+ * Supports multiple AI providers via AIProviderFactory (Ollama, OpenRouter).
+ * 
+ * @package App\Http\Controllers\Api
+ * @author Candidacy Development Team
+ */
 class AiController extends Controller
 {
     protected $aiProvider;

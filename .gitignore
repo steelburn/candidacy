@@ -58,3 +58,7 @@ coverage/
 # CV uploads (local dev only)
 **/storage/app/cvs/
 **/storage/app/public/
+
+# PHPDoc
+.phpdoc/
+docs/api/

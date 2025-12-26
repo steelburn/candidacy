@@ -13,6 +13,18 @@ use App\Models\JobStatus;
 use App\Jobs\MatchJob;
 use Shared\Services\ConfigurationService;
 
+/**
+ * MatchController - AI-powered candidate-vacancy matching.
+ * 
+ * Handles intelligent matching between candidates and job vacancies:
+ * - Match calculation via AI service with configurable thresholds
+ * - Interview question generation based on match analysis
+ * - Match dismissal and restoration
+ * - Configurable retry logic and score filtering
+ * 
+ * @package App\Http\Controllers\Api
+ * @author Candidacy Development Team
+ */
 class MatchController extends BaseApiController
 {
     protected $candidateServiceUrl;
