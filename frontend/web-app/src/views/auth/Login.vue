@@ -233,7 +233,7 @@ async function handleLogin() {
   align-items: center;
   gap: 2rem;
   width: 100%;
-  max-width: 480px;
+  max-width: 600px;
 }
 
 /* Branding */
@@ -532,17 +532,52 @@ async function handleLogin() {
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .login-container {
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page {
+    padding: 1.5rem;
+  }
+  
+  .login-container {
+    max-width: 100%;
+  }
+  
+  .login-card {
+    padding: 2rem;
+    border-radius: 20px;
+  }
+  
+  .brand-name {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 400px) {
   .login-page {
     padding: 1rem;
   }
   
   .login-card {
     padding: 1.5rem;
+    border-radius: 16px;
   }
   
   .brand-name {
     font-size: 1.5rem;
+  }
+  
+  .brand-icon {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .form-group input {
+    padding: 0.875rem 0.875rem 0.875rem 2.75rem;
   }
 }
 </style>
