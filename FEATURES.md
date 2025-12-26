@@ -356,25 +356,102 @@ Candidacy is a complete recruitment management system with AI-powered capabiliti
 
 ## ⚙️ Admin & Configuration
 
-### General Settings
-- **Application Name**: Customize app name
-- **Company Name**: Set company branding
-- **Contact Email**: HR contact email
-- **Candidate Portal URL**: Configure portal base URL (default: http://localhost:5173)
-- **Login Background Image**: Set custom background image URL for login page
+### Configuration Management Dashboard
+The Admin panel provides a comprehensive configuration management system with search, filtering, and change history tracking.
 
-### AI Settings
-- **AI Provider**: Choose Ollama (local) or OpenRouter (cloud)
-- **Ollama URL**: Configure Ollama instance (supports external servers)
-- **Matching Model**: Set AI model for matching (default: gemma2:2b)
-- **Questionnaire Model**: Set AI model for questions (default: gemma2:2b)
-- **Match Threshold**: Set minimum match percentage (default: 70)
+**Features:**
+- Search and filter settings by keyword or category
+- Export/Import configuration as JSON
+- View change history for any setting
+- Sensitive value masking with reveal toggle
 
-### System Settings
-- **Max Upload Size**: Configure file upload limit (default: 10MB)
-- **Module Toggles**: Enable/disable features
-- **Email Configuration**: SMTP settings
-- **Maintenance Mode**: System maintenance toggle
+---
+
+### Configuration Categories
+
+#### System Settings
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `app.name` | Application name displayed in UI | Candidacy |
+| `app.company_name` | Company name for branding | Candidacy Inc. |
+| `app.contact_email` | Contact email for support | contact@candidacy.com |
+| `app.candidate_portal_url` | Base URL for candidate self-service portal | http://localhost:5173 |
+| `app.timezone` | Default timezone | UTC |
+| `app.language` | Default language | en |
+
+#### AI Configuration
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `ai.provider` | AI provider: ollama or openrouter | ollama |
+| `ai.ollama.url` | Ollama API endpoint URL | http://192.168.88.120:11434 |
+| `ai.ollama.model.default` | Default Ollama model for general AI tasks | mistral |
+| `ai.ollama.model.matching` | Model for candidate-vacancy matching | llama3.2:3b |
+| `ai.ollama.model.cv_parsing` | Model for CV parsing | llama3.2 |
+| `ai.openrouter.api_key` | OpenRouter API key (sensitive) | - |
+| `ai.openrouter.model` | OpenRouter model | mistralai/mistral-7b-instruct |
+| `ai.generation.timeout` | AI generation timeout (30-600 seconds) | 300 |
+| `ai.generation.temperature` | AI temperature (0.0-1.0) | 0.7 |
+| `ai.generation.context_length` | Context window size (2048-32768) | 8192 |
+
+#### Document Parser Settings
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `document_parser.use_granite_docling` | Enable IBM Granite Docling for advanced PDF parsing | true |
+| `document_parser.granite_model` | Granite Docling model name | ibm/granite-docling:258m |
+| `document_parser.timeout` | Document parsing timeout (seconds) | 60 |
+| `document_parser.image_resolution` | PDF-to-image resolution (DPI) | 150 |
+
+#### Matching Configuration
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `matching.min_score_threshold` | Minimum score to save matches (0-100) | 40 |
+| `matching.max_retry_attempts` | Retry attempts for failed AI responses | 3 |
+| `matching.display_threshold` | UI display filter threshold | 60 |
+
+#### Recruitment Settings
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `recruitment.auto_matching` | Auto-match candidates to vacancies | true |
+| `recruitment.offer_expiry_days` | Days before offers expire | 7 |
+| `recruitment.interview_reminder_hours` | Hours before interview reminder | 24 |
+
+#### Storage Configuration
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `storage.cv_storage_limit_mb` | Maximum CV file size (MB) | 10 |
+| `storage.max_upload_size` | Maximum upload size (MB) | 10 |
+
+#### Feature Flags
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `features.enable_ai` | Enable AI-powered features | true |
+| `features.enable_notifications` | Enable email notifications | true |
+| `features.enable_auto_matching` | Enable automatic matching | true |
+
+#### UI Customization
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `ui.login_background_image` | URL for login page background | - |
+| `ui.max_content_width` | Maximum content width (pixels) | 1400 |
+| `ui.sidebar_width` | Sidebar width (pixels) | 260 |
+| `ui.primary_color` | Primary brand color (hex) | #4F46E5 |
+| `ui.items_per_page` | Default items per page | 20 |
+| `ui.date_format` | Date display format | YYYY-MM-DD |
+| `ui.time_format` | Time display format | HH:mm |
+| `ui.enable_dark_mode` | Enable dark mode by default | false |
+
+---
+
+### Specialized Input Controls
+
+The Admin panel uses intelligent input controls based on setting type:
+- **Toggle Switches** - Boolean settings with visual on/off state
+- **Color Picker** - Settings containing `_color` with hex input
+- **Date/Time Format Dropdowns** - Predefined format options
+- **AI Provider Dropdown** - Ollama or OpenRouter selection
+- **Range Sliders** - Percentage thresholds with numeric display
+- **URL Fields** - Settings containing `_url` with URL validation
+- **Sensitive Fields** - Password-style masking with reveal button
 
 ---
 

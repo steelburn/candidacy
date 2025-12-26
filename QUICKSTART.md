@@ -193,18 +193,37 @@ Ensure Ollama is running and the models are pulled. You can check Ollama status 
 
 After logging in, access the Admin panel at http://localhost:3001/admin to configure:
 
+### Configuration Tab
+The configuration management interface features search, filtering by category, and change history for all settings.
+
 **General Settings:**
-- **Login Background Image**: Set a custom background URL for the login page
-- **Candidate Portal URL**: Configure the base URL for candidate portal links (default: http://localhost:5173)
-- **Company Name**: Customize company branding
-- **Contact Email**: Set HR contact email
+- **Application Name**: Customize app name
+- **Company Name**: Set company branding
+- **Contact Email**: HR contact email
+- **Candidate Portal URL**: Configure the base URL for candidate portal links
 
 **AI Settings:**
 - **AI Provider**: Choose between Ollama (local) or OpenRouter (cloud)
-- **Ollama URL**: Configure external Ollama instance (default: http://192.168.88.120:11434)
-- **Matching Model**: Set AI model for candidate matching (default: gemma2:2b)
-- **Questionnaire Model**: Set AI model for question generation (default: gemma2:2b)
-- **Match Threshold**: Set minimum match percentage (default: 70)
+- **Ollama URL**: Configure Ollama instance (default: http://192.168.88.120:11434)
+- **AI Models**: Configure separate models for matching, CV parsing, and general tasks
+- **Generation Parameters**: Timeout, temperature, and context length
+
+**Matching Thresholds:**
+- **Min Score Threshold**: Minimum score to save matches (default: 40%)
+- **Display Threshold**: Filter threshold in UI (default: 60%)
+- **Max Retry Attempts**: AI response retry count (default: 3)
+
+**UI Customization:**
+- **Login Background Image**: Set custom background URL for login page
+- **Primary Color**: Brand color (configurable via color picker)
+- **Sidebar Width**: Sidebar navigation width in pixels
+- **Date/Time Format**: Choose preferred display formats
+- **Items Per Page**: Default pagination limit
+
+### Other Admin Tabs
+- **System Health**: View status of all 12 microservices
+- **User Management**: Create, edit, and delete users with role assignment
+- **CV Jobs**: Monitor async CV parsing job status
 
 ## Production Deployment
 

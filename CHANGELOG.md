@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added - 2025-12-26
 
+#### UI Redesign - Sidebar-Based Dashboard Layout
+- **New Dashboard Layout** (`DashboardLayout.vue`)
+  - Collapsible sidebar navigation replacing top header navigation
+  - Modern stat cards with gradient icons for key metrics
+  - Pipeline visualization with animated bar charts
+  - Recent candidates widget with avatar initials
+- **Component Architecture**
+  - `AppSidebar.vue` - Collapsible navigation with role-based menu items
+  - `AppHeader.vue` - Compact top header with user profile and search
+  - Consistent layout variables in `variables.css` and `layout.css`
+- **Beautified Login Page** (`Login.vue`)
+  - Glassmorphism design with backdrop blur effects
+  - Animated gradient background with floating orbs
+  - Wider login container (600px) with improved responsive breakpoints
+  - Configurable background image via admin settings
+- **List View Enhancements**
+  - Modernized `CandidateList.vue`, `MatchList.vue`, `OfferList.vue`
+  - Consistent action buttons with icons and hover effects
+  - Improved card layouts and typography
+
+#### Configuration Management Enhancements
+- **Specialized Input Controls** in Admin panel
+  - Color picker for `ui.primary_color` setting
+  - Dropdown selects for AI provider, date/time formats
+  - Range sliders with percentage display for threshold settings
+  - Toggle switches for boolean settings
+- **New Configuration Categories**
+  - `matching` category with configurable thresholds
+  - Extended `ai` category with generation parameters (timeout, temperature, context length)
+  - `ui` category with sidebar width, items per page, dark mode toggle
+- **AI Generation Parameters** (configurable in Admin)
+  - `ai.generation.timeout` - AI request timeout (30-600 seconds)
+  - `ai.generation.temperature` - Response creativity (0.0-1.0)
+  - `ai.generation.context_length` - Context window size (2048-32768)
+- **Matching Thresholds** (moved to configuration)
+  - `matching.min_score_threshold` - Minimum score to save matches (default: 40)
+  - `matching.max_retry_attempts` - Retry count for failed AI responses (default: 3)
+  - `matching.display_threshold` - UI filter threshold (default: 60)
+
+### Added - 2025-12-26 (continued)
+
 #### AI Matching Quality Improvements
 - **Match Score Filtering** - Matches with scores below 40% are now automatically discarded
   - Prevents low-relevance matches from cluttering the UI

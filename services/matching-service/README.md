@@ -15,8 +15,8 @@ AI-powered candidate-vacancy matching service.
 - ✅ Detailed match analysis
 - ✅ Interview question generation
 - ✅ Match dismissal and restoration
-- ✅ Match dismissal and restoration
 - ✅ Batch matching operations
+- ✅ **Configurable Thresholds**: Min score (40%), display filter (60%)
 - ✅ **Queue Isolation**: Dedicated `matching_queue` for reliable processing
 
 ## API Endpoints

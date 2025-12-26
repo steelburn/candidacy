@@ -28,27 +28,30 @@ GET    /api/system-health           # Get all services health status
 GET    /api/health                  # Service health check
 ```
 
-## Settings Categories
+## Configuration Categories
 
-### General Settings
-- `app_name` - Application name
-- `company_name` - Company name
-- `contact_email` - Contact email
-- `candidate_portal_url` - Applicant portal base URL
-- `max_upload_size` - Maximum file upload size (MB)
+The Admin Service manages settings across 8 categories with 40+ configurable options:
 
-### AI Settings
-- `enable_ai` - Enable/disable AI features
-- `ai_provider` - AI provider (ollama/openrouter)
-- `ollama_url` - Ollama instance URL
-- `ollama_model` - Model for general AI tasks
-- `ollama_matching_model` - Model for candidate matching
-- `openrouter_api_key` - OpenRouter API key
+### System (`system`)
+- `app.name`, `app.company_name`, `app.contact_email`
+- `app.candidate_portal_url`, `app.timezone`, `app.language`
 
-### Notification Settings
-- `enable_notifications` - Enable/disable notifications
-- `email_from_address` - Email sender address
-- `email_from_name` - Email sender name
+### AI (`ai`)
+- `ai.provider` - ollama or openrouter
+- `ai.ollama.url` - Ollama endpoint
+- `ai.ollama.model.*` - Models for default, matching, cv_parsing
+- `ai.generation.*` - timeout, temperature, context_length
+
+### Document Parser (`document_parser`)
+- `document_parser.use_granite_docling` - Enable IBM Granite Docling
+- `document_parser.timeout`, `document_parser.image_resolution`
+
+### Matching (`matching`)
+- `matching.min_score_threshold` - Minimum score to save matches (default: 40)
+- `matching.display_threshold` - UI filter threshold (default: 60)
+
+### Recruitment, Storage, Features, UI
+- See [FEATURES.md](/FEATURES.md) for complete settings reference
 
 ## System Health Monitoring
 

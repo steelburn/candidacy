@@ -499,7 +499,7 @@ services:
 
   # Centralized Logging Stack
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:3.0.0
     container_name: candidacy-loki
     ports:
       - "3100:3100"
@@ -511,7 +511,7 @@ services:
       - candidacy-network
 
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:3.0.0
     container_name: candidacy-promtail
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -533,6 +533,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
     networks:

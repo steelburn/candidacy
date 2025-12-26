@@ -96,6 +96,35 @@ graph TB
     LOKI --> GRAFANA
 ```
 
+## Frontend Layout Architecture
+
+The main frontend uses a **sidebar-based dashboard layout**:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  AppHeader (Toggle, Breadcrumb, Search, Theme, User)           │
+├──────────────┬──────────────────────────────────────────────────┤
+│              │                                                  │
+│  AppSidebar  │              Main Content Area                   │
+│  (260px)     │              (Router View)                       │
+│              │                                                  │
+│  - Dashboard │  ┌────────────────────────────────────────────┐  │
+│  - Candidates│  │  Page Header                               │  │
+│  - Vacancies │  │  ─────────────────────────────────────────│  │
+│  - Matches   │  │                                            │  │
+│  - Interviews│  │  Stats / Cards / Tables                    │  │
+│  - Offers    │  │                                            │  │
+│  - Reports   │  │                                            │  │
+│  - Admin     │  └────────────────────────────────────────────┘  │
+│              │                                                  │
+└──────────────┴──────────────────────────────────────────────────┘
+```
+
+**Key Components:**
+- `DashboardLayout.vue` - Main layout wrapper with sidebar state
+- `AppSidebar.vue` - Collapsible navigation (260px → 64px icon mode)
+- `AppHeader.vue` - Top bar with toggle, search, theme switch
+
 ## Core Principles
 
 ### 1. Microservices Architecture
@@ -120,11 +149,33 @@ Each service has its own database:
 - `candidacy_document_parser` - Temporary storage for parsing operations
 
 **Database-as-Code (DBML)**:
-All schemas are defined in `schema.dbml`. This file is used to generate SQL scripts for all services, ensuring:
+The schema uses a **modular DBML structure** with 14 files in `database/dbml/`:
+
+```
+database/dbml/
+├── project.dbml        # Project metadata and settings
+├── enums.dbml          # Shared enumerations (status, types)
+├── auth.dbml           # Auth service tables (users, roles, permissions)
+├── admin.dbml          # Admin service tables (settings, change_logs)
+├── candidate.dbml      # Candidate service tables
+├── vacancy.dbml        # Vacancy service tables
+├── matching.dbml       # Matching service tables
+├── interview.dbml      # Interview service tables
+├── offer.dbml          # Offer service tables
+├── onboarding.dbml     # Onboarding service tables
+├── notification.dbml   # Notification service (stateless)
+├── ai.dbml             # AI service (stateless)
+├── document_parser.dbml # Document parser tables
+└── relationships.dbml  # Cross-service logical relationships
+```
+
+The root `schema.dbml` is **auto-generated** by combining these files via `make dbml-sql`.
+
+**Benefits:**
+- Service-specific schema ownership
 - Uniform indexing strategies
-- Consistent column naming
 - Cross-service relationship documentation
-- Automated environment synchronization
+- Automated SQL generation to `database/sql/*.sql`
 
 ### 3. Event-Driven Communication
 Services communicate via:
@@ -208,10 +259,12 @@ Notification Service subscribes and sends confirmation email
 - Interviewer performance metrics
 
 ### Admin Service
-- System configuration management
-- Settings API for all services
-- AI provider configuration
-- Branding and customization settings
+- **Centralized configuration management** (40+ settings)
+- 8 configuration categories: System, AI, Document Parser, Matching, Recruitment, Storage, Features, UI
+- Settings API with category filtering and change history
+- System health monitoring (all 12 services)
+- AI provider configuration (Ollama/OpenRouter)
+- UI customization (colors, layouts, themes)
 
 ### Notification Service
 - Email and notification delivery
@@ -426,17 +479,21 @@ Services → Docker Logs → Promtail → Loki → Grafana
 | Layer | Technology |
 |-------|------------|
 | Frontend | Vue 3, Vite, Pinia, Axios |
+| Frontend Layout | Sidebar-based DashboardLayout |
 | Gateway | Laravel 10 |
 | Services | Laravel 10 |
 | Database | MySQL 8.0 (Managed via DBML) |
 | Cache/Events | Redis 7 |
 | AI | Ollama, OpenRouter |
+| Configuration | Admin Service (40+ settings) |
 | Monitoring | Loki, Promtail, Grafana |
 | Architecture | Microservices, Event-Driven |
 
 ## Best Practices
 
-1. **DBML-First**: All schema changes must happen in `schema.dbml` first.
+1. **Modular DBML**: Edit service-specific files in `database/dbml/`, then run `make dbml-sql` to regenerate.
 2. **Standardized Responses**: All APIs follow the `BaseApiController` pattern.
 3. **Shared Middleware**: Core security and headers are shared across services.
 4. **Asynchronous Processing**: Heavy tasks like parsing and AI are separated.
+5. **Centralized Configuration**: All settings managed via Admin Service with change history.
+6. **Component-Based Frontend**: Reusable layout components (`DashboardLayout`, `AppSidebar`, `AppHeader`).

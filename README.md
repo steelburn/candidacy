@@ -229,6 +229,16 @@ curl http://localhost:8080/api/system-health
   - Missing RECOMMENDATION triggers automatic retry (up to 3 attempts)
   - Typo-proof parsing handles AI output inconsistencies (STRENGHTHS, GAPs :)
   - Beautified Matches tab with glassmorphism UI
+- ✅ **UI Redesign with Sidebar Layout (Dec 26)**
+  - New sidebar-based dashboard navigation
+  - Modernized stat cards with gradient icons
+  - Beautified login page with glassmorphism design
+  - Consistent list view styling across all pages
+- ✅ **Enhanced Configuration Management (Dec 26)**
+  - 40+ configurable settings across 8 categories
+  - Specialized input controls (color pickers, dropdowns, range sliders)
+  - AI generation parameters (timeout, temperature, context length)
+  - Matching thresholds as configurable settings
 
 ### Monitoring
 - **Grafana Dashboard**: http://localhost:3050
