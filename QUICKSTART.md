@@ -16,12 +16,17 @@
 # Navigate to project directory
 cd /home/steelburn/Development/candidacy
 
-# Make setup script executable
-chmod +x scripts/setup-services.sh
-
-# Run setup script to create all services
-./scripts/setup-services.sh
+# Complete platform setup (recommended)
+make setup
 ```
+
+The setup command will:
+- Configure environment files
+- Build base Docker image
+- Start MySQL and Redis
+- Initialize 9 databases from DBML
+- Start all 12 microservices
+- Seed configuration settings (27 settings)
 
 This will create/configure:
 - 12 microservices using Laravel
@@ -57,14 +62,17 @@ make dbml-init
 ### 4. Start Services
 
 ```bash
-# Start all services with Docker Compose
-docker-compose up -d
+# Start all services
+make up
 
 # View logs for all services
 make logs
 
 # Check running services
 make status
+
+# View all available commands
+make help
 ```
 
 ### 5. Setup AI Models (Optional - for local AI)
@@ -102,7 +110,7 @@ make seed
   - Reporting: http://localhost:8089
   - Admin: http://localhost:8090
   - Notification: http://localhost:8091
-  - Document Parser: http://localhost:8092
+  - Document Parser: http://localhost:8095
 
 ## Development Workflow
 
@@ -244,4 +252,5 @@ For issues, please check:
 
 ## License
 
-[Your License]
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+

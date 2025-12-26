@@ -4,7 +4,7 @@ A comprehensive recruitment management system built with microservices architect
 
 ## 🏗️ Architecture
 
-**Microservices Monorepo** with 11 independent services:
+**Microservices Monorepo** with 12 independent services:
 
 - **Auth Service** - User authentication and authorization
 - **Candidate Service** - Candidate management and CV processing
@@ -35,17 +35,19 @@ A comprehensive recruitment management system built with microservices architect
 git clone <repository-url>
 cd candidacy
 
-# Initialize databases from DBML (Recommended)
-make dbml-init
+# Complete platform setup (recommended for first time)
+make setup
 
-# Start all services with Docker Compose
-docker-compose up -d
+# Or, for step-by-step:
+make dbml-init    # Initialize databases from DBML
+make up           # Start all services
+make seed         # Seed sample data
 
 # Access the application
 # Main Frontend (HR/Recruiter): http://localhost:3001
 # Applicant Portal: http://localhost:5173
 # API Gateway: http://localhost:8080
-# Grafana (Monitoring): http://localhost:3050
+# Grafana (Monitoring): http://localhost:3050 (admin/admin)
 ```
 
 ### Development Setup (DBML-First)
@@ -67,6 +69,9 @@ make dbml-reset
 
 # View logs
 make logs
+
+# View all available commands
+make help
 ```
 
 ## 📁 Project Structure
@@ -241,7 +246,16 @@ curl http://localhost:8080/api/system-health
   - Matching thresholds as configurable settings
 
 ### Monitoring
-- **Grafana Dashboard**: http://localhost:3050
+- **Grafana Dashboard**: http://localhost:3050 (admin/admin)
+- **Pre-built Dashboards**: 8 dashboards auto-provisioned
+  - Service Overview (all services at a glance)
+  - API Gateway (requests, latency, errors)
+  - Auth Service (logins, registrations)
+  - Candidate Service (CV uploads, AI parsing)
+  - AI & Matching Services (AI requests, matches)
+  - Support Services (Interview, Offer, Onboarding, etc.)
+  - Frontend Applications (Main app, Applicant portal)
+  - Database & Infrastructure (MySQL, Redis, Loki)
 - **Loki Logs**: Centralized logging for all 12 services
 - **Health Endpoints**: `/api/health` on all services
 - **API Gateway Metrics**: Unified view of service status
@@ -283,8 +297,13 @@ curl http://localhost:8080/api/system-health
 
 ## 📝 License
 
-[Your License Here]
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
-[Contributing guidelines]
+We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines on:
+- Development setup and workflow
+- Code standards (PHP, Vue.js, DBML)
+- Pull request process
+- Testing requirements
+

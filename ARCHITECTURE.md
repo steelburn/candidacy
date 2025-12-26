@@ -31,7 +31,7 @@ graph TB
         REP[Reporting Service<br/>Port 8089]
         ADM[Admin Service<br/>Port 8090]
         NOT[Notification Service<br/>Port 8091]
-        DOC[Document Parser<br/>Port 8092]
+        DOC[Document Parser<br/>Port 8095]
     end
     
     subgraph "Data Layer"
