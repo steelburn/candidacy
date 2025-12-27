@@ -118,7 +118,7 @@ services:
       DB_DATABASE: candidacy_candidate
       REDIS_HOST: redis
       AI_SERVICE_URL: http://ai-service:8080
-      QUEUE_CONNECTION: redis
+      QUEUE_CONNECTION: database
       REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
@@ -144,7 +144,8 @@ services:
       DB_DATABASE: candidacy_candidate
       REDIS_HOST: redis
       AI_SERVICE_URL: http://ai-service:8080
-      QUEUE_CONNECTION: redis
+
+      QUEUE_CONNECTION: database
       REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
@@ -156,7 +157,7 @@ services:
       - candidate-service
     networks:
       - candidacy-network
-    command: php artisan queue:work --queue=candidate_queue --tries=3 --timeout=300
+    command: php artisan queue:work database --queue=candidate_queue --tries=3 --timeout=300
     restart: unless-stopped
 
   # Document Parser Service
@@ -452,14 +453,60 @@ services:
       DB_HOST: mysql
       DB_DATABASE: candidacy_notification
       REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      REDIS_QUEUE: notification_queue
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USERNAME: null
+      MAIL_PASSWORD: null
+      MAIL_ENCRYPTION: null
+      MAIL_FROM_ADDRESS: noreply@candidacy.local
+      MAIL_FROM_NAME: Candidacy
     volumes:
       - ./services/notification-service:/var/www/html
       - ./shared:/var/www/shared
     depends_on:
       - mysql
       - redis
+      - mailpit
     networks:
       - candidacy-network
+
+  # Notification Queue Worker
+  notification-queue-worker:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: candidacy-notification-worker
+    user: "1000:1000"
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_notification
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      REDIS_QUEUE: notification_queue
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_USERNAME: null
+      MAIL_PASSWORD: null
+      MAIL_ENCRYPTION: null
+      MAIL_FROM_ADDRESS: noreply@candidacy.local
+      MAIL_FROM_NAME: Candidacy
+    volumes:
+      - ./services/notification-service:/var/www/html
+      - ./shared:/var/www/shared
+    depends_on:
+      - mysql
+      - redis
+      - notification-service
+      - mailpit
+    networks:
+      - candidacy-network
+    command: php artisan queue:work --queue=notification_queue --tries=3 --timeout=60
+    restart: unless-stopped
 
   # Frontend
   frontend:
@@ -536,6 +583,16 @@ services:
       - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
+    networks:
+      - candidacy-network
+
+  # Mailpit - Development Email Testing
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: candidacy-mailpit
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI
     networks:
       - candidacy-network
 

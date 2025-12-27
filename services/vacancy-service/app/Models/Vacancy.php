@@ -38,6 +38,8 @@ class Vacancy extends Model
         'required_skills' => 'array',
         'preferred_skills' => 'array',
         'benefits' => 'array',
+        'requirements' => 'array',
+        'responsibilities' => 'array',
         'min_salary' => 'decimal:2',
         'max_salary' => 'decimal:2',
         'closing_date' => 'date',

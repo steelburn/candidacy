@@ -20,5 +20,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'healthy',
+        'service' => 'api-gateway',
+        'timestamp' => now()->toIso8601String()
+    ]);
+});
+
 // Catch-all route for API Gateway
 Route::any('/{any}', [GatewayController::class, 'handle'])->where('any', '.*');

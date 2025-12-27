@@ -2,13 +2,54 @@
 // NOTIFICATION SERVICE DATABASE (candidacy_notification)
 //==============================================================================
 
-// Note: Notification Service is a stateless service that handles:
+// Notification Service handles:
 // - Email notifications
 // - SMS notifications (future)
 // - Push notifications (future)
 // - Notification templates
 // - Delivery tracking
-//
-// This service processes notification requests in real-time and does not
-// maintain persistent data tables. Notification history and preferences
-// are managed by individual services that trigger notifications.
+
+Table notification_templates {
+  id bigint [pk, increment]
+  name varchar(100) [not null, unique, note: 'Unique template identifier']
+  subject varchar(255) [not null, note: 'Email subject with variable placeholders']
+  body text [not null, note: 'Email body content with variable placeholders']
+  type varchar(50) [not null, note: 'interview_scheduled, offer_sent, reminder, etc.']
+  variables json [note: 'List of available variables and their descriptions']
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    type
+    is_active
+  }
+}
+
+Table notification_logs {
+  id bigint [pk, increment]
+  template_id bigint [note: 'Reference to template used, null if direct content']
+  recipient_email varchar(255) [not null]
+  recipient_name varchar(255)
+  subject varchar(255) [not null]
+  body text [note: 'Rendered email body']
+  type varchar(50) [not null, note: 'Notification type']
+  channel varchar(20) [default: 'email', note: 'email, sms, push']
+  status varchar(20) [default: 'pending', note: 'pending, sent, failed']
+  metadata json [note: 'Additional context: candidate_id, vacancy_id, etc.']
+  sent_at timestamp
+  failed_at timestamp
+  error_message text
+  retry_count int [default: 0]
+  created_at timestamp
+  updated_at timestamp
+
+  indexes {
+    recipient_email
+    type
+    status
+    created_at
+  }
+}
+
+Ref: notification_logs.template_id > notification_templates.id

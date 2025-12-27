@@ -19,21 +19,25 @@
 
 <style scoped>
 .navbar {
-  padding: 1.5rem 2rem;
-  background-color: var(--card-bg);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 1.25rem 2rem;
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color);
+  font-size: 1.75rem;
+  font-weight: 800;
   text-decoration: none;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  letter-spacing: -0.05em;
+  background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }

@@ -56,6 +56,38 @@ class InterviewController extends BaseApiController
 
         $interview = Interview::create($request->all());
 
+        // Trigger Notification
+        try {
+            // 1. Fetch Candidate Details
+            $candidateResponse = \Illuminate\Support\Facades\Http::get("http://candidate-service:8080/api/candidates/{$request->candidate_id}");
+            $candidate = $candidateResponse->json();
+
+            // 2. Fetch Vacancy Details
+            $vacancyResponse = \Illuminate\Support\Facades\Http::get("http://vacancy-service:8080/api/vacancies/{$request->vacancy_id}");
+            $vacancy = $vacancyResponse->json();
+
+            // 3. Send Notification
+            if ($candidateResponse->successful() && $vacancyResponse->successful()) {
+                \Illuminate\Support\Facades\Http::post('http://notification-service:8080/api/notifications/interview-scheduled', [
+                    'recipient' => $candidate['email'],
+                    'candidate_name' => $candidate['name'],
+                    'position_title' => $vacancy['title'],
+                    'interview_date' => date('l, F j, Y', strtotime($request->scheduled_at)),
+                    'interview_time' => date('g:i A', strtotime($request->scheduled_at)),
+                    'interview_type' => $request->type,
+                    'interview_location' => $request->type === 'in_person' ? 'Office' : 'Remote Link', // Simplification
+                    'metadata' => [
+                        'interview_id' => $interview->id,
+                        'vacancy_id' => $request->vacancy_id,
+                        'candidate_id' => $request->candidate_id
+                    ]
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Failed to trigger interview notification: ' . $e->getMessage());
+        }
+
         return response()->json($interview, 201);
     }
 

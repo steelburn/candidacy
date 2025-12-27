@@ -20,6 +20,7 @@ class GatewayController extends Controller
         'system-health' => 'admin-service', // Admin service handles system health
         'portal' => 'candidate-service', // Candidate service handles portal logic
         'notifications' => 'notification-service',
+        'notification' => 'notification-service', // Singular for template routes
         'reports' => 'reporting-service',
         'users' => 'auth-service', // Auth service handles user management
         'roles' => 'auth-service', // Auth service handles role management
@@ -27,6 +28,7 @@ class GatewayController extends Controller
         'parse-cv' => 'ai-service', // AI service handles CV parsing
         'match' => 'ai-service', // AI service handles matching
         'discuss-question' => 'ai-service', // AI service handles question discussions
+        'generate-questions-screening' => 'ai-service',
     ];
 
     public function handle(Request $request, $path)

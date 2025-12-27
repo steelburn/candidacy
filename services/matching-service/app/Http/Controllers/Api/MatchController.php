@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use Shared\Http\Controllers\BaseApiController;
 use Shared\Constants\AppConstants;
 use App\Models\CandidateMatch;
+use App\Services\AnalysisParserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -78,7 +79,6 @@ class MatchController extends BaseApiController
                 if ($response->successful()) {
                     $vacancyData = $response->json();
                     $match->vacancy = $vacancyData;
-                    // Add vacancy_title directly to match for easier frontend access
                     $match->vacancy_title = $vacancyData['title'] ?? 'Untitled Position';
                 }
             } catch (\Exception $e) {
@@ -86,6 +86,9 @@ class MatchController extends BaseApiController
                 $match->vacancy = null;
                 $match->vacancy_title = 'Unknown Position';
             }
+            
+            // Add parsed analysis with typo handling (server-side)
+            $match->parsed_analysis = AnalysisParserService::toJson($match->analysis);
         }
         
         return $matches;
@@ -574,19 +577,19 @@ PROFILE;
 
     protected function extractStrengths($analysis)
     {
-        preg_match('/STRENGTHS:\s*(.+?)(?=GAPS:|$)/s', $analysis, $matches);
-        return $matches[1] ?? '';
+        $parsed = AnalysisParserService::parse($analysis);
+        return implode("\n", $parsed['strengths']);
     }
 
     protected function extractGaps($analysis)
     {
-        preg_match('/GAPS:\s*(.+?)(?=RECOMMENDATION:|$)/s', $analysis, $matches);
-        return $matches[1] ?? '';
+        $parsed = AnalysisParserService::parse($analysis);
+        return implode("\n", $parsed['gaps']);
     }
 
     protected function extractRecommendation($analysis)
     {
-        preg_match('/RECOMMENDATION:\s*(.+?)$/s', $analysis, $matches);
-        return $matches[1] ?? '';
+        $parsed = AnalysisParserService::parse($analysis);
+        return $parsed['recommendation'];
     }
 }

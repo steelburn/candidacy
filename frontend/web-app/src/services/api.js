@@ -122,8 +122,10 @@ export const vacancyAPI = {
     update: (id, data) => api.put(`http://localhost:8083/api/vacancies/${id}`, data),
     delete: (id) => api.delete(`http://localhost:8083/api/vacancies/${id}`),
     generateJD: (id) => api.post(`http://localhost:8083/api/vacancies/${id}/generate-description`),
-    addQuestion: (id, data) => api.post(`http://localhost:8083/api/vacancies/${id}/questions`, data),
-    getQuestions: (id) => api.get(`http://localhost:8083/api/vacancies/${id}/questions`)
+    addQuestion: (id, data) => api.post(`/api/vacancies/${id}/questions`, data),
+    getQuestions: (id) => api.get(`/api/vacancies/${id}/questions`),
+    updateQuestion: (vacancyId, questionId, data) => api.put(`/api/vacancies/${vacancyId}/questions/${questionId}`, data),
+    deleteQuestion: (vacancyId, questionId) => api.delete(`/api/vacancies/${vacancyId}/questions/${questionId}`)
 }
 
 // AI API (direct calls)
@@ -134,7 +136,8 @@ export const aiAPI = {
         candidate_profile: candidateProfile,
         job_requirements: jobRequirements
     }),
-    discussQuestion: (data) => api.post('/api/discuss-question', data)
+    discussQuestion: (data) => api.post('/api/discuss-question', data),
+    generateScreeningQuestions: (data) => api.post('/api/generate-questions-screening', data)
 }
 
 // Matching API

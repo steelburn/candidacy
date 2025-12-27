@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
 
 class SettingController extends BaseApiController
 {
@@ -183,8 +184,10 @@ class SettingController extends BaseApiController
      */
     public function systemHealth()
     {
-        $services = [
+        $httpServices = [
             'auth-service' => 'http://auth-service:8080/api/health',
+            'api-gateway' => 'http://api-gateway:8080/api/health',
+            'admin-service' => 'http://admin-service:8080/api/health',
             'candidate-service' => 'http://candidate-service:8080/api/health',
             'vacancy-service' => 'http://vacancy-service:8080/api/health',
             'ai-service' => 'http://ai-service:8080/api/health',
@@ -194,14 +197,37 @@ class SettingController extends BaseApiController
             'onboarding-service' => 'http://onboarding-service:8080/api/health',
             'reporting-service' => 'http://reporting-service:8080/api/health',
             'notification-service' => 'http://notification-service:8080/api/health',
+            'document-parser-service' => 'http://document-parser-service:8080/api/health',
+            // Frontends
+            'candidacy-frontend' => 'http://frontend:3000',
+            'candidacy-applicant-frontend' => 'http://applicant-frontend:3000',
+        ];
+
+        // Workers - verify queue connectivity
+        $workers = [
+            'candidate-queue-worker' => 'candidate_queue',
+            'document-parser-worker' => 'document_parser_queue',
+            'matching-queue-worker' => 'matching_queue',
+            'notification-queue-worker' => 'notification_queue',
         ];
 
         $health = [];
         
-        foreach ($services as $service => $url) {
+        // Check HTTP Services
+        foreach ($httpServices as $service => $url) {
             try {
+                // Special case for admin-service (self) and api-gateway (parent) to avoid deadlock in single-threaded env
+                if ($service === 'admin-service' || $service === 'api-gateway') {
+                    $health[] = [
+                        'service' => $service,
+                        'status' => 'online',
+                        'response_time' => '0ms'
+                    ];
+                    continue;
+                }
+
                 $start = microtime(true);
-                $response = \Illuminate\Support\Facades\Http::timeout(2)->get($url);
+                $response = \Illuminate\Support\Facades\Http::timeout(5)->get($url);
                 $time = round((microtime(true) - $start) * 1000);
                 
                 $health[] = [
@@ -210,11 +236,35 @@ class SettingController extends BaseApiController
                     'response_time' => $response->successful() ? $time . 'ms' : null
                 ];
             } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Health check failed for {$service}: " . $e->getMessage());
                 $health[] = [
                     'service' => $service,
                     'status' => 'offline',
                     'response_time' => null,
                     'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        // Check Workers
+        foreach ($workers as $worker => $queue) {
+            try {
+                $start = microtime(true);
+                // Check if we can ping Redis as proxy for worker infrastructure
+                \Illuminate\Support\Facades\Redis::ping();
+                $time = round((microtime(true) - $start) * 1000);
+                
+                $health[] = [
+                    'service' => $worker,
+                    'status' => 'online', // Infrastructure is reachable
+                    'response_time' => $time . 'ms'
+                ];
+            } catch (\Exception $e) {
+                $health[] = [
+                    'service' => $worker,
+                    'status' => 'offline',
+                    'response_time' => null,
+                    'error' => 'Redis unreachable'
                 ];
             }
         }

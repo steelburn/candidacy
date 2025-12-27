@@ -92,9 +92,37 @@ class VacancyController extends BaseApiController
         return response()->json($vacancy->questions);
     }
 
-    public function show($id)
+    public function deleteQuestion($id, $questionId)
     {
         $vacancy = Vacancy::findOrFail($id);
+        $question = $vacancy->questions()->findOrFail($questionId);
+        $question->delete();
+
+        return response()->json(null, 204);
+    }
+
+    public function updateQuestion(Request $request, $id, $questionId)
+    {
+        $validator = Validator::make($request->all(), [
+            'question_text' => 'sometimes|required|string',
+            'question_type' => 'sometimes|nullable|string|in:text,boolean,multiple_choice',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $vacancy = Vacancy::findOrFail($id);
+        $question = $vacancy->questions()->findOrFail($questionId);
+        
+        $question->update($request->only(['question_text', 'question_type']));
+
+        return response()->json($question);
+    }
+
+    public function show($id)
+    {
+        $vacancy = Vacancy::with('questions')->findOrFail($id);
         return response()->json($vacancy);
     }
 

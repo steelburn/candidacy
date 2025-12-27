@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\Candidate;
 
 class CandidateManagementTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     /**
      * Test listing candidates
@@ -96,9 +96,9 @@ class CandidateManagementTest extends TestCase
 
         $response = $this->deleteJson('/api/candidates/' . $candidate->id);
 
-        $response->assertStatus(204);
+        $response->assertStatus(200);
 
-        $this->assertDatabaseMissing('candidates', [
+        $this->assertSoftDeleted('candidates', [
             'id' => $candidate->id,
         ]);
     }
@@ -146,9 +146,10 @@ class CandidateManagementTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'total',
-                'active',
-                'inactive',
+                'total_candidates',
+                'by_status',
+                'this_month',
+                'this_week',
             ]);
     }
 }

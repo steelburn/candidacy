@@ -58,7 +58,8 @@ const services = {
     'offer-service': 'candidacy_offer',
     'onboarding-service': 'candidacy_onboarding',
     'admin-service': 'candidacy_admin',
-    'document-parser-service': 'candidacy_document_parser'
+    'document-parser-service': 'candidacy_document_parser',
+    'notification-service': 'candidacy_notification'
 };
 
 // Create output directory
@@ -187,6 +188,10 @@ function getDatabaseForTable(tableName, services) {
         'cv_parsing_jobs': 'candidacy_candidate',
         'jobs': 'candidacy_candidate', // Database queue fallback
         'failed_jobs_candidate': 'candidacy_candidate',
+
+        // Notification service
+        'notification_templates': 'candidacy_notification',
+        'notification_logs': 'candidacy_notification',
     };
 
     return tableToDatabase[tableName] || null;

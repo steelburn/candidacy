@@ -305,6 +305,37 @@ CREATE TABLE `failed_jobs_matching` (
   `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
 );
 
+CREATE TABLE `notification_templates` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `name` varchar(100) UNIQUE NOT NULL COMMENT 'Unique template identifier',
+  `subject` varchar(255) NOT NULL COMMENT 'Email subject with variable placeholders',
+  `body` text NOT NULL COMMENT 'Email body content with variable placeholders',
+  `type` varchar(50) NOT NULL COMMENT 'interview_scheduled, offer_sent, reminder, etc.',
+  `variables` json COMMENT 'List of available variables and their descriptions',
+  `is_active` boolean DEFAULT true,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `notification_logs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `template_id` bigint COMMENT 'Reference to template used, null if direct content',
+  `recipient_email` varchar(255) NOT NULL,
+  `recipient_name` varchar(255),
+  `subject` varchar(255) NOT NULL,
+  `body` text COMMENT 'Rendered email body',
+  `type` varchar(50) NOT NULL COMMENT 'Notification type',
+  `channel` varchar(20) DEFAULT "email" COMMENT 'email, sms, push',
+  `status` varchar(20) DEFAULT "pending" COMMENT 'pending, sent, failed',
+  `metadata` json COMMENT 'Additional context: candidate_id, vacancy_id, etc.',
+  `sent_at` timestamp,
+  `failed_at` timestamp,
+  `error_message` text,
+  `retry_count` int DEFAULT 0,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
 CREATE TABLE `offers` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `candidate_id` bigint NOT NULL,
@@ -461,6 +492,18 @@ CREATE INDEX `idx_matching_job_statuses_status` ON `matching_job_statuses` (`sta
 
 CREATE INDEX `idx_matching_job_statuses_created` ON `matching_job_statuses` (`created_at`);
 
+CREATE INDEX `notification_templates_index_41` ON `notification_templates` (`type`);
+
+CREATE INDEX `notification_templates_index_42` ON `notification_templates` (`is_active`);
+
+CREATE INDEX `notification_logs_index_43` ON `notification_logs` (`recipient_email`);
+
+CREATE INDEX `notification_logs_index_44` ON `notification_logs` (`type`);
+
+CREATE INDEX `notification_logs_index_45` ON `notification_logs` (`status`);
+
+CREATE INDEX `notification_logs_index_46` ON `notification_logs` (`created_at`);
+
 CREATE INDEX `idx_offers_candidate_id` ON `offers` (`candidate_id`);
 
 CREATE INDEX `idx_offers_vacancy_id` ON `offers` (`vacancy_id`);
@@ -601,6 +644,8 @@ ALTER TABLE `job_statuses` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidat
 ALTER TABLE `cv_parsing_jobs` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candidates` (`id`);
 
 ALTER TABLE `interview_feedback` ADD FOREIGN KEY (`interview_id`) REFERENCES `interviews` (`id`);
+
+ALTER TABLE `notification_logs` ADD FOREIGN KEY (`template_id`) REFERENCES `notification_templates` (`id`);
 
 ALTER TABLE `vacancy_questions` ADD FOREIGN KEY (`vacancy_id`) REFERENCES `vacancies` (`id`);
 

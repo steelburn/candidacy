@@ -34,6 +34,8 @@ class OfferController extends BaseApiController
             'vacancy_id' => 'required|integer',
             'salary_offered' => 'required|numeric',
             'offer_date' => 'required|date',
+            'start_date' => 'nullable|date',
+            'expiry_date' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -44,6 +46,38 @@ class OfferController extends BaseApiController
             $request->all(),
             ['status' => 'pending']
         ));
+
+        // Trigger Notification
+        try {
+            // 1. Fetch Candidate Details
+            $candidateResponse = \Illuminate\Support\Facades\Http::get("http://candidate-service:8080/api/candidates/{$request->candidate_id}");
+            $candidate = $candidateResponse->json();
+
+            // 2. Fetch Vacancy Details
+            $vacancyResponse = \Illuminate\Support\Facades\Http::get("http://vacancy-service:8080/api/vacancies/{$request->vacancy_id}");
+            $vacancy = $vacancyResponse->json();
+
+            // 3. Send Notification
+            if ($candidateResponse->successful() && $vacancyResponse->successful()) {
+                \Illuminate\Support\Facades\Http::post('http://notification-service:8080/api/notifications/offer-sent', [
+                    'recipient' => $candidate['email'],
+                    'candidate_name' => $candidate['name'],
+                    'position_title' => $vacancy['title'],
+                    'salary_offered' => '$' . number_format($request->salary_offered),
+                    'start_date' => $request->start_date ? date('l, F j, Y', strtotime($request->start_date)) : null,
+                    'expiry_date' => $request->expiry_date ? date('l, F j, Y', strtotime($request->expiry_date)) : null,
+                    'portal_url' => "http://localhost:5173/portal/offers/{$offer->id}", // Assume portal URL structure
+                    'metadata' => [
+                        'offer_id' => $offer->id,
+                        'vacancy_id' => $request->vacancy_id,
+                        'candidate_id' => $request->candidate_id
+                    ]
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Failed to trigger offer notification: ' . $e->getMessage());
+        }
 
         return response()->json($offer, 201);
     }

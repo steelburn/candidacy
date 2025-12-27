@@ -9,7 +9,12 @@
 // - Interview question generation
 // - AI-powered analysis and recommendations
 //
-// This service does not maintain persistent data tables as it processes
-// requests in real-time using external AI providers (Ollama/OpenRouter).
+// This service maintains a minimal database for job tracking and standard
+// Laravel features (tokens, sessions), primarily processing requests using
+// external AI providers (Ollama/OpenRouter).
+//
 // All processed data is stored in the respective service databases
 // (e.g., parsed CV data in candidate service, match scores in matching service).
+//
+// Tables are standard Laravel scaffolding. Note: Schema generation requires unique table names,
+// so standard tables are omitted here to prevent collision with auth service.

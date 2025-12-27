@@ -26,6 +26,7 @@ class ProcessCvParsingJob implements ShouldQueue
     public function __construct($parsingJobId)
     {
         $this->parsingJobId = $parsingJobId;
+        $this->onQueue('candidate_queue');
     }
 
     public function handle()

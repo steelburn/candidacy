@@ -62,6 +62,8 @@ declare -A services=(
     ["onboarding-service"]="candidacy_onboarding"
     ["admin-service"]="candidacy_admin"
     ["document-parser-service"]="candidacy_document_parser"
+    ["notification-service"]="candidacy_notification"
+    ["ai-service"]="candidacy_ai"
 )
 
 echo "📊 Creating databases and applying schema..."

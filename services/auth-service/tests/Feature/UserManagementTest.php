@@ -3,32 +3,24 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\User;
 
 class UserManagementTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
-    protected function authenticatedUser()
-    {
-        $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
-        
-        return ['user' => $user, 'token' => $token];
-    }
+
 
     /**
      * Test listing users
      */
     public function test_can_list_users(): void
     {
-        $auth = $this->authenticatedUser();
+        $this->actingAsUser();
         User::factory()->count(5)->create();
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $auth['token'],
-        ])->getJson('/api/users');
+        $response = $this->getJson('/api/users');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -43,11 +35,9 @@ class UserManagementTest extends TestCase
      */
     public function test_can_create_user(): void
     {
-        $auth = $this->authenticatedUser();
+        $this->actingAsUser();
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $auth['token'],
-        ])->postJson('/api/users', [
+        $response = $this->postJson('/api/users', [
             'name' => 'New User',
             'email' => 'newuser@example.com',
             'password' => 'password123',
@@ -69,12 +59,10 @@ class UserManagementTest extends TestCase
      */
     public function test_can_view_user(): void
     {
-        $auth = $this->authenticatedUser();
+        $this->actingAsUser();
         $targetUser = User::factory()->create();
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $auth['token'],
-        ])->getJson('/api/users/' . $targetUser->id);
+        $response = $this->getJson('/api/users/' . $targetUser->id);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -88,12 +76,10 @@ class UserManagementTest extends TestCase
      */
     public function test_can_update_user(): void
     {
-        $auth = $this->authenticatedUser();
+        $this->actingAsUser();
         $targetUser = User::factory()->create();
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $auth['token'],
-        ])->putJson('/api/users/' . $targetUser->id, [
+        $response = $this->putJson('/api/users/' . $targetUser->id, [
             'name' => 'Updated Name',
             'email' => $targetUser->email,
         ]);
@@ -111,12 +97,10 @@ class UserManagementTest extends TestCase
      */
     public function test_can_delete_user(): void
     {
-        $auth = $this->authenticatedUser();
+        $this->actingAsUser();
         $targetUser = User::factory()->create();
 
-        $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $auth['token'],
-        ])->deleteJson('/api/users/' . $targetUser->id);
+        $response = $this->deleteJson('/api/users/' . $targetUser->id);
 
         $response->assertStatus(204);
 

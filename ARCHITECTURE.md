@@ -139,6 +139,7 @@ Each service has its own database:
 - `candidacy_auth` - User authentication data
 - `candidacy_candidate` - Candidate profiles, CVs, experience
 - `candidacy_vacancy` - Job postings and requirements
+- `candidacy_ai` - AI processing and job tracking
 - `candidacy_matching` - Match records and scores
 - `candidacy_interview` - Interview schedules and feedback
 - `candidacy_offer` - Job offers and acceptance
@@ -180,7 +181,7 @@ The root `schema.dbml` is **auto-generated** by combining these files via `make 
 ### 3. Event-Driven Communication
 Services communicate via:
 - **Synchronous**: HTTP REST APIs for request-response
-- **Asynchronous**: Redis Pub/Sub for events
+- **Asynchronous**: Redis Pub/Sub for events, Database/Redis Queues for background jobs
 
 Example event flow:
 ```
@@ -207,6 +208,7 @@ Notification Service subscribes and sends confirmation email
 - Experience and education tracking
 - Integrates with AI Service for analysis
 - Integrates with Document Parser for text extraction
+- **Reliability**: Uses Database Queue for critical CV parsing jobs
 
 ### Vacancy Service
 - Job posting management
