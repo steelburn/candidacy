@@ -76,7 +76,7 @@ class CandidateManagementTest extends TestCase
             'name' => 'Updated Name',
             'email' => $candidate->email,
             'phone' => $candidate->phone,
-            'status' => $candidate->status,
+            'status' => 'new',
         ]);
 
         $response->assertStatus(200);

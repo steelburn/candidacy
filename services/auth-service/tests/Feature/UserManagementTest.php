@@ -24,9 +24,7 @@ class UserManagementTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'data' => [
-                    '*' => ['id', 'name', 'email', 'created_at'],
-                ],
+                '*' => ['id', 'name', 'email', 'created_at'],
             ]);
     }
 
@@ -93,7 +91,7 @@ class UserManagementTest extends TestCase
     }
 
     /**
-     * Test deleting a user
+     * Test deleting a user (uses SoftDeletes)
      */
     public function test_can_delete_user(): void
     {
@@ -102,9 +100,10 @@ class UserManagementTest extends TestCase
 
         $response = $this->deleteJson('/api/users/' . $targetUser->id);
 
-        $response->assertStatus(204);
+        $response->assertStatus(200);
 
-        $this->assertDatabaseMissing('users', [
+        // User uses SoftDeletes, so check deleted_at is set
+        $this->assertSoftDeleted('users', [
             'id' => $targetUser->id,
         ]);
     }

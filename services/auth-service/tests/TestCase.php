@@ -4,25 +4,14 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use App\Models\User;
-use Laravel\Sanctum\Sanctum;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
 
     /**
-     * Setup Sanctum for testing
-     */
-    protected function setUp(): void
-    {
-        parent::setUp();
-        
-        // Configure Sanctum for testing
-        config(['sanctum.guard' => ['web']]);
-    }
-
-    /**
-     * Create an authenticated user and return user with token
+     * Create an authenticated user and return user with JWT token
      * 
      * @param array $attributes
      * @return array ['user' => User, 'token' => string]
@@ -30,13 +19,14 @@ abstract class TestCase extends BaseTestCase
     protected function authenticatedUser(array $attributes = []): array
     {
         $user = User::factory()->create($attributes);
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
         
         return ['user' => $user, 'token' => $token];
     }
 
     /**
-     * Act as an authenticated user using Sanctum
+     * Act as an authenticated user using JWT
+     * Sets up the request to use JWT authentication
      * 
      * @param User|null $user
      * @return $this
@@ -44,7 +34,11 @@ abstract class TestCase extends BaseTestCase
     protected function actingAsUser(?User $user = null): static
     {
         $user = $user ?? User::factory()->create();
-        Sanctum::actingAs($user);
+        $token = JWTAuth::fromUser($user);
+        
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $token,
+        ]);
         
         return $this;
     }
@@ -60,7 +54,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function authenticatedJson(string $method, string $uri, array $data = [], ?User $user = null)
     {
-        $auth = $user ? ['user' => $user, 'token' => $user->createToken('test')->plainTextToken] 
+        $auth = $user ? ['user' => $user, 'token' => JWTAuth::fromUser($user)] 
                       : $this->authenticatedUser();
         
         return $this->withHeaders([
@@ -68,3 +62,4 @@ abstract class TestCase extends BaseTestCase
         ])->json($method, $uri, $data);
     }
 }
+

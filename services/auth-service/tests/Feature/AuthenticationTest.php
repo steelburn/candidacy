@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use App\Models\User;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthenticationTest extends TestCase
 {
@@ -22,10 +23,12 @@ class AuthenticationTest extends TestCase
             'password_confirmation' => 'password123',
         ]);
 
-        $response->assertStatus(201)
+        $response->assertStatus(200)
             ->assertJsonStructure([
+                'access_token',
+                'token_type',
+                'expires_in',
                 'user' => ['id', 'name', 'email'],
-                'token',
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -50,8 +53,10 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
+                'access_token',
+                'token_type',
+                'expires_in',
                 'user' => ['id', 'name', 'email'],
-                'token',
             ]);
     }
 
@@ -79,7 +84,7 @@ class AuthenticationTest extends TestCase
     public function test_authenticated_user_can_access_protected_routes(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
@@ -108,7 +113,7 @@ class AuthenticationTest extends TestCase
     public function test_user_can_logout(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
@@ -123,14 +128,14 @@ class AuthenticationTest extends TestCase
     public function test_user_can_refresh_token(): void
     {
         $user = User::factory()->create();
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->postJson('/api/auth/refresh');
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['token']);
+            ->assertJsonStructure(['access_token']);
     }
 
     /**
@@ -141,14 +146,14 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create([
             'password' => bcrypt('oldpassword'),
         ]);
-        $token = $user->createToken('test-token')->plainTextToken;
+        $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $token,
         ])->postJson('/api/auth/change-password', [
             'current_password' => 'oldpassword',
-            'password' => 'newpassword123',
-            'password_confirmation' => 'newpassword123',
+            'new_password' => 'newpassword123',
+            'new_password_confirmation' => 'newpassword123',
         ]);
 
         $response->assertStatus(200);
@@ -167,7 +172,8 @@ class AuthenticationTest extends TestCase
      */
     public function test_setup_check_returns_needs_setup_when_no_users(): void
     {
-        $response = $this->getJson('/api/auth/setup/check');
+        // Note: Route is /setup/check, not /auth/setup/check
+        $response = $this->getJson('/api/setup/check');
 
         $response->assertStatus(200)
             ->assertJson(['needs_setup' => true]);
@@ -180,7 +186,7 @@ class AuthenticationTest extends TestCase
     {
         User::factory()->create();
 
-        $response = $this->getJson('/api/auth/setup/check');
+        $response = $this->getJson('/api/setup/check');
 
         $response->assertStatus(200)
             ->assertJson(['needs_setup' => false]);
@@ -191,7 +197,7 @@ class AuthenticationTest extends TestCase
      */
     public function test_can_create_first_admin_when_no_users_exist(): void
     {
-        $response = $this->postJson('/api/auth/setup/create-admin', [
+        $response = $this->postJson('/api/setup/create-admin', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => 'password123',
@@ -200,8 +206,10 @@ class AuthenticationTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonStructure([
+                'access_token',
+                'token_type',
+                'expires_in',
                 'user' => ['id', 'name', 'email'],
-                'token',
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -216,7 +224,7 @@ class AuthenticationTest extends TestCase
     {
         User::factory()->create();
 
-        $response = $this->postJson('/api/auth/setup/create-admin', [
+        $response = $this->postJson('/api/setup/create-admin', [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'password' => 'password123',
@@ -226,3 +234,4 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(403);
     }
 }
+

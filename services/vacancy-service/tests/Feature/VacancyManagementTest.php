@@ -40,7 +40,7 @@ class VacancyManagementTest extends TestCase
             'employment_type' => 'full_time',
             'experience_level' => 'senior',
             'description' => 'We are looking for a senior software engineer',
-            'requirements' => '5+ years of experience',
+            'requirements' => ['5+ years of experience', 'Strong PHP skills'],
             'status' => 'open',
         ]);
 
