@@ -6,11 +6,12 @@ SHELL := /bin/bash
 .PHONY: logs-offer logs-onboarding logs-reporting logs-admin logs-notification
 .PHONY: logs-gateway logs-frontend logs-applicant logs-grafana logs-parse-cv
 .PHONY: db-reset pull build status
-.PHONY: test-backend test-api test-integration test-e2e test-service
+.PHONY: test-backend test-api test-integration test-e2e test-service test-resumes
 .PHONY: test-auth test-candidate test-vacancy
 .PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
 .PHONY: logs-document-parser clear-matches
 .PHONY: docs-php docs-serve
+
 
 help:
 	@echo "╔════════════════════════════════════════════════════════════════╗"
@@ -65,6 +66,7 @@ help:
 	@echo "  make test-integration - Run integration tests"
 	@echo "  make test-e2e       - Run end-to-end workflow tests"
 	@echo "  make test-service S=<service> - Run tests for specific service"
+	@echo "  make test-resumes   - Generate test resume PDF/DOCX from markdown"
 	@echo ""
 	@echo "📚 Documentation Commands:"
 	@echo "  make docs-php       - Generate PHP API documentation (PHPDoc)"
@@ -278,6 +280,14 @@ test-candidate:
 test-vacancy:
 	@echo "🧪 Testing Vacancy Service..."
 	docker compose exec vacancy-service php artisan test
+
+test-resumes:
+	@echo "📄 Generating test resumes (PDF/DOCX) from markdown..."
+	@docker compose --profile testing build testing
+	@docker compose --profile testing run --rm testing
+	@echo ""
+	@echo "✅ Test resumes generated:"
+	@ls -la tests/fixtures/*.pdf tests/fixtures/*.docx 2>/dev/null || echo "   (files will be in tests/fixtures/)"
 
 clean:
 	@echo "🧹 Cleaning up containers and volumes..."

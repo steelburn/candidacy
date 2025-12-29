@@ -2,129 +2,119 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use App\Contracts\AIProviderInterface;
+use App\DTOs\AIResponse;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * AI Provider Factory - backward compatible facade over ProviderManager.
+ * 
+ * Maintains the original API while delegating to ProviderManager
+ * for failover chain support.
+ *
+ * @package App\Services
+ */
 class AIProviderFactory
 {
-    protected $provider;
+    protected ProviderManager $manager;
+    protected ?AIProviderInterface $lastProvider = null;
+    protected ?AIResponse $lastResponse = null;
 
     public function __construct()
     {
-        // Get provider from admin settings via API or env
-        $this->provider = $this->getActiveProvider();
+        $this->manager = new ProviderManager();
     }
 
     /**
-     * Get the active AI provider instance
+     * Get the primary provider instance (backward compatibility).
      */
-    public function getProvider()
+    public function getProvider(): AIProviderInterface
     {
-        return match(strtolower($this->provider)) {
-            'openrouter' => new OpenRouterService(),
-            'ollama' => new OllamaService(),
-            default => new OllamaService()
-        };
+        $providerName = \Shared\Services\ConfigurationService::get('ai.provider', env('AI_PROVIDER', 'ollama'));
+        return $this->manager->getProvider($providerName) ?? $this->manager->getProvider('ollama');
     }
 
     /**
-     * Generate text using the active provider
+     * Get the provider manager for advanced operations.
+     */
+    public function getManager(): ProviderManager
+    {
+        return $this->manager;
+    }
+
+    /**
+     * Get last response with metadata.
+     */
+    public function getLastResponse(): ?AIResponse
+    {
+        return $this->lastResponse;
+    }
+
+    /**
+     * Generate text using failover chain (CV parsing, JD generation).
      */
     public function generate(string $prompt): string
     {
-        $provider = $this->getProvider();
-        $providerName = $this->provider;
-        
-        Log::info("LLM API call initiated", [
-            'provider' => $providerName,
-            'model' => $provider->getModelName() ?? 'default',
-            'prompt_length' => strlen($prompt),
-            'operation' => 'generate'
-        ]);
-        
-        return $provider->generate($prompt);
+        $this->lastResponse = $this->manager->generateForService('cv_parsing', $prompt);
+        $this->logResponse('generate');
+        return $this->lastResponse->content;
     }
 
     /**
-     * Generate text for matching using faster model (if supported)
+     * Generate for matching using faster model.
      */
     public function generateForMatching(string $prompt): string
     {
-        $provider = $this->getProvider();
-        $providerName = $this->provider;
-        
-        // Use the matching-specific method if available (OllamaService has it)
-        if (method_exists($provider, 'generateForMatching')) {
-            Log::info("LLM API call initiated", [
-                'provider' => $providerName,
-                'model' => $provider->getMatchingModelName() ?? $provider->getModelName() ?? 'default',
-                'prompt_length' => strlen($prompt),
-                'operation' => 'matching'
-            ]);
-            return $provider->generateForMatching($prompt);
-        }
-        
-        Log::info("LLM API call initiated", [
-            'provider' => $providerName,
-            'model' => $provider->getModelName() ?? 'default',
-            'prompt_length' => strlen($prompt),
-            'operation' => 'matching_fallback'
-        ]);
-        
-        // Fallback to regular generate
-        return $provider->generate($prompt);
+        $this->lastResponse = $this->manager->generateForService('matching', $prompt);
+        $this->logResponse('matching');
+        return $this->lastResponse->content;
     }
 
     /**
-     * Generate text for questionnaires using questionnaire model (if supported)
+     * Generate for questionnaires.
      */
     public function generateForQuestionnaire(string $prompt): string
     {
-        $provider = $this->getProvider();
-        $providerName = $this->provider;
-        
-        // Use the questionnaire-specific method if available (OllamaService has it)
-        if (method_exists($provider, 'generateForQuestionnaire')) {
-            Log::info("LLM API call initiated", [
-                'provider' => $providerName,
-                'model' => $provider->getQuestionnaireModelName() ?? $provider->getModelName() ?? 'default',
-                'prompt_length' => strlen($prompt),
-                'operation' => 'questionnaire'
-            ]);
-            return $provider->generateForQuestionnaire($prompt);
-        }
-        
-        Log::info("LLM API call initiated", [
-            'provider' => $providerName,
-            'model' => $provider->getModelName() ?? 'default',
-            'prompt_length' => strlen($prompt),
-            'operation' => 'questionnaire_fallback'
-        ]);
-        
-        // Fallback to regular generate
-        return $provider->generate($prompt);
+        $this->lastResponse = $this->manager->generateForService('questions', $prompt);
+        $this->logResponse('questionnaire');
+        return $this->lastResponse->content;
     }
 
     /**
-     * Get active provider from settings
+     * Generate for job descriptions.
      */
-    protected function getActiveProvider(): string
+    public function generateForJobDescription(string $prompt): string
     {
-        try {
-            // Try to get from admin service settings
-            $response = Http::timeout(2)->get('http://admin-service:8080/api/settings/ai_provider');
-            
-            if ($response->successful()) {
-                $setting = $response->json();
-                $provider = $setting['value'] ?? env('AI_PROVIDER', 'ollama');
-                Log::info("AI provider from settings: {$provider}");
-                return $provider;
-            }
-        } catch (\Exception $e) {
-            Log::warning('Could not fetch AI provider setting: ' . $e->getMessage());
-        }
+        $this->lastResponse = $this->manager->generateForService('jd_generation', $prompt);
+        $this->logResponse('jd_generation');
+        return $this->lastResponse->content;
+    }
 
-        // Fallback to environment variable
-        return env('AI_PROVIDER', 'ollama');
+    /**
+     * Generate for question discussion.
+     */
+    public function generateForDiscussion(string $prompt): string
+    {
+        $this->lastResponse = $this->manager->generateForService('discussion', $prompt);
+        $this->logResponse('discussion');
+        return $this->lastResponse->content;
+    }
+
+    /**
+     * Log response metadata.
+     */
+    protected function logResponse(string $operation): void
+    {
+        if (!$this->lastResponse) return;
+
+        Log::info("AI generation completed", [
+            'operation' => $operation,
+            'provider' => $this->lastResponse->provider,
+            'model' => $this->lastResponse->model,
+            'duration_ms' => round($this->lastResponse->durationMs, 2),
+            'success' => $this->lastResponse->success,
+            'failover_attempt' => $this->lastResponse->failoverAttempt,
+            'total_attempts' => $this->lastResponse->totalAttempts,
+        ]);
     }
 }

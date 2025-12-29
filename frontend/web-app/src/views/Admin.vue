@@ -16,6 +16,12 @@
         Configuration
       </button>
       <button 
+        @click="currentTab = 'ai_providers'" 
+        :class="{ active: currentTab === 'ai_providers' }"
+      >
+        AI Providers
+      </button>
+      <button 
         @click="currentTab = 'users'" 
         :class="{ active: currentTab === 'users' }"
       >
@@ -32,6 +38,7 @@
     <!-- Tab Contents -->
     <AdminSystemHealth v-if="currentTab === 'system'" />
     <AdminConfiguration v-if="currentTab === 'configuration'" />
+    <AdminAIProviders v-if="currentTab === 'ai_providers'" />
     <AdminUserManagement v-if="currentTab === 'users'" />
     <AdminCvJobs v-if="currentTab === 'cv_jobs'" />
   </div>
@@ -41,6 +48,7 @@
 import { ref } from 'vue'
 import AdminSystemHealth from '../components/admin/AdminSystemHealth.vue'
 import AdminConfiguration from '../components/admin/AdminConfiguration.vue'
+import AdminAIProviders from '../components/admin/AdminAIProviders.vue'
 import AdminUserManagement from '../components/admin/AdminUserManagement.vue'
 import AdminCvJobs from '../components/admin/AdminCvJobs.vue'
 

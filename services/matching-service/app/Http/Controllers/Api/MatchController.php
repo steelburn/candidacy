@@ -524,8 +524,14 @@ class MatchController extends BaseApiController
         if (is_array($experience) && !empty($experience)) {
             foreach ($experience as $exp) {
                 $title = $exp['title'] ?? 'Unknown Role';
+                if (is_array($title)) $title = json_encode($title);
+                
                 $company = $exp['company'] ?? 'Unknown Company';
+                if (is_array($company)) $company = json_encode($company);
+                
                 $duration = $exp['duration'] ?? '';
+                if (is_array($duration)) $duration = json_encode($duration);
+                
                 $expText .= "- {$title} at {$company} ({$duration})\n";
             }
         }
@@ -535,8 +541,14 @@ class MatchController extends BaseApiController
         if (is_array($education) && !empty($education)) {
             foreach ($education as $edu) {
                 $degree = $edu['degree'] ?? 'Unknown Degree';
+                if (is_array($degree)) $degree = json_encode($degree);
+                
                 $institution = $edu['institution'] ?? 'Unknown Institution';
+                if (is_array($institution)) $institution = json_encode($institution);
+                
                 $year = $edu['year'] ?? '';
+                if (is_array($year)) $year = json_encode($year);
+                
                 $eduText .= "- {$degree} from {$institution} ({$year})\n";
             }
         }

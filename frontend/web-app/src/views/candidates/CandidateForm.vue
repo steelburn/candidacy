@@ -211,7 +211,7 @@ onMounted(async () => {
       }
 
       if (data.cv_files && data.cv_files.length > 0) {
-          existingCvUrl.value = `http://localhost:8080/api/candidates/${route.params.id}/cv/view`
+          existingCvUrl.value = `http://localhost:8080/api/candidates/${route.params.id}/cv/download`
       }
     } catch (err) {
       error.value = 'Failed to load candidate'

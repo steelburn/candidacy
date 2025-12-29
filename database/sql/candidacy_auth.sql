@@ -76,9 +76,9 @@ CREATE TABLE `failed_jobs` (
 
 CREATE INDEX `idx_users_created_at` ON `users` (`created_at`);
 
-CREATE UNIQUE INDEX `role_user_index_7` ON `role_user` (`user_id`, `role_id`);
+CREATE UNIQUE INDEX `role_user_index_13` ON `role_user` (`user_id`, `role_id`);
 
-CREATE UNIQUE INDEX `permission_role_index_8` ON `permission_role` (`permission_id`, `role_id`);
+CREATE UNIQUE INDEX `permission_role_index_14` ON `permission_role` (`permission_id`, `role_id`);
 
 CREATE INDEX `personal_access_tokens_tokenable` ON `personal_access_tokens` (`tokenable_type`, `tokenable_id`);
 

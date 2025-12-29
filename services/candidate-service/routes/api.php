@@ -26,7 +26,7 @@ Route::get('/candidates/{id}/parsing-details', [CandidateController::class, 'get
 Route::apiResource('candidates', CandidateController::class);
 Route::post('/candidates/{id}/cv', [CandidateController::class, 'uploadCvFile']);
 Route::get('/candidates/{id}/cv', [CandidateController::class, 'getCv']);
-Route::get('/candidates/{id}/cv/view', [CandidateController::class, 'downloadCv']);
+Route::get('/candidates/{id}/cv/download', [CandidateController::class, 'downloadCv']);
 Route::get('/candidates/metrics/stats', [CandidateController::class, 'metrics']);
 // Applicant Portal Routes
 Route::post('/candidates/{id}/generate-token', [CandidateController::class, 'generateToken']);

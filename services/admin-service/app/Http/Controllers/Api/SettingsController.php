@@ -19,11 +19,21 @@ class SettingsController extends Controller
             'enable_notifications' => true,
             'enable_ai' => true,
             'max_upload_size' => 10,
+            // AI Provider Settings
             'ai_provider' => 'ollama',
             'ollama_url' => 'http://ollama:11434',
             'ollama_model' => 'mistral',
-            'ollama_matching_model' => 'llama3.2:3b', // Faster model for matching (default: llama3.2:3b)
+            'ollama_matching_model' => 'llama3.2:3b',
             'openrouter_api_key' => '',
+            'openai_api_key' => '',
+            'gemini_api_key' => '',
+            'azure_openai_api_key' => '',
+            'azure_openai_endpoint' => '',
+            'azure_openai_deployment' => '',
+            'litellm_base_url' => 'http://localhost:4000',
+            'litellm_api_key' => '',
+            'llamacpp_base_url' => 'http://localhost:8080',
+            // Other Settings
             'email_notifications' => true,
             'auto_matching' => true,
             'interview_reminder_hours' => 24,

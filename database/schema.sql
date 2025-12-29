@@ -28,6 +28,56 @@ CREATE TABLE `setting_change_logs` (
   `user_agent` varchar(255)
 );
 
+CREATE TABLE `ai_providers` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `name` varchar(50) UNIQUE NOT NULL,
+  `display_name` varchar(100) NOT NULL,
+  `type` varchar(20) NOT NULL,
+  `base_url` varchar(255),
+  `is_enabled` boolean DEFAULT true,
+  `config` json,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `ai_models` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `provider_id` bigint NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `display_name` varchar(150),
+  `is_enabled` boolean DEFAULT true,
+  `capabilities` json,
+  `context_length` int,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `ai_service_mappings` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `service_type` varchar(50) NOT NULL,
+  `provider_id` bigint NOT NULL,
+  `model_id` bigint,
+  `priority` int NOT NULL DEFAULT 0,
+  `is_active` boolean DEFAULT true,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `ai_request_logs` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `service_type` varchar(50) NOT NULL,
+  `provider_id` bigint,
+  `model_id` bigint,
+  `input_tokens` int,
+  `output_tokens` int,
+  `duration_ms` int NOT NULL,
+  `success` boolean NOT NULL,
+  `failover_attempt` int DEFAULT 1,
+  `total_attempts` int DEFAULT 1,
+  `error_message` text,
+  `created_at` timestamp
+);
+
 CREATE TABLE `users` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
@@ -422,11 +472,23 @@ CREATE INDEX `idx_setting_logs_changed_at` ON `setting_change_logs` (`changed_at
 
 CREATE INDEX `idx_setting_logs_changed_by` ON `setting_change_logs` (`changed_by`);
 
+CREATE UNIQUE INDEX `ai_models_index_6` ON `ai_models` (`provider_id`, `name`);
+
+CREATE UNIQUE INDEX `ai_service_mappings_index_7` ON `ai_service_mappings` (`service_type`, `priority`);
+
+CREATE INDEX `idx_ai_logs_service` ON `ai_request_logs` (`service_type`);
+
+CREATE INDEX `idx_ai_logs_provider` ON `ai_request_logs` (`provider_id`);
+
+CREATE INDEX `idx_ai_logs_created` ON `ai_request_logs` (`created_at`);
+
+CREATE INDEX `idx_ai_logs_success` ON `ai_request_logs` (`success`);
+
 CREATE INDEX `idx_users_created_at` ON `users` (`created_at`);
 
-CREATE UNIQUE INDEX `role_user_index_7` ON `role_user` (`user_id`, `role_id`);
+CREATE UNIQUE INDEX `role_user_index_13` ON `role_user` (`user_id`, `role_id`);
 
-CREATE UNIQUE INDEX `permission_role_index_8` ON `permission_role` (`permission_id`, `role_id`);
+CREATE UNIQUE INDEX `permission_role_index_14` ON `permission_role` (`permission_id`, `role_id`);
 
 CREATE INDEX `personal_access_tokens_tokenable` ON `personal_access_tokens` (`tokenable_type`, `tokenable_id`);
 
@@ -492,17 +554,17 @@ CREATE INDEX `idx_matching_job_statuses_status` ON `matching_job_statuses` (`sta
 
 CREATE INDEX `idx_matching_job_statuses_created` ON `matching_job_statuses` (`created_at`);
 
-CREATE INDEX `notification_templates_index_41` ON `notification_templates` (`type`);
+CREATE INDEX `notification_templates_index_47` ON `notification_templates` (`type`);
 
-CREATE INDEX `notification_templates_index_42` ON `notification_templates` (`is_active`);
+CREATE INDEX `notification_templates_index_48` ON `notification_templates` (`is_active`);
 
-CREATE INDEX `notification_logs_index_43` ON `notification_logs` (`recipient_email`);
+CREATE INDEX `notification_logs_index_49` ON `notification_logs` (`recipient_email`);
 
-CREATE INDEX `notification_logs_index_44` ON `notification_logs` (`type`);
+CREATE INDEX `notification_logs_index_50` ON `notification_logs` (`type`);
 
-CREATE INDEX `notification_logs_index_45` ON `notification_logs` (`status`);
+CREATE INDEX `notification_logs_index_51` ON `notification_logs` (`status`);
 
-CREATE INDEX `notification_logs_index_46` ON `notification_logs` (`created_at`);
+CREATE INDEX `notification_logs_index_52` ON `notification_logs` (`created_at`);
 
 CREATE INDEX `idx_offers_candidate_id` ON `offers` (`candidate_id`);
 
@@ -546,6 +608,14 @@ Validation rules stored as JSON schema';
 ALTER TABLE `setting_change_logs` COMMENT = 'Audit trail for configuration changes
 Tracks who changed what configuration, when, and from where
 Enables configuration rollback and compliance tracking';
+
+ALTER TABLE `ai_providers` COMMENT = 'AI provider configurations (LLM and document parsing)';
+
+ALTER TABLE `ai_models` COMMENT = 'Available models per provider';
+
+ALTER TABLE `ai_service_mappings` COMMENT = 'Service-to-provider mapping with failover ordering';
+
+ALTER TABLE `ai_request_logs` COMMENT = 'AI request logging for metrics and debugging';
 
 ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins)';
 
@@ -624,6 +694,16 @@ ALTER TABLE `vacancy_questions` COMMENT = 'Custom questions for vacancy applicat
 ALTER TABLE `required_skills` COMMENT = 'Placeholder table for required skills (currently unused)';
 
 ALTER TABLE `setting_change_logs` ADD FOREIGN KEY (`setting_id`) REFERENCES `settings` (`id`);
+
+ALTER TABLE `ai_models` ADD FOREIGN KEY (`provider_id`) REFERENCES `ai_providers` (`id`);
+
+ALTER TABLE `ai_service_mappings` ADD FOREIGN KEY (`provider_id`) REFERENCES `ai_providers` (`id`);
+
+ALTER TABLE `ai_service_mappings` ADD FOREIGN KEY (`model_id`) REFERENCES `ai_models` (`id`);
+
+ALTER TABLE `ai_request_logs` ADD FOREIGN KEY (`provider_id`) REFERENCES `ai_providers` (`id`);
+
+ALTER TABLE `ai_request_logs` ADD FOREIGN KEY (`model_id`) REFERENCES `ai_models` (`id`);
 
 ALTER TABLE `role_user` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 

@@ -21,7 +21,7 @@ class PdfParserService
         $this->ollamaUrl = \Shared\Services\ConfigurationService::get('ai.ollama.url', env('OLLAMA_URL', 'http://192.168.88.120:11434'));
         $this->model = \Shared\Services\ConfigurationService::get('document_parser.granite_model', env('GRANITE_DOCLING_MODEL', 'ibm/granite-docling:258m'));
         $this->timeout = \Shared\Services\ConfigurationService::get('document_parser.timeout', env('DOCLING_TIMEOUT', 60));
-        $this->imageResolution = \Shared\Services\ConfigurationService::get('document_parser.image_resolution', env('DOCLING_IMAGE_RESOLUTION', 150));
+        $this->imageResolution = \Shared\Services\ConfigurationService::get('document_parser.image_resolution', env('DOCLING_IMAGE_RESOLUTION', 220));
     }
     
     public function extractText(string $path): array
@@ -35,12 +35,8 @@ class PdfParserService
                 
                 return $this->extractWithDocling($path);
             } catch (\Exception $e) {
-                Log::warning('Docling parsing failed, falling back to basic parser', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                
-                return $this->extractWithBasicParser($path);
+                Log::error('Granite Docling failed, falling back to basic parser', ['error' => $e->getMessage()]);
+                // Fallback continues below
             }
         }
         
@@ -75,7 +71,7 @@ class PdfParserService
                 $response = Http::timeout($this->timeout)
                     ->post("{$this->ollamaUrl}/api/generate", [
                         'model' => $this->model,
-                        'prompt' => 'Extract all text from this document page. Preserve the structure, formatting, tables, lists, and sections. Output clean, well-structured text that maintains the document hierarchy.',
+                        'prompt' => 'Extract ALL text from this document page, including headers, footers, contact details, and sidebars. Preserve the structure, formatting, tables, lists, and sections. Output clean, well-structured text.',
                         'images' => [$imageBase64],
                         'stream' => false,
                         'options' => [
@@ -96,6 +92,43 @@ class PdfParserService
                 $data = $response->json();
                 $extractedText = $data['response'] ?? '';
                 
+                if (!empty($extractedText)) {
+                    file_put_contents('/tmp/debug_pdf.log', "JOB START\nRAW LENGTH: " . strlen($extractedText) . "\nRAW SNIPPET: " . substr($extractedText, 0, 500) . "\n", FILE_APPEND);
+                    
+                    error_log("PdfParserService: Raw text length: " . strlen($extractedText));
+                    error_log("PdfParserService: Raw text snippet: " . substr($extractedText, 0, 200));
+
+                    // Logic to clean Granite Docling XML-like output and preserve layout
+                    
+                    // 1. Recursive Decode HTML entities (up to 3 times) to ensure "real" tags
+                    for ($i = 0; $i < 3; $i++) {
+                        $decoded = html_entity_decode($extractedText, ENT_QUOTES | ENT_XML1, 'UTF-8');
+                        if ($decoded === $extractedText) break;
+                        $extractedText = $decoded;
+                    }
+
+                    // 1.5. Convert meaningful Docling structure to Markdown
+                    $extractedText = preg_replace('/<section_header_level_1[^>]*>/', "\n# ", $extractedText);
+                    $extractedText = preg_replace('/<section_header_level_2[^>]*>/', "\n## ", $extractedText);
+                    $extractedText = preg_replace('/<section_header_level_3[^>]*>/', "\n### ", $extractedText);
+                    $extractedText = preg_replace('/<list_item[^>]*>/', "\n- ", $extractedText);
+                    $extractedText = preg_replace('/<table[^>]*>/', "\n\n", $extractedText); // Separate tables clearly
+
+                    // 2. Replace closing block tags with newlines
+                    $extractedText = preg_replace('/<\/(?:text|section_header_[^>]+|list_item|table|row|cell)>/', "\n", $extractedText);
+                    
+                    // 3. Replace <br> variants
+                    $extractedText = preg_replace('/<br\s*\/?>/i', "\n", $extractedText);
+                    
+                    // 4. Strip all tags (Safe method)
+                    $extractedText = strip_tags($extractedText);
+                    
+                    // 5. Clean up multiple newlines/spaces
+                    $extractedText = preg_replace('/\n\s*\n/', "\n\n", $extractedText);
+                    
+                    error_log("PdfParserService: Cleaned text length: " . strlen($extractedText));
+                }
+
                 if (empty($extractedText)) {
                     Log::warning('Empty response from Granite Docling', ['page' => $pageNum + 1]);
                 }

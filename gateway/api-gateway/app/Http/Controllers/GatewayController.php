@@ -29,28 +29,11 @@ class GatewayController extends Controller
         'match' => 'ai-service', // AI service handles matching
         'discuss-question' => 'ai-service', // AI service handles question discussions
         'generate-questions-screening' => 'ai-service',
+        'providers' => 'ai-service', // AI provider management
     ];
 
     public function handle(Request $request, $path)
     {
-        // Handle preflight OPTIONS requests
-        if ($request->isMethod('OPTIONS')) {
-            $origin = $request->header('Origin');
-            $allowedOrigins = ['http://localhost:3001', 'http://localhost:3002'];
-            
-            $response = response('', 200);
-            
-            if (in_array($origin, $allowedOrigins)) {
-                $response->header('Access-Control-Allow-Origin', $origin);
-                $response->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-                $response->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-                $response->header('Access-Control-Allow-Credentials', 'true');
-                $response->header('Access-Control-Max-Age', '86400');
-            }
-            
-            return $response;
-        }
-        
         // $path comes from route /{any} where prefix 'api' is already handled or stripped?
         // RouteServiceProvider maps 'api' prefix to routes/api.php.
         // So if request is /api/candidates/parse-cv
@@ -134,21 +117,9 @@ class GatewayController extends Controller
             
             // Add response headers from service
             foreach ($response->headers() as $key => $values) {
-                // Skip headers that might conflict
-                if (!in_array(strtolower($key), ['transfer-encoding', 'content-encoding'])) {
+                // Skip headers that might conflict or duplicate CORS
+                if (!in_array(strtolower($key), ['transfer-encoding', 'content-encoding', 'access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers', 'access-control-allow-credentials'])) {
                     $proxyResponse->header($key, $values);
-                }
-            }
-            
-            // Ensure CORS headers are present (Laravel's HandleCors middleware should add these)
-            // But we explicitly add them here as backup
-            if ($request->header('Origin')) {
-                $allowedOrigins = ['http://localhost:3001', 'http://localhost:3002'];
-                $origin = $request->header('Origin');
-                
-                if (in_array($origin, $allowedOrigins)) {
-                    $proxyResponse->header('Access-Control-Allow-Origin', $origin);
-                    $proxyResponse->header('Access-Control-Allow-Credentials', 'true');
                 }
             }
 

@@ -192,6 +192,12 @@ function getDatabaseForTable(tableName, services) {
         // Notification service
         'notification_templates': 'candidacy_notification',
         'notification_logs': 'candidacy_notification',
+
+        // AI service
+        'ai_providers': 'candidacy_ai',
+        'ai_models': 'candidacy_ai',
+        'ai_service_mappings': 'candidacy_ai',
+        'ai_request_logs': 'candidacy_ai',
     };
 
     return tableToDatabase[tableName] || null;

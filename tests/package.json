@@ -1,0 +1,14 @@
+{
+    "name": "candidacy-testing",
+    "version": "1.0.0",
+    "description": "Testing utilities for Candidacy platform",
+    "private": true,
+    "scripts": {
+        "convert": "node convert-resumes.js"
+    },
+    "dependencies": {
+        "md-to-pdf": "^5.2.5",
+        "docx": "^8.5.0",
+        "marked": "^11.1.1"
+    }
+}

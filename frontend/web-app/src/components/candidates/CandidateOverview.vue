@@ -29,7 +29,12 @@
         <div v-for="(exp, index) in parsedExperience" :key="index" class="experience-item">
           <h4>{{ exp.title }}</h4>
           <p class="company">{{ exp.company }} • {{ exp.duration }}</p>
-          <p class="description">{{ exp.description }}</p>
+          <div class="description">
+            <ul v-if="Array.isArray(exp.description)">
+              <li v-for="(descLine, i) in exp.description" :key="i">{{ descLine }}</li>
+            </ul>
+            <p v-else>{{ exp.description }}</p>
+          </div>
         </div>
       </div>
       <p v-else>No work experience listed</p>
@@ -147,5 +152,14 @@ const displayPhone = computed(() => {
 .description {
   margin-top: 8px;
   white-space: pre-line;
+}
+
+.description ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}
+
+.description li {
+  margin-bottom: 4px;
 }
 </style>

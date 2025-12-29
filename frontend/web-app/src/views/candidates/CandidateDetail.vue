@@ -110,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { candidateAPI, matchingAPI, vacancyAPI, aiAPI } from '../../services/api'
 import { parseSkills, parseJsonArray } from '../../composables/useMatchAnalysis'
@@ -130,7 +130,7 @@ const candidate = ref(null)
 const loading = ref(true)
 const currentTab = ref('overview')
 const vacancies = ref([])
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+const backendUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
 
 // Parsing Details State
 const parsingDetails = ref(null)
@@ -175,7 +175,7 @@ const loadCandidate = async () => {
 
 const loadVacancies = async () => {
     try {
-        const res = await vacancyAPI.getAll()
+        const res = await vacancyAPI.list()
         vacancies.value = res.data.data
     } catch (e) {
         console.error(e)
@@ -206,7 +206,7 @@ const viewMatches = async () => {
         const res = await matchingAPI.getMatches({ candidate_id: candidateId })
         matches.value = res.data.data
     } catch (e) {
-        alert("Failed to load matches")
+        console.error("Failed to load matches", e)
     } finally {
         loadingMatches.value = false
     }
@@ -272,11 +272,12 @@ onMounted(() => {
     loadCandidate()
     loadVacancies()
     loadParsingDetails()
-    // Matches might be heavy, load if tab is active or lazy? 
-    // Original code loaded on mount? Let's check. 
-    // "activeMatches" was computed from matches.value.
-    // Let's load matches just in case.
-    viewMatches()
+})
+
+watch(currentTab, (newTab) => {
+    if (newTab === 'matches' && matches.value.length === 0) {
+        viewMatches()
+    }
 })
 </script>
 

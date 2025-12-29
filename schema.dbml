@@ -167,22 +167,81 @@ Table setting_change_logs {
 // AI SERVICE DATABASE (candidacy_ai)
 //==============================================================================
 
-// Note: AI Service is a stateless processing service that handles:
-// - CV parsing and text extraction
-// - Job description generation
-// - Candidate-vacancy matching algorithms
-// - Interview question generation
-// - AI-powered analysis and recommendations
-//
-// This service maintains a minimal database for job tracking and standard
-// Laravel features (tokens, sessions), primarily processing requests using
-// external AI providers (Ollama/OpenRouter).
-//
-// All processed data is stored in the respective service databases
-// (e.g., parsed CV data in candidate service, match scores in matching service).
-//
-// Tables are standard Laravel scaffolding. Note: Schema generation requires unique table names,
-// so standard tables are omitted here to prevent collision with auth service.
+// AI Service handles LLM-powered operations with multi-provider failover support.
+// Supports: Ollama, OpenRouter, OpenAI, Gemini, Azure AI, LiteLLM, llama.cpp
+
+Table ai_providers {
+  id bigint [pk, increment]
+  name varchar(50) [unique, not null]
+  display_name varchar(100) [not null]
+  type varchar(20) [not null]
+  base_url varchar(255) [null]
+  is_enabled boolean [default: true]
+  config json [null]
+  created_at timestamp
+  updated_at timestamp
+  
+  Note: 'AI provider configurations (LLM and document parsing)'
+}
+
+Table ai_models {
+  id bigint [pk, increment]
+  provider_id bigint [not null, ref: > ai_providers.id]
+  name varchar(100) [not null]
+  display_name varchar(150) [null]
+  is_enabled boolean [default: true]
+  capabilities json [null]
+  context_length int [null]
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (provider_id, name) [unique]
+  }
+  
+  Note: 'Available models per provider'
+}
+
+Table ai_service_mappings {
+  id bigint [pk, increment]
+  service_type varchar(50) [not null]
+  provider_id bigint [not null, ref: > ai_providers.id]
+  model_id bigint [null, ref: > ai_models.id]
+  priority int [default: 0, not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  
+  indexes {
+    (service_type, priority) [unique]
+  }
+  
+  Note: 'Service-to-provider mapping with failover ordering'
+}
+
+Table ai_request_logs {
+  id bigint [pk, increment]
+  service_type varchar(50) [not null]
+  provider_id bigint [null, ref: > ai_providers.id]
+  model_id bigint [null, ref: > ai_models.id]
+  input_tokens int [null]
+  output_tokens int [null]
+  duration_ms int [not null]
+  success boolean [not null]
+  failover_attempt int [default: 1]
+  total_attempts int [default: 1]
+  error_message text [null]
+  created_at timestamp
+  
+  indexes {
+    service_type [name: 'idx_ai_logs_service']
+    provider_id [name: 'idx_ai_logs_provider']
+    created_at [name: 'idx_ai_logs_created']
+    success [name: 'idx_ai_logs_success']
+  }
+  
+  Note: 'AI request logging for metrics and debugging'
+}
 
 
 //==============================================================================

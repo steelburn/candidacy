@@ -24,4 +24,8 @@ Route::get('/reports/dashboard', function() {
     ]);
 });
 
+// AI Metrics routes
+Route::get('/reports/ai-metrics', [ReportController::class, 'aiMetrics']);
+Route::get('/reports/ai-failover-stats', [ReportController::class, 'aiFailoverStats']);
+
 Route::get('/health', [HealthController::class, 'check']);

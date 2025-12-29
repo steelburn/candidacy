@@ -46,7 +46,7 @@ class ProcessCvParsingJob implements ShouldQueue
                     'file_path' => $parsingJob->file_path
                 ]);
 
-                $fullPath = storage_path('app/' . $parsingJob->file_path);
+                $fullPath = storage_path('app/public/' . $parsingJob->file_path);
                 $parser = new \App\Services\DocumentParserClient();
                 $result = $parser->parseDocument($fullPath);
                 $extractedText = $result['text'];
@@ -232,9 +232,9 @@ class ProcessCvParsingJob implements ShouldQueue
             $mimeType = 'application/pdf'; // Default
             $fileSize = 0;
             
-            if (Storage::exists($parsingJob->file_path)) {
-                $mimeType = Storage::mimeType($parsingJob->file_path);
-                $fileSize = Storage::size($parsingJob->file_path);
+            if (Storage::disk('public')->exists($parsingJob->file_path)) {
+                $mimeType = Storage::disk('public')->mimeType($parsingJob->file_path);
+                $fileSize = Storage::disk('public')->size($parsingJob->file_path);
             }
 
             CvFile::create([

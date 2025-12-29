@@ -117,11 +117,11 @@ export const candidateAPI = {
 // Vacancy API
 export const vacancyAPI = {
     list: (params) => api.get('/api/vacancies', { params }),
-    get: (id) => api.get(`http://localhost:8083/api/vacancies/${id}`),
+    get: (id) => api.get(`/api/vacancies/${id}`),
     create: (data) => api.post('/api/vacancies', data),
-    update: (id, data) => api.put(`http://localhost:8083/api/vacancies/${id}`, data),
-    delete: (id) => api.delete(`http://localhost:8083/api/vacancies/${id}`),
-    generateJD: (id) => api.post(`http://localhost:8083/api/vacancies/${id}/generate-description`),
+    update: (id, data) => api.put(`/api/vacancies/${id}`, data),
+    delete: (id) => api.delete(`/api/vacancies/${id}`),
+    generateJD: (id) => api.post(`/api/vacancies/${id}/generate-description`),
     addQuestion: (id, data) => api.post(`/api/vacancies/${id}/questions`, data),
     getQuestions: (id) => api.get(`/api/vacancies/${id}/questions`),
     updateQuestion: (vacancyId, questionId, data) => api.put(`/api/vacancies/${vacancyId}/questions/${questionId}`, data),
@@ -142,39 +142,40 @@ export const aiAPI = {
 
 // Matching API
 export const matchingAPI = {
-    forCandidate: (id) => api.get(`http://localhost:8085/api/candidates/${id}/matches`),
-    forVacancy: (id) => api.get(`http://localhost:8085/api/vacancies/${id}/matches`),
-    matchCandidate: (id, params) => api.get(`http://localhost:8085/api/candidates/${id}/matches`, { params }),
-    matchVacancy: (id, params) => api.get(`http://localhost:8085/api/vacancies/${id}/matches`, { params }),
+    forCandidate: (id) => api.get(`/api/matches/candidates/${id}`),
+    forVacancy: (id) => api.get(`/api/matches/vacancies/${id}`),
+    matchCandidate: (id, params) => api.get(`/api/matches/candidates/${id}`, { params }),
+    matchVacancy: (id, params) => api.get(`/api/matches/vacancies/${id}`, { params }),
+    getMatches: (params) => api.get('/api/matches', { params }),
     list: (params) => api.get('/api/matches', { params }),
     clear: () => api.delete('/api/matches/clear'),
-    getJobStatus: (id) => api.get(`http://localhost:8085/api/matches/jobs/${id}`),
-    generateQuestions: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/questions`),
+    getJobStatus: (id) => api.get(`/api/matches/jobs/${id}`),
+    generateQuestions: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/questions`),
     saveDiscussion: (candidateId, vacancyId, questionIndex, discussion) =>
-        api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/questions/${questionIndex}/discussion`, { discussion }),
-    dismiss: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/dismiss`),
-    restore: (candidateId, vacancyId) => api.post(`http://localhost:8085/api/matches/${candidateId}/${vacancyId}/restore`)
+        api.post(`/api/matches/${candidateId}/${vacancyId}/questions/${questionIndex}/discussion`, { discussion }),
+    dismiss: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/dismiss`),
+    restore: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/restore`)
 }
 
 // Interview API
 export const interviewAPI = {
     list: (params) => api.get('/api/interviews', { params }),
-    get: (id) => api.get(`http://localhost:8086/api/interviews/${id}`),
+    get: (id) => api.get(`/api/interviews/${id}`),
     create: (data) => api.post('/api/interviews', data),
-    update: (id, data) => api.put(`http://localhost:8086/api/interviews/${id}`, data),
-    delete: (id) => api.delete(`http://localhost:8086/api/interviews/${id}`),
-    addFeedback: (id, feedback) => api.post(`http://localhost:8086/api/interviews/${id}/feedback`, feedback),
+    update: (id, data) => api.put(`/api/interviews/${id}`, data),
+    delete: (id) => api.delete(`/api/interviews/${id}`),
+    addFeedback: (id, feedback) => api.post(`/api/interviews/${id}/feedback`, feedback),
     upcoming: () => api.get('/api/interviews/upcoming/all')
 }
 
 // Offer API
 export const offerAPI = {
     list: (params) => api.get('/api/offers', { params }),
-    get: (id) => api.get(`http://localhost:8087/api/offers/${id}`),
+    get: (id) => api.get(`/api/offers/${id}`),
     create: (data) => api.post('/api/offers', data),
-    update: (id, data) => api.put(`http://localhost:8087/api/offers/${id}`, data),
-    delete: (id) => api.delete(`http://localhost:8087/api/offers/${id}`),
-    respond: (id, response) => api.post(`http://localhost:8087/api/offers/${id}/respond`, response)
+    update: (id, data) => api.put(`/api/offers/${id}`, data),
+    delete: (id) => api.delete(`/api/offers/${id}`),
+    respond: (id, response) => api.post(`/api/offers/${id}/respond`, response)
 }
 
 // Reporting API
@@ -203,18 +204,18 @@ export const adminAPI = {
 // Role API
 export const roleAPI = {
     list: () => api.get('/api/roles'),
-    get: (id) => api.get(`http://localhost:8081/api/roles/${id}`)
+    get: (id) => api.get(`/api/roles/${id}`)
 }
 
 // User Management API (via auth service)
 export const userAPI = {
     list: () => api.get('/api/users'),
-    get: (id) => api.get(`http://localhost:8081/api/users/${id}`),
+    get: (id) => api.get(`/api/users/${id}`),
     create: (data) => api.post('/api/users', data),
-    update: (id, data) => api.put(`http://localhost:8081/api/users/${id}`, data),
-    delete: (id) => api.delete(`http://localhost:8081/api/users/${id}`),
-    assignRole: (userId, roleId) => api.post(`http://localhost:8081/api/users/${userId}/roles`, { role_id: roleId }),
-    removeRole: (userId, roleId) => api.delete(`http://localhost:8081/api/users/${userId}/roles/${roleId}`)
+    update: (id, data) => api.put(`/api/users/${id}`, data),
+    delete: (id) => api.delete(`/api/users/${id}`),
+    assignRole: (userId, roleId) => api.post(`/api/users/${userId}/roles`, { role_id: roleId }),
+    removeRole: (userId, roleId) => api.delete(`/api/users/${userId}/roles/${roleId}`)
 }
 
 export default api

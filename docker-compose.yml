@@ -596,6 +596,19 @@ services:
     networks:
       - candidacy-network
 
+  # Testing Container - For generating test documents
+  testing:
+    build:
+      context: ./tests
+      dockerfile: Dockerfile
+    container_name: candidacy-testing
+    profiles:
+      - testing
+    volumes:
+      - ./tests:/tests
+    networks:
+      - candidacy-network
+
 volumes:
   mysql_data:
   ollama_data:

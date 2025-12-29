@@ -131,6 +131,52 @@ if [ -n "$AUTH_TOKEN" ]; then
     test_endpoint "GET" "/api/candidates" "200" "List Candidates" "" true
     test_endpoint "GET" "/api/vacancies" "200" "List Vacancies" "" true
     test_endpoint "GET" "/api/admin/settings" "200" "Get Admin Settings" "" true
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Vacancy CRUD Tests"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Create vacancy
+    test_endpoint "POST" "/api/vacancies" "201" "Create Vacancy" \
+        '{"title":"API Test Vacancy","department":"Engineering","location":"Remote","employment_type":"full-time","experience_level":"senior","description":"Test vacancy","requirements":"5+ years","status":"open"}' true
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Matching Service Tests"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    test_endpoint "GET" "/api/matches" "200" "List All Matches" "" true
+    test_endpoint "GET" "/api/matches?candidate_id=1" "200" "Get Matches for Candidate" "" true
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Interview Service Tests"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    test_endpoint "GET" "/api/interviews" "200" "List Interviews" "" true
+    test_endpoint "GET" "/api/interviews/upcoming/all" "200" "Get Upcoming Interviews" "" true
+    
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "AI Service Tests"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Note: These may return error responses if AI is not configured, but endpoint should exist
+    echo -n "Testing: AI Generate Questions endpoint... "
+    QUESTIONS_RESPONSE=$(curl -s -w '\n%{http_code}' -X POST "$API_GATEWAY/api/ai/generate-questions" \
+        -H "Authorization: Bearer $AUTH_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"vacancy":{"title":"Test","requirements":"Test"},"candidate":{"skills":["PHP"]}}' 2>/dev/null)
+    QUESTIONS_STATUS=$(echo "$QUESTIONS_RESPONSE" | tail -1)
+    if [[ "$QUESTIONS_STATUS" =~ ^(200|201|400|500)$ ]]; then
+        echo -e "${GREEN}✅ PASS${NC} (Status: $QUESTIONS_STATUS - endpoint exists)"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    else
+        echo -e "${RED}❌ FAIL${NC} (Status: $QUESTIONS_STATUS)"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 fi
 
 echo ""

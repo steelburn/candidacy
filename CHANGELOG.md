@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - 2025-12-29
+
+#### End-to-End Test Script (`test-e2e.sh`)
+- **Token Extraction** - Fixed authentication token extraction from login response
+  - Changed from `"token"` to `"access_token"` pattern to match actual API response format
+  - Applied to both login and admin creation flows
+- **Vacancy Creation Payload** - Fixed vacancy data format validation errors
+  - Changed `employment_type` from `full-time` to `full_time` (underscore format)
+  - Changed `requirements` from string to array format as expected by API
+  - Added fallback ID lookup for 204 No Content responses
+- **Candidate Creation** - Fixed duplicate email errors on repeated test runs
+  - Added timestamp-based unique email generation (`john.doe-e2e-{timestamp}@example.com`)
+  - Added `name` field required by candidate API
+  - Added fallback to use existing candidate ID on duplicate
+- **ID Extraction** - Improved JSON ID extraction patterns
+  - Replaced fragile `grep -o '"id":[0-9]*'` with robust `sed` pipeline
+  - Handles IDs appearing at any position in JSON response
+
 ### Added - 2025-12-26
 
 #### UI Redesign - Sidebar-Based Dashboard Layout

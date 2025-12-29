@@ -32,9 +32,9 @@ class CvProcessingService
     {
         $originalName = $file->getClientOriginalName();
         $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('cvs', $storedName);
+        $path = $file->storeAs('cvs', $storedName, 'public');
         
-        $fullPath = storage_path('app/' . $path);
+        $fullPath = storage_path('app/public/' . $path);
         $extractedText = null;
         $parsedData = null;
 
@@ -162,7 +162,7 @@ class CvProcessingService
     public function createParsingJob($file, ?int $candidateId = null): array
     {
         $originalName = $file->getClientOriginalName();
-        $path = $file->store('cvs');
+        $path = $file->store('cvs', 'public');
         
         Log::info('CV parse: File uploaded, creating job', [
             'file' => $originalName,
@@ -226,7 +226,7 @@ class CvProcessingService
                 $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
                 $permanentPath = 'cvs/' . $storedName;
                 
-                Storage::put($permanentPath, file_get_contents($file));
+                Storage::disk('public')->put($permanentPath, file_get_contents($file));
 
                 $parsingJob = CvParsingJob::create([
                     'candidate_id' => null,
@@ -393,12 +393,21 @@ class CvProcessingService
         if (is_array($experience) && !empty($experience)) {
             foreach ($experience as $exp) {
                 $title = $exp['title'] ?? 'Role';
+                if (is_array($title)) $title = implode(' ', $title);
+                
                 $company = $exp['company'] ?? 'Company';
+                if (is_array($company)) $company = implode(' ', $company);
+                
                 $duration = $exp['duration'] ?? '';
+                if (is_array($duration)) $duration = implode(' ', $duration);
+
                 $desc = $exp['description'] ?? '';
                 
                 $shortDesc = '';
                 if (!empty($desc)) {
+                    if (is_array($desc)) {
+                        $desc = implode(' ', $desc);
+                    }
                     $firstSentence = preg_split('/[.!?]\s+/', $desc, 2)[0];
                     $shortDesc = strlen($firstSentence) > 150 
                         ? substr($firstSentence, 0, 150) . '...' 

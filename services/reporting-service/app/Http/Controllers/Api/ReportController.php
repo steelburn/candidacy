@@ -108,4 +108,50 @@ class ReportController extends BaseApiController
             return response()->json(['error' => 'Failed to calculate performance metrics'], 503);
         }
     }
+
+    /**
+     * AI metrics - usage by provider/model/service.
+     */
+    public function aiMetrics()
+    {
+        try {
+            $response = Http::get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/metrics');
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+
+            // Return mock data if AI service metrics endpoint not available
+            return response()->json([
+                'total_requests' => 0,
+                'success_rate' => 0,
+                'avg_duration_ms' => 0,
+                'by_service' => [],
+                'by_provider' => [],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'AI metrics unavailable'], 503);
+        }
+    }
+
+    /**
+     * AI failover statistics.
+     */
+    public function aiFailoverStats()
+    {
+        try {
+            $response = Http::get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/failover-stats');
+            
+            if ($response->successful()) {
+                return response()->json($response->json());
+            }
+
+            return response()->json([
+                'failover_rate' => 0,
+                'by_service' => [],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failover stats unavailable'], 503);
+        }
+    }
 }

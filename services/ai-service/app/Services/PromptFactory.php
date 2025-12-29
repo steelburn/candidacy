@@ -18,14 +18,30 @@ CRITICAL INSTRUCTIONS:
 5. If a field is missing, use null or [], do not explain why it is missing.
 6. Do NOT escape underscores in keys (e.g., use "years_of_experience", NOT "years\_of\_experience").
 7. Ensure all property names and string values are enclosed in double quotes (").
+8. NO single quotes (') for JSON keys or values (unless escaped inside a double-quoted string).
+9. NO unquoted keys (e.g. key: "value" is INVALID; "key": "value" is VALID).
+10. NO trailing commas in objects or arrays.
+11. NO function calls or code logic (e.g. do NOT use .join(), concatenate(), or +).
+12. NO Python or JavaScript syntax. Return RAW JSON data only.
+13. NO invalid escape characters. Use only ", \\, \/, \b, \f, \n, \r, \t.
+14. NO concatenation. Example: Do NOT write "".join([...]). Write the full string.
+15. "years_of_experience" MUST be a plain integer (e.g. 13, 5, 0). NO code, NO Math.floor(), NO calculations. If the summary says "10+ years", return 10. If unknown, return 0.
+16. NO HTML tags (e.g. <br>, <b>, <strong>). Return plain text only.
+17. SKILLS: Extract a COMPREHENSIVE list of ALL technical skills, languages, frameworks, tools, and databases EXPLICITLY mentioned in the text. Do NOT hallucinate or infer skills not present.
+
+18. Do NOT add explanatory text in parentheses inside values (e.g. do NOT write "React (inferred)").
+19. If a value is inferred or estimated, RETURN NULL. Do not guess.
+20. Dates/Duration: Extract exactly as written. Do not normalize or guess "Present" if not stated.
+21. Phone: Extract verbatim. Do NOT return null if a number/email is visible.
+22. Name: The candidate name is usually at the very TOP of the document. It might NOT be marked with a markdown header (#). Extract it from the first few lines.
 
 REQUIRED JSON STRUCTURE:
 {
   "name": "Full Name or null",
   "email": "email@example.com or null",
-  "phone": "phone number or null",
+  "phone": "phone number (e.g. +1... or 012...) or null",
   "summary": "Professional summary or null",
-  "skills": ["skill1", "skill2"],
+  "skills": ["C#", ".NET", "SQL Server", "React", "AWS", ...],
   "experience": [
     {
       "title": "Job Title",
@@ -47,6 +63,13 @@ REQUIRED JSON STRUCTURE:
 
 CV TEXT:
 {$cvText}
+
+CRITICAL RULES REMINDER:
+1. Output ONLY valid JSON.
+2. NO text outside JSON.
+3. NO comments or explanations.
+4. NO "implied from" or "inferred" text in values.
+5. SKILLS: Extract VERBATIM. Do NOT hallucinate.
 PROMPT;
     }
 
