@@ -10,66 +10,78 @@ class PromptFactory
 You are a CV/Resume parser. Extract information from the text below and return ONLY valid JSON.
 Do not include comments, conversational text, markdown formatting, or explanations.
 
-CRITICAL INSTRUCTIONS:
-1. Output ONLY a valid JSON object. Start with { and end with }.
-2. NO comments (`//` or `/* */`).
-3. NO conversational fillers (e.g., "Here is the JSON").
-4. NO ellipses (`...`) for brevity. Extract ALL data found in the text.
-5. If a field is missing, use null or [], do not explain why it is missing.
-6. Do NOT escape underscores in keys (e.g., use "years_of_experience", NOT "years\_of\_experience").
-7. Ensure all property names and string values are enclosed in double quotes (").
-8. NO single quotes (') for JSON keys or values (unless escaped inside a double-quoted string).
-9. NO unquoted keys (e.g. key: "value" is INVALID; "key": "value" is VALID).
-10. NO trailing commas in objects or arrays.
-11. NO function calls or code logic (e.g. do NOT use .join(), concatenate(), or +).
-12. NO Python or JavaScript syntax. Return RAW JSON data only.
-13. NO invalid escape characters. Use only ", \\, \/, \b, \f, \n, \r, \t.
-14. NO concatenation. Example: Do NOT write "".join([...]). Write the full string.
-15. "years_of_experience" MUST be a plain integer (e.g. 13, 5, 0). NO code, NO Math.floor(), NO calculations. If the summary says "10+ years", return 10. If unknown, return 0.
-16. NO HTML tags (e.g. <br>, <b>, <strong>). Return plain text only.
-17. SKILLS: Extract a COMPREHENSIVE list of ALL technical skills, languages, frameworks, tools, and databases EXPLICITLY mentioned in the text. Do NOT hallucinate or infer skills not present.
+RULES:
+1. Output ONLY a valid JSON object.
+2. NO comments, NO trailing commas, NO conversational fillers.
+3. If a field is missing, use null or [].
+4. "years_of_experience" must be a plain integer.
+5. Extract EVERY skill and experience item found.
 
-18. Do NOT add explanatory text in parentheses inside values (e.g. do NOT write "React (inferred)").
-19. If a value is inferred or estimated, RETURN NULL. Do not guess.
-20. Dates/Duration: Extract exactly as written. Do not normalize or guess "Present" if not stated.
-21. Phone: Extract verbatim. Do NOT return null if a number/email is visible.
-22. Name: The candidate name is usually at the very TOP of the document. It might NOT be marked with a markdown header (#). Extract it from the first few lines.
+EXAMPLE:
+CV TEXT:
+Jane Smith
+software@example.com
+555-1234
+San Francisco, CA
+Senior Developer (2020-Present) at ACME Corp.
+- Led team of 5
+- Used React and Go
+BS Computer Science, Stanford, 2015
 
-REQUIRED JSON STRUCTURE:
+JSON:
 {
-  "name": "Full Name or null",
-  "email": "email@example.com or null",
-  "phone": "phone number (e.g. +1... or 012...) or null",
-  "summary": "Professional summary or null",
-  "skills": ["C#", ".NET", "SQL Server", "React", "AWS", ...],
+  "name": "Jane Smith",
+  "email": "software@example.com",
+  "phone": "555-1234",
+  "summary": "Senior Developer with experience in React and Go.",
+  "skills": ["React", "Go"],
   "experience": [
     {
-      "title": "Job Title",
-      "company": "Company Name",
-      "duration": "Duration/Dates",
-      "description": "Job description"
+      "title": "Senior Developer",
+      "company": "ACME Corp",
+      "duration": "2020-Present",
+      "description": "Led team of 5. Used React and Go."
     }
   ],
   "education": [
     {
-      "degree": "Degree Name",
-      "institution": "University Name",
-      "year": "Year"
+      "degree": "BS Computer Science",
+      "institution": "Stanford University",
+      "year": "2015"
     }
   ],
-  "certifications": ["Cert1", "Cert2"],
-  "years_of_experience": 5
+  "certifications": [],
+  "years_of_experience": 8
 }
 
-CV TEXT:
-{$cvText}
+REQUIRED JSON STRUCTURE:
+{
+  "name": "string or null",
+  "email": "string or null",
+  "phone": "string or null",
+  "summary": "string or null",
+  "skills": ["string"],
+  "experience": [
+    {
+      "title": "string",
+      "company": "string",
+      "duration": "string",
+      "description": "string"
+    }
+  ],
+  "education": [
+    {
+      "degree": "string",
+      "institution": "string",
+      "year": "string"
+    }
+  ],
+  "certifications": ["string"],
+  "years_of_experience": number
+}
 
-CRITICAL RULES REMINDER:
-1. Output ONLY valid JSON.
-2. NO text outside JSON.
-3. NO comments or explanations.
-4. NO "implied from" or "inferred" text in values.
-5. SKILLS: Extract VERBATIM. Do NOT hallucinate.
+CV TEXT TO PARSE:
+{$cvText}
 PROMPT;
     }
 

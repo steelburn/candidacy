@@ -341,8 +341,8 @@ class AiController extends Controller
         // Remove all tags <...>
         $text = preg_replace('/<[^>]+>/', ' ', $text);
         
-        // Collapse multiple spaces into one
-        $text = preg_replace('/\s+/', ' ', $text);
+        // Collapse multiple spaces but preserve newlines
+        $text = preg_replace('/[ \t]+/', ' ', $text);
         
         return trim($text);
     }

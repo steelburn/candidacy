@@ -112,7 +112,40 @@ const routes = [
         path: '/admin',
         name: 'Admin',
         component: () => import('../views/Admin.vue'),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true },
+        redirect: '/admin/system',
+        children: [
+            {
+                path: 'system',
+                name: 'AdminSystemHealth',
+                component: () => import('../components/admin/AdminSystemHealth.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'configuration',
+                name: 'AdminConfiguration',
+                component: () => import('../components/admin/AdminConfiguration.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'ai-providers',
+                name: 'AdminAIProviders',
+                component: () => import('../components/admin/AdminAIProviders.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'users',
+                name: 'AdminUserManagement',
+                component: () => import('../components/admin/AdminUserManagement.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'cv-jobs',
+                name: 'AdminCvJobs',
+                component: () => import('../components/admin/AdminCvJobs.vue'),
+                meta: { requiresAuth: true }
+            }
+        ]
     }
 ]
 

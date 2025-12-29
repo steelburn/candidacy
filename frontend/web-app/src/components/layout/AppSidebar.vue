@@ -13,16 +13,48 @@
 
     <!-- Navigation -->
     <nav class="sidebar-nav">
-      <router-link 
-        v-for="item in navItems" 
-        :key="item.path"
-        :to="item.path" 
-        class="nav-item"
-        :title="isCollapsed ? item.label : ''"
-      >
-        <span class="nav-icon" v-html="item.icon"></span>
-        <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
-      </router-link>
+      <template v-for="item in navItems" :key="item.path">
+        <!-- Item with Submenu -->
+        <div v-if="item.children" class="nav-group" :class="{ expanded: expandedItems[item.path] }">
+          <button 
+            class="nav-item nav-parent" 
+            :title="isCollapsed ? item.label : ''"
+            @click="toggleExpand(item.path)"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
+            <span v-show="!isCollapsed" class="nav-chevron">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </span>
+          </button>
+          
+          <div v-show="expandedItems[item.path] && !isCollapsed" class="nav-children">
+            <router-link 
+              v-for="child in item.children" 
+              :key="child.path"
+              :to="child.path" 
+              class="nav-item nav-child"
+              :title="child.label"
+            >
+              <span class="nav-icon" v-html="child.icon"></span>
+              <span class="nav-label">{{ child.label }}</span>
+            </router-link>
+          </div>
+        </div>
+
+        <!-- Regular Item -->
+        <router-link 
+          v-else
+          :to="item.path" 
+          class="nav-item"
+          :title="isCollapsed ? item.label : ''"
+        >
+          <span class="nav-icon" v-html="item.icon"></span>
+          <span v-show="!isCollapsed" class="nav-label">{{ item.label }}</span>
+        </router-link>
+      </template>
     </nav>
 
     <!-- User Section -->
@@ -56,7 +88,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
@@ -76,6 +108,15 @@ const userInitials = computed(() => {
   const name = userName.value
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
+
+const expandedItems = ref({
+  '/admin': true // Expand admin by default
+})
+
+const toggleExpand = (path) => {
+  if (props.isCollapsed) return // Don't toggle in collapsed mode
+  expandedItems.value[path] = !expandedItems.value[path]
+}
 
 const navItems = [
   {
@@ -146,13 +187,60 @@ const navItems = [
       <line x1="6" y1="20" x2="6" y2="14"/>
     </svg>`
   },
+  // Administration Section
   {
     path: '/admin',
-    label: 'Admin',
+    label: 'Administration',
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="3"/>
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-    </svg>`
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>`,
+    children: [
+      {
+        path: '/admin/system',
+        label: 'System Health',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>`
+      },
+      {
+        path: '/admin/configuration',
+        label: 'Configuration',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>`
+      },
+      {
+        path: '/admin/ai-providers',
+        label: 'AI Providers',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/>
+          <path d="M12 16v-4"/>
+          <path d="M12 8h.01"/>
+        </svg>`
+      },
+      {
+        path: '/admin/users',
+        label: 'User Management',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>`
+      },
+      {
+        path: '/admin/cv-jobs',
+        label: 'CV Jobs',
+        icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>`
+      }
+    ]
   }
 ]
 </script>
@@ -342,6 +430,64 @@ const navItems = [
 .action-btn svg {
   width: 18px;
   height: 18px;
+}
+
+.nav-item.nav-parent {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  justify-content: space-between;
+  font-family: inherit;
+}
+
+.nav-chevron {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-group.expanded .nav-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.nav-item.nav-child {
+  padding-left: 48px;
+  font-size: 0.85rem;
+  height: 40px;
+}
+
+.nav-item.nav-child .nav-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: -6px;
+  opacity: 0.7;
+}
+
+.nav-group.expanded .nav-parent {
+  color: white;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Collapsed state adjustments */
+.sidebar.collapsed .nav-item.nav-parent {
+  justify-content: center;
+}
+
+.sidebar.collapsed .nav-chevron {
+  display: none;
 }
 
 /* Mobile overlay background */

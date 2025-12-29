@@ -103,6 +103,7 @@ class DocxParserService
             $xml = $zip->getFromName('word/document.xml');
             $zip->close();
             
+            $text = '';
             if (!$xml) {
                 return null;
             }
@@ -203,6 +204,10 @@ class DocxParserService
         // Handle ListItem
         elseif ($element instanceof ListItem) {
             $text .= "• " . $this->extractFromTextRun($element->getTextObject()) . "\n";
+        }
+        // Handle ListItemRun
+        elseif ($element instanceof \PhpOffice\PhpWord\Element\ListItemRun) {
+            $text .= "• " . $this->extractFromTextRun($element) . "\n";
         }
         // Handle Title
         elseif ($element instanceof Title) {
