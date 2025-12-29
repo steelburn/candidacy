@@ -251,7 +251,7 @@ if [ -f "$PDF_FILE" ]; then
     if echo "$PDF_RESPONSE" | grep -qE "(job_id|id|candidate_id|name)"; then
         # Check if async (job_id) or sync response
         if echo "$PDF_RESPONSE" | grep -q "job_id"; then
-            PDF_JOB_ID=$(echo "$PDF_RESPONSE" | grep -o '"job_id":"[^"]*' | cut -d'"' -f4)
+            PDF_JOB_ID=$(echo "$PDF_RESPONSE" | grep -oE '"job_id":\s*[0-9]+' | cut -d: -f2 | tr -d ' ' )
             echo -e "${GREEN}✅ PASS${NC} (Job ID: $PDF_JOB_ID)"
             PASSED_TESTS=$((PASSED_TESTS + 1))
             
@@ -306,7 +306,7 @@ if [ -f "$DOCX_FILE" ]; then
     
     if echo "$DOCX_RESPONSE" | grep -qE "(job_id|id|candidate_id|name)"; then
         if echo "$DOCX_RESPONSE" | grep -q "job_id"; then
-            DOCX_JOB_ID=$(echo "$DOCX_RESPONSE" | grep -o '"job_id":"[^"]*' | cut -d'"' -f4)
+            DOCX_JOB_ID=$(echo "$DOCX_RESPONSE" | grep -oE '"job_id":\s*[0-9]+' | cut -d: -f2 | tr -d ' ' )
             echo -e "${GREEN}✅ PASS${NC} (Job ID: $DOCX_JOB_ID)"
             PASSED_TESTS=$((PASSED_TESTS + 1))
             
@@ -366,7 +366,7 @@ if [ -n "$VACANCY_ID" ] && [ -n "$CANDIDATE_ID" ]; then
         
         # If async, wait a bit for matching to complete
         if echo "$MATCH_RESPONSE" | grep -q "job_id"; then
-            JOB_ID=$(echo "$MATCH_RESPONSE" | grep -o '"job_id":"[^"]*' | cut -d'"' -f4)
+            JOB_ID=$(echo "$MATCH_RESPONSE" | grep -oE '"job_id":\s*[0-9]+' | cut -d: -f2 | tr -d ' ' )
             echo "   Matching job queued: $JOB_ID"
             echo -n "   Waiting for matching to complete..."
             sleep 5
