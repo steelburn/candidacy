@@ -255,6 +255,7 @@ services:
       DB_DATABASE: candidacy_ai
       # OLLAMA_URL: http://ollama:11434
       OLLAMA_URL: http://192.168.88.120:11434
+      OLLAMA_MODEL: granite3.3:2b
       REDIS_HOST: redis
     volumes:
       - ./services/ai-service:/var/www/html
