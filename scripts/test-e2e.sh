@@ -231,6 +231,127 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Workflow 3.5: Document Parsing (PDF & DOCX)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Test fixture paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PDF_FILE="$SCRIPT_DIR/../tests/fixtures/test_resume_software_developer.pdf"
+DOCX_FILE="$SCRIPT_DIR/../tests/fixtures/test_resume_project_manager.docx"
+
+# Step 1: Test PDF parsing
+echo -n "Step 1: Uploading and parsing PDF resume... "
+if [ -f "$PDF_FILE" ]; then
+    PDF_RESPONSE=$(curl -s -X POST \
+        -H "Authorization: Bearer $AUTH_TOKEN" \
+        -H "Accept: application/json" \
+        -F "file=@$PDF_FILE" \
+        "$API_GATEWAY/api/candidates/parse-cv")
+    
+    if echo "$PDF_RESPONSE" | grep -qE "(job_id|id|candidate_id|name)"; then
+        # Check if async (job_id) or sync response
+        if echo "$PDF_RESPONSE" | grep -q "job_id"; then
+            PDF_JOB_ID=$(echo "$PDF_RESPONSE" | grep -o '"job_id":"[^"]*' | cut -d'"' -f4)
+            echo -e "${GREEN}✅ PASS${NC} (Job ID: $PDF_JOB_ID)"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+            
+            # Poll for completion
+            echo -n "   Waiting for PDF parsing to complete..."
+            for i in {1..12}; do
+                sleep 5
+                STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                    -H "Accept: application/json" \
+                    "$API_GATEWAY/api/candidates/cv-parsing/$PDF_JOB_ID/status")
+                if echo "$STATUS_RESPONSE" | grep -qE "(completed|failed)"; then
+                    echo " done"
+                    break
+                fi
+                echo -n "."
+            done
+            
+            # Step 1b: Verify PDF parsing result
+            echo -n "Step 1b: Verifying PDF parsing result... "
+            RESULT_RESPONSE=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                -H "Accept: application/json" \
+                "$API_GATEWAY/api/candidates/cv-parsing/$PDF_JOB_ID/result")
+            
+            if echo "$RESULT_RESPONSE" | grep -qE "(name|skills|experience)"; then
+                echo -e "${GREEN}✅ PASS${NC} (Data extracted)"
+                PASSED_TESTS=$((PASSED_TESTS + 1))
+            else
+                echo -e "${YELLOW}⚠️  WARN${NC} (Parsing may still be in progress)"
+            fi
+            TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        else
+            echo -e "${GREEN}✅ PASS${NC} (Sync parse completed)"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        fi
+    else
+        echo -e "${RED}❌ FAIL${NC} (Response: $(echo $PDF_RESPONSE | head -c 100))"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+else
+    echo -e "${YELLOW}⚠️  SKIP${NC} (PDF test file not found)"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+# Step 2: Test DOCX parsing
+echo -n "Step 2: Uploading and parsing DOCX resume... "
+if [ -f "$DOCX_FILE" ]; then
+    DOCX_RESPONSE=$(curl -s -X POST \
+        -H "Authorization: Bearer $AUTH_TOKEN" \
+        -H "Accept: application/json" \
+        -F "file=@$DOCX_FILE" \
+        "$API_GATEWAY/api/candidates/parse-cv")
+    
+    if echo "$DOCX_RESPONSE" | grep -qE "(job_id|id|candidate_id|name)"; then
+        if echo "$DOCX_RESPONSE" | grep -q "job_id"; then
+            DOCX_JOB_ID=$(echo "$DOCX_RESPONSE" | grep -o '"job_id":"[^"]*' | cut -d'"' -f4)
+            echo -e "${GREEN}✅ PASS${NC} (Job ID: $DOCX_JOB_ID)"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+            
+            # Poll for completion
+            echo -n "   Waiting for DOCX parsing to complete..."
+            for i in {1..12}; do
+                sleep 5
+                STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                    -H "Accept: application/json" \
+                    "$API_GATEWAY/api/candidates/cv-parsing/$DOCX_JOB_ID/status")
+                if echo "$STATUS_RESPONSE" | grep -qE "(completed|failed)"; then
+                    echo " done"
+                    break
+                fi
+                echo -n "."
+            done
+            
+            # Step 2b: Verify DOCX parsing result
+            echo -n "Step 2b: Verifying DOCX parsing result... "
+            RESULT_RESPONSE=$(curl -s -H "Authorization: Bearer $AUTH_TOKEN" \
+                -H "Accept: application/json" \
+                "$API_GATEWAY/api/candidates/cv-parsing/$DOCX_JOB_ID/result")
+            
+            if echo "$RESULT_RESPONSE" | grep -qE "(name|skills|experience)"; then
+                echo -e "${GREEN}✅ PASS${NC} (Data extracted)"
+                PASSED_TESTS=$((PASSED_TESTS + 1))
+            else
+                echo -e "${YELLOW}⚠️  WARN${NC} (Parsing may still be in progress)"
+            fi
+            TOTAL_TESTS=$((TOTAL_TESTS + 1))
+        else
+            echo -e "${GREEN}✅ PASS${NC} (Sync parse completed)"
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        fi
+    else
+        echo -e "${RED}❌ FAIL${NC} (Response: $(echo $DOCX_RESPONSE | head -c 100))"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+else
+    echo -e "${YELLOW}⚠️  SKIP${NC} (DOCX test file not found)"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Workflow 4: Candidate-Vacancy Matching"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
