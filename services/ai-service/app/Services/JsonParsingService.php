@@ -378,7 +378,11 @@ class JsonParsingService
         
         // 31. Remove orphaned string values in objects (e.g., "key": "value", "orphaned", "key2":...)
         // Matches string literal NOT preceded by : and NOT followed by :
-        $json = preg_replace('/(?<=[,{]\s*)"((?:[^"\\\\]|\\\\.)*)"\s*(?!:)(?=[,}])/u', '', $json);
+        // Note: Using preg_replace_callback to handle variable whitespace since PCRE doesn't support variable-length lookbehind
+        $json = preg_replace_callback('/([,{])\s*"((?:[^"\\\\]|\\\\.)*)"\s*(?!:)([,}])/u', function($matches) {
+            // Replace orphaned string value with just the delimiter
+            return $matches[1] . $matches[3];
+        }, $json);
 
         // 32. Fix invalid escape \&
         $json = str_replace('\\&', '&', $json);
