@@ -518,7 +518,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - VITE_API_GATEWAY_URL=http://localhost:8080
+      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:8080}
     volumes:
       - ./frontend/web-app:/app
       - /app/node_modules
@@ -536,7 +536,7 @@ services:
     ports:
       - "5173:3000"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api
+      - VITE_API_BASE_URL=${PUBLIC_API_URL:-http://localhost:8080/api}
     volumes:
       - ./frontend/applicant-web-app:/app
       - /app/node_modules
@@ -587,6 +587,22 @@ services:
     networks:
       - candidacy-network
 
+  # Cloudflare Tunnel - Expose application to the internet
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: candidacy-cloudflared
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - candidacy-network
+    depends_on:
+      - frontend
+      - applicant-frontend
+      - api-gateway
+      - grafana
+    restart: unless-stopped
+
   # Mailpit - Development Email Testing
   mailpit:
     image: axllent/mailpit:latest
@@ -609,6 +625,24 @@ services:
       - ./tests:/tests
     networks:
       - candidacy-network
+
+  # DBML Tools - For database schema management without requiring Node.js on host
+  dbml-tools:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.dbml
+    container_name: candidacy-dbml-tools
+    profiles:
+      - dbml
+    environment:
+      DB_USERNAME: root
+      DB_PASSWORD: root
+    volumes:
+      - .:/workspace
+    networks:
+      - candidacy-network
+    depends_on:
+      - mysql
 
 volumes:
   mysql_data:

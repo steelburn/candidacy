@@ -1,0 +1,40 @@
+tunnel: <TUNNEL_ID>
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  # Main Frontend (HR/Recruiter Dashboard)
+  - hostname: ne1-candidacy.comulo.app
+    service: http://frontend:3000
+    originRequest:
+      noTLSVerify: true
+  
+  # Applicant Portal
+  - hostname: ne1-candidacy.comulo.app
+    path: /applicant/*
+    service: http://applicant-frontend:3000
+    originRequest:
+      noTLSVerify: true
+  
+  # API Gateway
+  - hostname: ne1-candidacy.comulo.app
+    path: /api/*
+    service: http://api-gateway:8080
+    originRequest:
+      noTLSVerify: true
+  
+  # Grafana Monitoring
+  - hostname: ne1-candidacy.comulo.app
+    path: /grafana/*
+    service: http://grafana:3000
+    originRequest:
+      noTLSVerify: true
+  
+  # Mailpit Web UI (Development only)
+  - hostname: ne1-candidacy.comulo.app
+    path: /mailpit/*
+    service: http://mailpit:8025
+    originRequest:
+      noTLSVerify: true
+  
+  # Catch-all rule (must be last)
+  - service: http_status:404

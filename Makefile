@@ -11,6 +11,7 @@ SHELL := /bin/bash
 .PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
 .PHONY: logs-document-parser clear-matches
 .PHONY: docs-php docs-serve
+.PHONY: tunnel-up tunnel-down tunnel-logs tunnel-status
 
 
 help:
@@ -70,6 +71,12 @@ help:
 	@echo ""
 	@echo "📚 Documentation Commands:"
 	@echo "  make docs-php       - Generate PHP API documentation (PHPDoc)"
+	@echo ""
+	@echo "🌐 Cloudflare Tunnel Commands:"
+	@echo "  make tunnel-up      - Start Cloudflare Tunnel (expose to internet)"
+	@echo "  make tunnel-down    - Stop Cloudflare Tunnel"
+	@echo "  make tunnel-logs    - View Cloudflare Tunnel logs"
+	@echo "  make tunnel-status  - Check Cloudflare Tunnel status"
 	@echo ""
 	@echo "🛠️  Utility Commands:"
 	@echo "  make shell S=<service> - Access service shell (e.g., make shell S=auth-service)"
@@ -355,21 +362,22 @@ logs-parse-cv:
 	docker compose logs -f candidate-service document-parser-service ai-service
 
 # DBML Commands (Database-as-Code)
+# These commands run in a Docker container, so Node.js is not required on the host
 dbml-validate:
 	@echo "🔍 Validating DBML schema..."
-	@npm run dbml:validate
+	@docker compose run --rm dbml-tools npm run dbml:validate
 
 dbml-sql:
 	@echo "🔨 Generating SQL from DBML..."
-	@npm run dbml:sql
+	@docker compose run --rm dbml-tools npm run dbml:sql
 
 dbml-check:
 	@echo "🔍 Checking DBML sync status..."
-	@npm run dbml:check
+	@docker compose run --rm dbml-tools npm run dbml:check
 
 dbml-init:
 	@echo "🗄️  Initializing databases from DBML..."
-	@npm run dbml:init
+	@docker compose run --rm dbml-tools bash scripts/init-databases-from-dbml.sh
 
 dbml-reset:
 	@echo "⚠️  WARNING: This will drop all databases and recreate from DBML!"
@@ -419,4 +427,55 @@ docs-serve:
 	@echo "🌐 Serving PHP documentation at http://localhost:8000"
 	@echo "   Press Ctrl+C to stop"
 	@cd docs/api && python3 -m http.server 8000
+
+# Cloudflare Tunnel Commands
+tunnel-up:
+	@echo "🌐 Starting Cloudflare Tunnel..."
+	@if [ -z "${CLOUDFLARE_TUNNEL_TOKEN}" ]; then \
+		echo "❌ Error: CLOUDFLARE_TUNNEL_TOKEN is not set in .env"; \
+		echo ""; \
+		echo "Please follow these steps:"; \
+		echo "1. Create a tunnel in Cloudflare dashboard: https://one.dash.cloudflare.com/"; \
+		echo "2. Copy the tunnel token"; \
+		echo "3. Add it to your .env file: CLOUDFLARE_TUNNEL_TOKEN=your-token-here"; \
+		echo "4. Run 'make tunnel-up' again"; \
+		echo ""; \
+		echo "See CLOUDFLARE_TUNNEL.md for detailed instructions"; \
+		exit 1; \
+	fi
+	@docker-compose up -d cloudflared
+	@echo ""
+	@echo "✅ Cloudflare Tunnel started!"
+	@echo ""
+	@echo "🌐 Your application should now be accessible at:"
+	@echo "   https://${PUBLIC_DOMAIN:-ne1-candidacy.comulo.app}"
+	@echo ""
+	@echo "📊 Check tunnel status: make tunnel-status"
+	@echo "📋 View tunnel logs:    make tunnel-logs"
+
+tunnel-down:
+	@echo "🛑 Stopping Cloudflare Tunnel..."
+	@docker-compose stop cloudflared
+	@echo "✅ Cloudflare Tunnel stopped"
+
+tunnel-logs:
+	@echo "📋 Cloudflare Tunnel Logs (Ctrl+C to exit):"
+	@echo ""
+	@docker-compose logs -f cloudflared
+
+tunnel-status:
+	@echo "📊 Cloudflare Tunnel Status:"
+	@echo ""
+	@docker-compose ps cloudflared
+	@echo ""
+	@if docker-compose ps cloudflared | grep -q "Up"; then \
+		echo "✅ Tunnel is running"; \
+		echo ""; \
+		echo "🌐 Access your application at:"; \
+		echo "   https://${PUBLIC_DOMAIN:-ne1-candidacy.comulo.app}"; \
+	else \
+		echo "❌ Tunnel is not running"; \
+		echo ""; \
+		echo "Start the tunnel with: make tunnel-up"; \
+	fi
 

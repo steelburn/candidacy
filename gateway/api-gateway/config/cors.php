@@ -19,7 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3001', 'http://localhost:3002'],
+    'allowed_origins' => array_filter([
+        'http://localhost:3001',
+        'http://localhost:3002',
+        'http://localhost:5173',
+        env('PUBLIC_DOMAIN') ? 'https://' . env('PUBLIC_DOMAIN') : null,
+    ]),
 
     'allowed_origins_patterns' => [],
 

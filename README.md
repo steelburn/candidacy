@@ -24,8 +24,8 @@ A comprehensive recruitment management system built with microservices architect
 ### Prerequisites
 
 - Docker & Docker Compose
-- PHP 8.2+
-- Node.js 18+
+- PHP 8.2+ (for local development)
+- Node.js 18+ (optional, only for frontend development)
 - Ollama (optional, for local AI)
 
 ### Installation
@@ -44,10 +44,15 @@ make up           # Start all services
 make seed         # Seed sample data
 
 # Access the application
+# Local Access:
 # Main Frontend (HR/Recruiter): http://localhost:3001
 # Applicant Portal: http://localhost:5173
 # API Gateway: http://localhost:8080
 # Grafana (Monitoring): http://localhost:3050 (admin/admin)
+#
+# Public Access (via Cloudflare Tunnel - optional):
+# See CLOUDFLARE_TUNNEL.md for setup instructions
+# Public URL: https://ne1-candidacy.comulo.app (or your custom domain)
 ```
 
 ### Development Setup (DBML-First)
@@ -271,6 +276,7 @@ curl http://localhost:8080/api/system-health
 - **[QUICKSTART.md](QUICKSTART.md)** - Fast track setup guide
 - **[DATABASE.md](DATABASE.md)** - DBML schema documentation and workflow
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system architecture
+- **[CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md)** - Public access via Cloudflare Tunnel
 - **[SETUP_PROGRESS.md](SETUP_PROGRESS.md)** - Tracking setup and features
 - **[CHANGELOG.md](CHANGELOG.md)** - History of all major changes
 - **API Documentation** - Available at each service `/api/documentation`

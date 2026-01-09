@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-01-09
+
+#### Containerized DBML Tools
+- **Eliminated Node.js Host Dependency** - DBML operations now run in Docker container
+  - Created `infrastructure/docker/Dockerfile.dbml` with Node.js 20 Alpine base
+  - Added `dbml-tools` service to `docker-compose.yml` with `dbml` profile
+  - Updated all `make dbml-*` commands to use `docker compose run --rm dbml-tools`
+  - Removed Node.js installation check from `scripts/init-databases-from-dbml.sh`
+  - Benefits:
+    - ✅ No Node.js required on host machine
+    - ✅ Consistent Node.js version across all developers
+    - ✅ Isolated npm dependencies (no host pollution)
+    - ✅ Automatic container cleanup after use
+    - ✅ CI/CD ready without additional setup
+- **Documentation** - Created comprehensive `docs/DBML-TOOLS.md`
+  - Architecture overview and technical details
+  - Usage examples and troubleshooting guide
+  - Migration guide for existing setups
+- **Updated Prerequisites** in `README.md`
+  - Node.js now marked as optional (only for frontend development)
+  - PHP marked as optional (only for local development)
+
+#### Cloudflare Tunnel Integration
+- **Public Access via Cloudflare Tunnel** - Expose application to internet without port forwarding
+  - Added `cloudflared` service to `docker-compose.yml`
+  - Automatic HTTPS with Cloudflare's SSL certificates
+  - Built-in DDoS protection and global CDN
+  - No inbound firewall ports required
+  - Configuration via `CLOUDFLARE_TUNNEL_TOKEN` environment variable
+- **CORS Configuration** - Updated API Gateway to accept public domain requests
+  - Dynamic CORS origins based on `PUBLIC_DOMAIN` environment variable
+  - Supports both local and public access simultaneously
+- **Frontend Configuration** - Environment variables support public URLs
+  - `VITE_API_GATEWAY_URL` uses `PUBLIC_API_URL` when available
+  - Falls back to localhost for local development
+- **Makefile Commands** - Added tunnel management commands
+  - `make tunnel-up` - Start Cloudflare Tunnel
+  - `make tunnel-down` - Stop Cloudflare Tunnel
+  - `make tunnel-logs` - View tunnel logs
+  - `make tunnel-status` - Check tunnel status
+- **Documentation** - Created comprehensive `CLOUDFLARE_TUNNEL.md`
+  - Step-by-step setup guide with screenshots
+  - Troubleshooting section for common issues
+  - Security considerations and best practices
+  - Advanced configuration options
+- **Environment Variables** - Added to `.env.example`
+  - `CLOUDFLARE_TUNNEL_TOKEN` - Tunnel authentication token
+  - `PUBLIC_DOMAIN` - Public domain (e.g., ne1-candidacy.comulo.app)
+  - `PUBLIC_API_URL` - Public API endpoint URL
+
 ### Fixed - 2025-12-29
 
 #### End-to-End Test Script (`test-e2e.sh`)
