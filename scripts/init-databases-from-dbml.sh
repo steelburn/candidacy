@@ -4,20 +4,6 @@ set -e
 echo "🗄️  Initializing databases from DBML..."
 echo ""
 
-# Check if Node.js is installed
-if ! command -v node &> /dev/null; then
-    echo "❌ Node.js is required but not installed."
-    echo "   Please install Node.js to use DBML-based database initialization."
-    exit 1
-fi
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing dependencies..."
-    npm install
-    echo ""
-fi
-
 # Generate SQL from DBML
 echo "🔨 Generating SQL from DBML..."
 npm run dbml:sql
