@@ -39,19 +39,31 @@
     <div v-else class="config-layout">
       <!-- Sidebar Categories -->
       <div class="config-sidebar" role="tablist">
-        <button 
-          v-for="category in availableCategories" 
-          :key="category.name"
-          class="category-tab"
-          :class="{ active: activeCategory === category.name && !configSearch }"
-          @click="selectCategory(category.name)"
-          role="tab"
-          :aria-selected="activeCategory === category.name && !configSearch"
-        >
-          <span class="category-icon" aria-hidden="true">{{ category.icon }}</span>
-          <span class="category-label">{{ category.label }}</span>
-          <span class="category-count">{{ category.count }}</span>
-        </button>
+        <div v-for="category in availableCategories" :key="category.name" class="category-wrapper">
+            <button 
+              class="category-tab"
+              :class="{ active: activeCategory === category.name && !configSearch }"
+              @click="selectCategory(category.name)"
+              role="tab"
+              :aria-selected="activeCategory === category.name && !configSearch"
+            >
+              <span class="category-icon" aria-hidden="true">{{ category.icon }}</span>
+              <span class="category-label">{{ category.label }}</span>
+              <span class="category-count">{{ category.count }}</span>
+            </button>
+            
+            <!-- Submenu for Anchors -->
+            <div v-if="activeCategory === category.name && Object.keys(groupedSettings).length > 1" class="category-submenu">
+                 <button 
+                    v-for="(settings, groupName) in groupedSettings" 
+                    :key="groupName"
+                    class="submenu-item"
+                    @click.stop="scrollToGroup(groupName)"
+                >
+                    {{ groupName }}
+                </button>
+            </div>
+        </div>
       </div>
 
       <!-- Settings Content -->
@@ -75,7 +87,7 @@
               class="setting-card"
             >
               <!-- Reusable Setting Card Content -->
-              <SettingCardContent 
+              <SettingCard 
                 :setting="setting"
                 :editingSetting="editingSetting"
                 :editValue="editValue"
@@ -103,25 +115,32 @@
             </p>
           </div>
 
-          <div class="settings-grid">
-            <div 
-              v-for="setting in currentCategorySettings" 
-              :key="setting.key" 
-              class="setting-card"
-            >
-              <!-- Reusable Setting Card Content -->
-              <SettingCardContent 
-                :setting="setting"
-                :editingSetting="editingSetting"
-                :editValue="editValue"
-                :showSensitive="showSensitive"
-                @startEdit="startEdit"
-                @save="saveSetting"
-                @cancel="cancelEdit"
-                @updateEditValue="(val) => editValue = val"
-                @toggleSensitive="toggleSensitive"
-                @viewHistory="viewHistory"
-              />
+          <div v-for="(settings, groupName) in groupedSettings" :key="groupName" class="settings-group-wrapper">
+            <h4 
+                v-if="Object.keys(groupedSettings).length > 1" 
+                class="group-header"
+                :id="'group-' + groupName.replace(/\s+/g, '-').toLowerCase()"
+            >{{ groupName }}</h4>
+            <div class="settings-grid">
+              <div 
+                v-for="setting in settings" 
+                :key="setting.key" 
+                class="setting-card"
+              >
+                <!-- Reusable Setting Card Content -->
+                <SettingCard 
+                  :setting="setting"
+                  :editingSetting="editingSetting"
+                  :editValue="editValue"
+                  :showSensitive="showSensitive"
+                  @startEdit="startEdit"
+                  @save="saveSetting"
+                  @cancel="cancelEdit"
+                  @updateEditValue="(val) => editValue = val"
+                  @toggleSensitive="toggleSensitive"
+                  @viewHistory="viewHistory"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -134,198 +153,28 @@
     </Transition>
 
     <!-- History Modal -->
-    <div v-if="showHistoryModal" class="modal-overlay" @click="showHistoryModal = false">
-      <div class="modal-content modal-large" @click.stop>
-        <h3>Change History: {{ historyData?.setting?.key }}</h3>
-        <div v-if="historyData?.history && historyData.history.length > 0" class="history-list">
-          <div v-for="(change, index) in historyData.history" :key="index" class="history-item">
-            <div class="history-header-row">
-              <span class="history-date">{{ formatDate(change.changed_at) }}</span>
-              <span class="history-user">by User #{{ change.changed_by }}</span>
-            </div>
-            <div class="history-changes">
-              <div class="history-value">
-                <strong>Old:</strong> <code>{{ change.old_value || '(empty)' }}</code>
-              </div>
-              <div class="history-value">
-                <strong>New:</strong> <code>{{ change.new_value }}</code>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="no-history">No change history available</div>
-        <div class="modal-actions">
-          <button @click="showHistoryModal = false" class="btn-secondary">Close</button>
-        </div>
-      </div>
-    </div>
+    <SettingHistoryModal 
+      :show="showHistoryModal"
+      :historyData="historyData"
+      @close="showHistoryModal = false"
+    />
 
     <!-- Import Modal -->
-    <div v-if="showImportModal" class="modal-overlay" @click="showImportModal = false">
-      <div class="modal-content modal-large" @click.stop>
-        <h3>Import Configuration</h3>
-        <p>Paste your configuration JSON below:</p>
-        <textarea 
-          v-model="importData" 
-          class="import-textarea"
-          placeholder='{"settings": [...]}'
-          rows="15"
-        ></textarea>
-        <div class="modal-actions">
-          <button @click="importConfiguration" class="btn-primary">Import</button>
-          <button @click="showImportModal = false" class="btn-secondary">Cancel</button>
-        </div>
-      </div>
-    </div>
+    <ConfigImportModal 
+      :show="showImportModal"
+      @close="showImportModal = false"
+      @import="handleImportData"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineComponent, h } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { adminAPI } from '../../services/api'
-
-// --- Internal Component for Setting Card Content to reduce template duplication ---
-const SettingCardContent = defineComponent({
-  props: ['setting', 'editingSetting', 'editValue', 'showSensitive'],
-  emits: ['startEdit', 'save', 'cancel', 'updateEditValue', 'toggleSensitive', 'viewHistory'],
-  setup(props, { emit }) {
-    return () => {
-      const { setting, editingSetting, editValue, showSensitive } = props
-      const isEditing = editingSetting === setting.key
-      
-      // Helper to emit update
-      const onInput = (val) => emit('updateEditValue', val)
-
-      // Edit Mode
-      if (isEditing) {
-        return h('div', { class: 'setting-edit-mode' }, [
-          h('div', { class: 'setting-meta-edit' }, [
-             h('code', { class: 'setting-key' }, setting.key),
-             h('p', { class: 'setting-desc' }, setting.description)
-          ]),
-          h('div', { class: 'edit-controls' }, [
-             renderInputControl(setting, editValue, onInput),
-             h('div', { class: 'edit-actions' }, [
-               h('button', { class: 'btn-sm btn-save', onClick: () => emit('save', setting) }, '✓ Save'),
-               h('button', { class: 'btn-sm btn-cancel', onClick: () => emit('cancel') }, 'Cancel')
-             ])
-          ])
-        ])
-      }
-
-      // View Mode
-      return h('div', { class: 'setting-view-mode' }, [
-        // Row 1: Key and Actions
-        h('div', { class: 'setting-header' }, [
-            h('code', { class: 'setting-key' }, setting.key),
-            h('div', { class: 'action-row' }, [
-              h('button', { class: 'btn-icon', title: 'Edit', onClick: () => emit('startEdit', setting) }, '✏️'),
-              h('button', { class: 'btn-icon', title: 'History', onClick: () => emit('viewHistory', setting.key) }, '📜')
-            ])
-        ]),
-        
-        // Row 2: Badges (Meta)
-        (setting.is_sensitive || (setting.service_scope && setting.service_scope !== 'all')) 
-          ? h('div', { class: 'setting-meta-row' }, [
-              setting.is_sensitive ? h('span', { class: 'badge badge-sensitive' }, 'Sensitive') : null,
-              setting.service_scope && setting.service_scope !== 'all' ? h('span', { class: 'badge badge-scope' }, setting.service_scope) : null
-            ]) 
-          : null,
-
-        // Row 3: Description
-        h('p', { class: 'setting-desc' }, setting.description),
-
-        // Row 4: Value
-        h('div', { class: 'setting-value-display' }, [
-           renderValueDisplay(setting, showSensitive, (k) => emit('toggleSensitive', k))
-        ])
-      ])
-    }
-  }
-})
-
-// Helper functions for the functional component (simplified logic)
-function renderInputControl(setting, value, onInput) {
-  // Boolean
-  if (setting.type === 'boolean') {
-    return h('label', { class: 'toggle-switch' }, [
-      h('input', { type: 'checkbox', checked: value, onChange: (e) => onInput(e.target.checked) }),
-      h('span', { class: 'toggle-slider' }),
-      h('span', { class: 'toggle-label' }, value ? 'Enabled' : 'Disabled')
-    ])
-  }
-  // Color
-  if (setting.key.includes('color')) {
-    return h('div', { class: 'color-input-group' }, [
-      h('input', { type: 'color', value: value, onInput: (e) => onInput(e.target.value) }),
-      h('input', { type: 'text', value: value, onInput: (e) => onInput(e.target.value), class: 'text-input' })
-    ])
-  }
-  // Selects
-  if (setting.key === 'ai.provider') {
-     return renderSelect(value, onInput, [
-       { val: 'ollama', label: 'Ollama (Local)' },
-       { val: 'openrouter', label: 'OpenRouter (Cloud)' }
-     ])
-  }
-  if (setting.key === 'ui.date_format') {
-      return renderSelect(value, onInput, [
-       { val: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
-       { val: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
-       { val: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
-       { val: 'DD MMM YYYY', label: 'DD MMM YYYY' },
-       { val: 'MMM DD, YYYY', label: 'MMM DD, YYYY' }
-     ])
-  }
-   if (setting.key === 'ui.time_format') {
-      return renderSelect(value, onInput, [
-       { val: 'HH:mm', label: '24-hour' },
-       { val: 'hh:mm A', label: '12-hour' }
-     ])
-  }
-  // Range
-  if (setting.type === 'integer' && (setting.key.includes('threshold') || setting.key.includes('score'))) {
-    return h('div', { class: 'range-group' }, [
-      h('input', { type: 'range', min: 0, max: 100, value: value, onInput: (e) => onInput(parseInt(e.target.value)) }),
-      h('span', { class: 'range-val' }, value + '%')
-    ])
-  }
-  
-  // Default Input
-  return h('input', { 
-    type: setting.type === 'integer' ? 'number' : 'text',
-    value: value,
-    onInput: (e) => onInput(setting.type === 'integer' ? parseInt(e.target.value) : e.target.value),
-    class: 'text-input full-width'
-  })
-}
-
-function renderSelect(value, onInput, options) {
-  return h('select', { value, onChange: (e) => onInput(e.target.value), class: 'select-input' }, 
-    options.map(o => h('option', { value: o.val }, o.label))
-  )
-}
-
-function renderValueDisplay(setting, showSensitive, toggle) {
-  if (setting.type === 'boolean') {
-    return h('span', { class: setting.value ? 'val-true' : 'val-false' }, setting.value ? '✓ Enabled' : '✗ Disabled')
-  }
-  if (setting.is_sensitive) {
-    const visible = showSensitive[setting.key]
-    return h('div', { class: 'sensitive-row' }, [
-      h('span', { class: 'val-text' }, visible ? (setting.value || '(empty)') : '••••••••'),
-      h('button', { class: 'btn-icon-sm', onClick: () => toggle(setting.key) }, visible ? '👁️' : '👁️‍🗨️')
-    ])
-  }
-  if (setting.key.includes('color')) {
-      return h('div', { class: 'color-preview-row' }, [
-          h('div', { class: 'color-dot', style: { backgroundColor: setting.value } }),
-          h('span', { class: 'val-text' }, setting.value)
-      ])
-  }
-  return h('span', { class: 'val-text' }, setting.value || '(empty)')
-}
-
+import { useThemeStore } from '../../stores/useThemeStore'
+import SettingCard from './SettingCard.vue'
+import SettingHistoryModal from './SettingHistoryModal.vue'
+import ConfigImportModal from './ConfigImportModal.vue'
 
 // --- Main Layout Script ---
 const loadingConfig = ref(false)
@@ -341,6 +190,7 @@ const showImportModal = ref(false)
 const showHistoryModal = ref(false)
 const historyData = ref(null)
 const importData = ref('')
+const themeStore = useThemeStore()
 
 const categoryConfig = {
   system: { label: 'System', icon: '⚙️' },
@@ -386,9 +236,37 @@ const currentCategoryData = computed(() => {
   return availableCategories.value.find(c => c.name === activeCategory.value) || {}
 })
 
-// Computed: Settings for Current Category
-const currentCategorySettings = computed(() => {
-  return configSettings.value.filter(s => s.category === activeCategory.value)
+// Computed: Settings for Current Category (Grouped)
+const groupedSettings = computed(() => {
+  const settings = configSettings.value.filter(s => s.category === activeCategory.value)
+  const groups = { 'General': [] }
+
+  settings.forEach(setting => {
+    const parts = setting.key.split('.')
+    // Assuming format: category.group.key or just category.key
+    // If parts.length > 2, grouping is the second part.
+    // E.g. ai.generation.timeout -> group 'Generation'
+    // E.g. ai.provider -> group 'General'
+    
+    if (parts.length > 2) {
+      // Capitalize first letter
+      const groupName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).replace(/_/g, ' ')
+      
+      if (!groups[groupName]) {
+        groups[groupName] = []
+      }
+      groups[groupName].push(setting)
+    } else {
+      groups['General'].push(setting)
+    }
+  })
+
+  // Filter out empty General group if not needed, or just return as is
+  if (groups['General'].length === 0) {
+    delete groups['General']
+  }
+  
+  return groups
 })
 
 // Computed: Global Search Results
@@ -410,6 +288,12 @@ const startEdit = (setting) => {
   editingSetting.value = setting.key
   if (setting.type === 'boolean') {
     editValue.value = setting.value === true || setting.value === 'true'
+  } else if (setting.type === 'json') {
+    try {
+      editValue.value = JSON.parse(setting.value)
+    } catch (e) {
+      editValue.value = setting.value // Fallback to raw string
+    }
   } else {
     editValue.value = setting.value
   }
@@ -424,13 +308,23 @@ const saveSetting = async (setting) => {
   configError.value = ''
   configSuccess.value = ''
   
+  let valToSave = editValue.value
+  if (setting.type === 'json' && typeof editValue.value === 'object') {
+    valToSave = JSON.stringify(editValue.value)
+  }
+
   try {
-    await adminAPI.updateSetting(setting.key, editValue.value)
+    await adminAPI.updateSetting(setting.key, valToSave)
     configSuccess.value = `Updated ${setting.key}`
     
     // Update local state
     const idx = configSettings.value.findIndex(s => s.key === setting.key)
-    if (idx !== -1) configSettings.value[idx].value = editValue.value
+    if (idx !== -1) configSettings.value[idx].value = valToSave
+    
+    // Refresh theme if UI setting
+    if (setting.category === 'ui') {
+        await themeStore.initializeTheme()
+    }
     
     editingSetting.value = null
     setTimeout(() => configSuccess.value = '', 3000)
@@ -451,6 +345,14 @@ const viewHistory = async (key) => {
   } catch (err) {
     configError.value = 'Failed to load change history'
   }
+}
+
+const scrollToGroup = (groupName) => {
+    const id = 'group-' + groupName.replace(/\s+/g, '-').toLowerCase()
+    const element = document.getElementById(id)
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
 }
 
 const exportConfiguration = async () => {
@@ -481,6 +383,20 @@ const importConfiguration = async () => {
     setTimeout(() => configSuccess.value = '', 3000)
   } catch (err) {
     configError.value = `Failed to import`
+  }
+}
+
+// Handler for ConfigImportModal
+const handleImportData = async (jsonString) => {
+  try {
+    const data = JSON.parse(jsonString)
+    await adminAPI.importSettings(data)
+    configSuccess.value = 'Configuration imported successfully'
+    showImportModal.value = false
+    loadConfiguration()
+    setTimeout(() => configSuccess.value = '', 3000)
+  } catch (err) {
+    configError.value = 'Failed to import configuration'
   }
 }
 
@@ -640,7 +556,29 @@ onMounted(() => {
 }
 .category-tab.active .category-count {
   background: #667eea;
+  background: #667eea;
   color: white;
+}
+.category-submenu {
+    padding: 0.25rem 0 0.5rem 2.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.submenu-item {
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: 0.85rem;
+    color: #4a5568;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+.submenu-item:hover {
+    color: #667eea;
+    background: #edf2f7;
 }
 
 /* Content Area */
@@ -751,7 +689,7 @@ onMounted(() => {
   right: 1rem;
   display: flex;
   gap: 0.5rem;
-  background: white;
+  background: transparent;
   padding-left: 0.5rem;
 }
 .btn-icon {
@@ -827,6 +765,90 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   cursor: pointer;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  background: #f8f9fa;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+.checkbox-item:hover {
+  background: #f0f2f5;
+  border-color: #d0d0d0;
+}
+.checkbox-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #444;
+}
+
+/* Pipeline List */
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+.pipeline-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+.pipeline-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+.pipeline-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+.btn-icon-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 1rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.btn-icon-sm:hover:not(:disabled) {
+  opacity: 1;
+  background: #eee;
+  border-radius: 4px;
+}
+.btn-icon-sm:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+/* Configuration Groups */
+.settings-group-wrapper {
+  margin-bottom: 2rem;
+}
+.group-header {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #edf2f7;
+  font-weight: 600;
 }
 .toggle-slider {
   width: 44px;

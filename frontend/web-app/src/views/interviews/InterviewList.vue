@@ -96,7 +96,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { interviewAPI, candidateAPI, vacancyAPI, userAPI } from '../../services/api'
 import InterviewModal from './InterviewModal.vue'
+import { useFormat } from '../../composables/useFormat.js'
 
+const { formatDateTime } = useFormat()
 const interviews = ref([])
 const loading = ref(false)
 const currentTab = ref('upcoming')
@@ -202,13 +204,7 @@ const handleCreated = () => {
   fetchInterviews()
 }
 
-const formatDateTime = (datetime) => {
-  const date = new Date(datetime)
-  return date.toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short'
-  })
-}
+// formatDateTime is now imported from composable
 
 const getCandidateName = (interview) => {
     return candidates.value[interview.candidate_id] || `Candidate #${interview.candidate_id}`
@@ -252,6 +248,7 @@ onMounted(() => {
   font-weight: 800;
   background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0;
   letter-spacing: -0.02em;
@@ -391,6 +388,27 @@ onMounted(() => {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.5);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  background: white;
+  color: #4a5568;
+  padding: 0.875rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
 }
 
 .loading, .empty-state {

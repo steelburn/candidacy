@@ -184,8 +184,92 @@ pull:
 	@echo "✅ Images updated"
 
 status:
-	@echo "📊 Service Status:"
-	@docker compose ps
+	@echo ""
+	@echo "╔══════════════════════════════════════════════════════════════════════════════╗"
+	@echo "║                    📊 Candidacy Platform - Service Status                    ║"
+	@echo "╚══════════════════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@# Define color codes and check services
+	@GREEN=$$'\033[0;32m'; RED=$$'\033[0;31m'; YELLOW=$$'\033[0;33m'; CYAN=$$'\033[0;36m'; NC=$$'\033[0m'; BOLD=$$'\033[1m'; \
+	\
+	check_service() { \
+		local name="$$1"; \
+		local container="$$2"; \
+		local port="$$3"; \
+		local status=$$(docker inspect -f '{{.State.Running}}' $$container 2>/dev/null); \
+		if [ "$$status" = "true" ]; then \
+			printf "  %b●%b %-28s %bonline%b   %s\n" "$$GREEN" "$$NC" "$$name" "$$GREEN" "$$NC" "$$port"; \
+		else \
+			printf "  %b○%b %-28s %boffline%b\n" "$$RED" "$$NC" "$$name" "$$RED" "$$NC"; \
+		fi; \
+	}; \
+	\
+	printf "%b%b🔧 Infrastructure%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "MySQL" "candidacy-mysql" ":3306"; \
+	check_service "Redis" "candidacy-redis" ":6379"; \
+	check_service "Ollama (Local AI)" "candidacy-ollama" ":11434"; \
+	echo ""; \
+	\
+	printf "%b%b🌐 Gateway & Frontends%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "API Gateway" "candidacy-gateway" "http://localhost:8080"; \
+	check_service "Main Frontend (HR)" "candidacy-frontend" "http://localhost:3001"; \
+	check_service "Applicant Portal" "candidacy-applicant-frontend" "http://localhost:5173"; \
+	echo ""; \
+	\
+	printf "%b%b🔐 Core Services%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "Auth Service" "candidacy-auth" ":8081"; \
+	check_service "Candidate Service" "candidacy-candidate" ":8082"; \
+	check_service "Vacancy Service" "candidacy-vacancy" ":8083"; \
+	check_service "Matching Service" "candidacy-matching" ":8085"; \
+	check_service "AI Service" "candidacy-ai" ":8084"; \
+	echo ""; \
+	\
+	printf "%b%b📋 Support Services%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "Interview Service" "candidacy-interview" ":8086"; \
+	check_service "Offer Service" "candidacy-offer" ":8087"; \
+	check_service "Onboarding Service" "candidacy-onboarding" ":8088"; \
+	check_service "Reporting Service" "candidacy-reporting" ":8089"; \
+	check_service "Admin Service" "candidacy-admin" ":8090"; \
+	check_service "Notification Service" "candidacy-notification" ":8091"; \
+	check_service "Document Parser" "candidacy-document-parser" ":8095"; \
+	echo ""; \
+	\
+	printf "%b%b⚙️  Queue Workers%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "Candidate Queue Worker" "candidacy-candidate-worker" ""; \
+	check_service "Matching Queue Worker" "candidacy-matching-worker" ""; \
+	check_service "Document Parser Worker" "candidacy-document-parser-worker" ""; \
+	check_service "Notification Worker" "candidacy-notification-worker" ""; \
+	echo ""; \
+	\
+	printf "%b%b📈 Monitoring & Logging%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "Grafana" "candidacy-grafana" "http://localhost:3050"; \
+	check_service "Loki" "candidacy-loki" ":3100"; \
+	check_service "Promtail" "candidacy-promtail" ""; \
+	echo ""; \
+	\
+	printf "%b%b🛠️  Development Tools%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
+	echo "  ─────────────────────────────────────────────────────"; \
+	check_service "Mailpit" "candidacy-mailpit" "http://localhost:8025"; \
+	check_service "Cloudflare Tunnel" "candidacy-cloudflared" ""; \
+	echo ""; \
+	\
+	ONLINE=$$(docker ps --format '{{.Names}}' | grep -c 'candidacy-' 2>/dev/null || echo 0); \
+	TOTAL=27; \
+	echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	if [ "$$ONLINE" -eq "$$TOTAL" ]; then \
+		printf "  %b%b✅ All services online (%d/%d)%b\n" "$$GREEN" "$$BOLD" "$$ONLINE" "$$TOTAL" "$$NC"; \
+	elif [ "$$ONLINE" -eq 0 ]; then \
+		printf "  %b%b❌ All services offline (%d/%d)%b\n" "$$RED" "$$BOLD" "$$ONLINE" "$$TOTAL" "$$NC"; \
+	else \
+		printf "  %b%b⚠️  Partial status: %d/%d services online%b\n" "$$YELLOW" "$$BOLD" "$$ONLINE" "$$TOTAL" "$$NC"; \
+	fi; \
+	echo ""
 
 logs:
 	docker compose logs -f

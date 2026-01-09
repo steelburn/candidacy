@@ -132,18 +132,377 @@ body.dark-mode {
 
 body.dark-mode .card {
   background: var(--bg-primary);
+  border-color: var(--color-gray-200);
 }
 
 body.dark-mode th {
   background: var(--color-gray-100);
+  color: var(--text-secondary);
+  border-bottom-color: var(--color-gray-200);
 }
 
 body.dark-mode td {
   border-bottom-color: var(--color-gray-200);
+  color: var(--text-primary);
 }
 
 body.dark-mode tr:hover {
   background: var(--color-gray-100);
+}
+
+/* Dark mode - Form Elements */
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus {
+  border-color: var(--color-primary);
+  outline-color: var(--color-primary);
+}
+
+/* Dark mode - Buttons */
+body.dark-mode button {
+  color: var(--text-primary);
+}
+
+body.dark-mode .btn-secondary,
+body.dark-mode button.btn-secondary {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-200);
+  color: var(--text-primary);
+}
+
+body.dark-mode .btn-secondary:hover {
+  background: var(--color-gray-200);
+}
+
+/* Dark mode - Links */
+body.dark-mode a {
+  color: var(--color-primary-light);
+}
+
+body.dark-mode a:hover {
+  color: var(--color-primary);
+}
+
+/* Dark mode - Code blocks */
+body.dark-mode code {
+  background-color: var(--color-gray-100);
+  color: var(--color-primary-light);
+}
+
+body.dark-mode pre {
+  background-color: var(--color-gray-100);
+  color: var(--text-primary);
+}
+
+/* Dark mode - Modals */
+body.dark-mode .modal-content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+body.dark-mode .modal-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Dark mode - Settings Cards */
+body.dark-mode .setting-card {
+  background: var(--bg-primary);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode .setting-key {
+  color: var(--color-primary-light);
+  background: var(--color-gray-100);
+}
+
+body.dark-mode .setting-desc {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .setting-value-display {
+  background: var(--color-gray-100);
+}
+
+/* Dark mode - Sidebar */
+body.dark-mode .config-sidebar,
+body.dark-mode .sidebar {
+  background: var(--bg-primary);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode .category-tab,
+body.dark-mode .nav-item {
+  color: var(--text-primary);
+}
+
+body.dark-mode .category-tab:hover,
+body.dark-mode .nav-item:hover {
+  background: var(--color-gray-100);
+}
+
+body.dark-mode .category-tab.active,
+body.dark-mode .nav-item.active {
+  background: var(--color-gray-100);
+  color: var(--color-primary-light);
+}
+
+/* Dark mode - Headers and Navigation */
+body.dark-mode .config-header-bar,
+body.dark-mode .view-header,
+body.dark-mode .header {
+  background: var(--bg-primary);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: var(--text-primary);
+}
+
+/* Dark mode - Badges */
+body.dark-mode .badge {
+  background: var(--color-gray-100);
+  color: var(--text-secondary);
+}
+
+/* Dark mode - Toast and Alerts */
+body.dark-mode .toast-success {
+  background: var(--color-success-dark);
+}
+
+/* Dark mode - Config Content */
+body.dark-mode .config-content {
+  background: var(--bg-secondary);
+}
+
+body.dark-mode .group-header {
+  color: var(--text-primary);
+  border-bottom-color: var(--color-gray-200);
+}
+
+/* Dark mode - Search */
+body.dark-mode .search-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--color-gray-200);
+}
+
+/* Dark mode - Dropdowns and Select */
+body.dark-mode .select-input {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Dark mode - Toggle Switch */
+body.dark-mode .toggle-slider {
+  background-color: var(--color-gray-200);
+}
+
+body.dark-mode .toggle-label {
+  color: var(--text-secondary);
+}
+
+/* Dark mode - History Items */
+body.dark-mode .history-item {
+  background: var(--color-gray-100);
+  border-left-color: var(--color-primary);
+}
+
+body.dark-mode .history-date {
+  color: var(--text-primary);
+}
+
+body.dark-mode .history-user {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .history-value code {
+  background: var(--color-gray-200);
+  color: var(--text-primary);
+}
+
+/* Dark mode - Admin Pages (.tab-content based) */
+body.dark-mode .tab-content {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary);
+}
+
+body.dark-mode .tab-content h2,
+body.dark-mode .tab-content h3 {
+  color: var(--text-primary);
+}
+
+body.dark-mode .health-grid .health-card {
+  background: var(--color-gray-100) !important;
+  border-left-color: var(--color-primary);
+}
+
+body.dark-mode .health-header h3 {
+  color: var(--text-primary);
+}
+
+body.dark-mode .health-details p,
+body.dark-mode .health-details strong {
+  color: var(--text-primary);
+}
+
+body.dark-mode .section {
+  background: var(--bg-primary);
+}
+
+body.dark-mode .section h3,
+body.dark-mode .section-header h3 {
+  color: var(--text-primary);
+}
+
+body.dark-mode .section-desc {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .provider-card,
+body.dark-mode .instance-item {
+  background: var(--color-gray-100) !important;
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode .provider-card h4,
+body.dark-mode .provider-name {
+  color: var(--text-primary);
+}
+
+body.dark-mode .provider-card p,
+body.dark-mode .provider-card .provider-type,
+body.dark-mode .instance-info span {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .chains-container {
+  background: var(--bg-primary);
+}
+
+body.dark-mode .chain-card {
+  background: var(--color-gray-100) !important;
+  border-color: var(--color-gray-200) !important;
+}
+
+body.dark-mode .chain-header,
+body.dark-mode .chain-name {
+  color: var(--text-primary);
+}
+
+body.dark-mode .chain-block {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode .chain-title {
+  color: var(--text-primary);
+}
+
+body.dark-mode .chain-item,
+body.dark-mode .chain-items .chain-item,
+body.dark-mode .fallback-item {
+  background: var(--bg-primary) !important;
+  border-color: var(--color-gray-200) !important;
+  color: var(--text-primary);
+}
+
+body.dark-mode .priority-badge {
+  background: var(--color-primary);
+  color: white;
+}
+
+body.dark-mode .provider-select,
+body.dark-mode .model-input {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--color-gray-200) !important;
+}
+
+body.dark-mode .chain-actions .btn-add,
+body.dark-mode .btn-sm.btn-add {
+  background: var(--color-gray-100);
+  color: var(--text-primary);
+  border-color: var(--color-gray-200);
+}
+
+/* Dark mode - User Management & CV Jobs */
+body.dark-mode .user-card,
+body.dark-mode .job-card,
+body.dark-mode .cv-job-item {
+  background: var(--color-gray-100) !important;
+  border-color: var(--color-gray-200);
+}
+
+body.dark-mode .user-card h4,
+body.dark-mode .job-card h4 {
+  color: var(--text-primary);
+}
+
+body.dark-mode .user-card p,
+body.dark-mode .job-card p {
+  color: var(--text-secondary);
+}
+
+/* Dark mode - General Admin Loading/Error States */
+body.dark-mode .loading {
+  color: var(--text-secondary);
+}
+
+body.dark-mode .error {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+body.dark-mode .success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+/* Dark mode - AI Header & Sections */
+body.dark-mode .ai-header h2 {
+  color: var(--text-primary);
+}
+
+body.dark-mode .save-section {
+  background: var(--bg-secondary);
+  border-color: var(--color-gray-200);
+}
+
+/* Dark mode - Form Groups in Modals */
+body.dark-mode .form-group label {
+  color: var(--text-primary);
+}
+
+body.dark-mode .form-group input,
+body.dark-mode .form-group select,
+body.dark-mode .form-group textarea {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--color-gray-200);
 }
 
 /* App container - removed center alignment for dashboard layout */

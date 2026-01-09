@@ -85,10 +85,8 @@ class ProviderManager
                     ['url' => $instance->base_url]
                 );
                 
-                // Don't override default providers with same name
-                if (!isset($this->providers[$instance->name])) {
-                    $this->providers[$instance->name] = new $class($config);
-                }
+                // Allow overriding default providers with DB config
+                $this->providers[$instance->name] = new $class($config);
             }
         } catch (\Exception $e) {
             Log::debug("Could not load custom provider instances: {$e->getMessage()}");

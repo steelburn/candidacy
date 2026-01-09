@@ -26,21 +26,27 @@ class PdfParserService
     
     public function extractText(string $path): array
     {
-        if ($this->useDocling) {
+        $pipeline = \Shared\Services\ConfigurationService::get('document_parser.pdf_pipeline', '["granite-docling", "smalot-pdfparser"]');
+        $pipeline = is_string($pipeline) ? json_decode($pipeline, true) : $pipeline;
+
+        foreach ($pipeline as $parserName) {
             try {
-                Log::info('Attempting PDF extraction with Granite Docling', [
-                    'path' => $path,
-                    'model' => $this->model
-                ]);
+                if ($parserName === 'granite-docling') {
+                    Log::info('Attempting PDF extraction with Granite Docling', ['path' => $path]);
+                    return $this->extractWithDocling($path);
+                }
                 
-                return $this->extractWithDocling($path);
+                if ($parserName === 'smalot-pdfparser') {
+                    Log::info('Attempting PDF extraction with Basic Parser', ['path' => $path]);
+                    return $this->extractWithBasicParser($path);
+                }
             } catch (\Exception $e) {
-                Log::error('Granite Docling failed, falling back to basic parser', ['error' => $e->getMessage()]);
-                // Fallback continues below
+                Log::warning("Parser {$parserName} failed, trying next", ['error' => $e->getMessage()]);
+                continue;
             }
         }
         
-        return $this->extractWithBasicParser($path);
+        throw new \Exception('All PDF parsers failed');
     }
     
     private function extractWithDocling(string $path): array

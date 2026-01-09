@@ -1,5 +1,9 @@
 <template>
-  <aside class="sidebar" :class="{ collapsed: isCollapsed }">
+  <aside 
+    class="sidebar" 
+    :class="{ collapsed: isCollapsed }"
+    :style="{ width: isCollapsed ? '64px' : themeStore.sidebarWidth }"
+  >
     <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">
@@ -90,6 +94,9 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/useThemeStore'
+
+const themeStore = useThemeStore()
 
 const props = defineProps({
   isCollapsed: {

@@ -13,7 +13,18 @@ class ParserController extends Controller
 {
     public function parse(Request $request)
     {
-        $validator = Validator::make($request->all(), ['file' => 'required|file|mimes:pdf,doc,docx|max:20480']);
+        $supportedTypes = \Shared\Services\ConfigurationService::get('document_parser.supported_types', '{"pdf": true, "docx": true, "doc": true, "txt": true}');
+        $types = is_string($supportedTypes) ? json_decode($supportedTypes, true) : $supportedTypes;
+        
+        $allowedMimes = [];
+        if ($types['pdf'] ?? false) $allowedMimes[] = 'pdf';
+        if ($types['docx'] ?? false) $allowedMimes[] = 'docx';
+        if ($types['doc'] ?? false) $allowedMimes[] = 'doc';
+        if ($types['txt'] ?? false) $allowedMimes[] = 'txt';
+        
+        $mimesRule = implode(',', $allowedMimes);
+
+        $validator = Validator::make($request->all(), ['file' => "required|file|mimes:{$mimesRule}|max:20480"]);
         if ($validator->fails()) return response()->json(['errors' => $validator->errors()], 422);
 
         try {
