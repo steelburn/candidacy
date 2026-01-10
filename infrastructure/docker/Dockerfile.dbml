@@ -16,5 +16,8 @@ COPY package.json package-lock.json* ./
 # Install dependencies
 RUN npm install
 
+# Update PATH to include node_modules binaries
+ENV PATH="/workspace/node_modules/.bin:${PATH}"
+
 # Default command
 CMD ["bash"]
