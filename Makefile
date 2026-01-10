@@ -212,9 +212,9 @@ status:
 	\
 	printf "%b%b🔧 Infrastructure%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
 	echo "  ─────────────────────────────────────────────────────"; \
-	check_service "MySQL" "candidacy-mysql" ":3306"; \
-	check_service "Redis" "candidacy-redis" ":6379"; \
-	check_service "Ollama (Local AI)" "candidacy-ollama" ":11535"; \
+	check_service "MySQL" "candidacy-mysql" ""; \
+	check_service "Redis" "candidacy-redis" ""; \
+	check_service "Ollama (Local AI)" "candidacy-ollama" ""; \
 	echo ""; \
 	\
 	printf "%b%b🌐 Gateway & Frontends%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
@@ -226,22 +226,22 @@ status:
 	\
 	printf "%b%b🔐 Core Services%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
 	echo "  ─────────────────────────────────────────────────────"; \
-	check_service "Auth Service" "candidacy-auth" ":8081"; \
-	check_service "Candidate Service" "candidacy-candidate" ":8082"; \
-	check_service "Vacancy Service" "candidacy-vacancy" ":8083"; \
-	check_service "Matching Service" "candidacy-matching" ":8085"; \
-	check_service "AI Service" "candidacy-ai" ":8084"; \
+	check_service "Auth Service" "candidacy-auth" ""; \
+	check_service "Candidate Service" "candidacy-candidate" ""; \
+	check_service "Vacancy Service" "candidacy-vacancy" ""; \
+	check_service "Matching Service" "candidacy-matching" ""; \
+	check_service "AI Service" "candidacy-ai" ""; \
 	echo ""; \
 	\
 	printf "%b%b📋 Support Services%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
 	echo "  ─────────────────────────────────────────────────────"; \
-	check_service "Interview Service" "candidacy-interview" ":8086"; \
-	check_service "Offer Service" "candidacy-offer" ":8087"; \
-	check_service "Onboarding Service" "candidacy-onboarding" ":8088"; \
-	check_service "Reporting Service" "candidacy-reporting" ":8089"; \
+	check_service "Interview Service" "candidacy-interview" ""; \
+	check_service "Offer Service" "candidacy-offer" ""; \
+	check_service "Onboarding Service" "candidacy-onboarding" ""; \
+	check_service "Reporting Service" "candidacy-reporting" ""; \
 	check_service "Admin Service" "candidacy-admin" ""; \
-	check_service "Notification Service" "candidacy-notification" ":8091"; \
-	check_service "Document Parser" "candidacy-document-parser" ":8095"; \
+	check_service "Notification Service" "candidacy-notification" ""; \
+	check_service "Document Parser" "candidacy-document-parser" ""; \
 	echo ""; \
 	\
 	printf "%b%b⚙️  Queue Workers%b\n" "$$CYAN" "$$BOLD" "$$NC"; \

@@ -26,8 +26,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: candidacy
-    ports:
-      - "3306:3306"
+
     volumes:
       - mysql_data:/var/lib/mysql
       - ./infrastructure/mysql/init:/docker-entrypoint-initdb.d
@@ -38,8 +37,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: candidacy-redis
-    ports:
-      - "6379:6379"
+
     networks:
       - candidacy-network
 
@@ -47,8 +45,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: candidacy-ollama
-    ports:
-      - "11535:11434"
+
     volumes:
       - ollama_data:/root/.ollama
     networks:
@@ -91,8 +88,7 @@ services:
         SERVICE_DIR: services/auth-service
     container_name: candidacy-auth
     user: "1000:1000"
-    ports:
-      - "8081:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -116,8 +112,7 @@ services:
         SERVICE_DIR: services/candidate-service
     container_name: candidacy-candidate
     user: "1000:1000"
-    ports:
-      - "8082:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -177,8 +172,7 @@ services:
         SERVICE_DIR: services/document-parser-service
     container_name: candidacy-document-parser
     user: "1000:1000"
-    ports:
-      - "8095:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -236,8 +230,7 @@ services:
         SERVICE_DIR: services/vacancy-service
     container_name: candidacy-vacancy
     user: "1000:1000"
-    ports:
-      - "8083:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -262,15 +255,13 @@ services:
         SERVICE_DIR: services/ai-service
     container_name: candidacy-ai
     user: "1000:1000"
-    ports:
-      - "8084:8080"
     environment:
       <<: *laravel-env
       LOG_CHANNEL: stderr
       DB_HOST: mysql
       DB_DATABASE: candidacy_ai
       # OLLAMA_URL: http://ollama:11434
-      OLLAMA_URL: http://192.168.88.120:11535
+      OLLAMA_URL: http://candidacy-ollama:11434
       OLLAMA_MODEL: granite3.3:2b
       REDIS_HOST: redis
     volumes:
@@ -291,8 +282,7 @@ services:
         SERVICE_DIR: services/matching-service
     container_name: candidacy-matching
     user: "1000:1000"
-    ports:
-      - "8085:8080"
+
     environment:
       <<: *laravel-env
       LOG_CHANNEL: stderr
@@ -354,8 +344,7 @@ services:
         SERVICE_DIR: services/interview-service
     container_name: candidacy-interview
     user: "1000:1000"
-    ports:
-      - "8086:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -379,8 +368,7 @@ services:
         SERVICE_DIR: services/offer-service
     container_name: candidacy-offer
     user: "1000:1000"
-    ports:
-      - "8087:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -404,8 +392,7 @@ services:
         SERVICE_DIR: services/onboarding-service
     container_name: candidacy-onboarding
     user: "1000:1000"
-    ports:
-      - "8088:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -429,8 +416,7 @@ services:
         SERVICE_DIR: services/reporting-service
     container_name: candidacy-reporting
     user: "1000:1000"
-    ports:
-      - "8089:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -478,8 +464,7 @@ services:
         SERVICE_DIR: services/notification-service
     container_name: candidacy-notification
     user: "1000:1000"
-    ports:
-      - "8091:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -586,8 +571,7 @@ services:
   loki:
     image: grafana/loki:3.0.0
     container_name: candidacy-loki
-    ports:
-      - "3100:3100"
+
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./infrastructure/logging/loki-config.yml:/etc/loki/local-config.yaml
@@ -645,7 +629,7 @@ services:
     image: axllent/mailpit:latest
     container_name: candidacy-mailpit
     ports:
-      - "1025:1025" # SMTP
+
       - "8025:8025" # Web UI
     networks:
       - candidacy-network
