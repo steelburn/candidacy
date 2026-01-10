@@ -98,8 +98,11 @@ setup:
 	@echo "📋 Step 1/6: Setting up environment..."
 	@bash scripts/setup-env.sh
 	@echo ""
-	@echo "📋 Step 2/6: Building base Docker image..."
+	@echo "📋 Step 2/6: Building Docker images..."
+	@echo "   • Building base image..."
 	@docker build -f infrastructure/docker/Dockerfile.base -t candidacy-base:latest .
+	@echo "   • Building service images..."
+	@docker compose build
 	@echo ""
 	@echo "📋 Step 3/6: Starting MySQL and Redis..."
 	@docker compose up -d mysql redis
@@ -175,7 +178,10 @@ restart:
 
 build:
 	@echo "🔨 Rebuilding all containers..."
-	docker compose build
+	@echo "   • Building base image first..."
+	@docker build -f infrastructure/docker/Dockerfile.base -t candidacy-base:latest .
+	@echo "   • Building service images..."
+	@docker compose build
 	@echo "✅ Build complete"
 
 pull:

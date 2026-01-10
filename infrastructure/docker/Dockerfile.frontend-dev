@@ -1,0 +1,19 @@
+# Centralized Dockerfile for Vue.js frontends (development mode)
+# Usage: Build with APP_DIR arg pointing to frontend directory
+FROM node:20-alpine
+
+ARG APP_DIR=.
+
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY ${APP_DIR}/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy application files
+COPY ${APP_DIR} .
+
+EXPOSE 3000
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

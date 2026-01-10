@@ -59,8 +59,10 @@ services:
     # API Gateway
   api-gateway:
     build:
-      context: ./gateway/api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: gateway/api-gateway
     container_name: candidacy-gateway
     user: "1000:1000"
     ports:
@@ -83,8 +85,10 @@ services:
   # Auth Service
   auth-service:
     build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/auth-service
     container_name: candidacy-auth
     user: "1000:1000"
     ports:
@@ -106,8 +110,10 @@ services:
   # Candidate Service
   candidate-service:
     build:
-      context: ./services/candidate-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/candidate-service
     container_name: candidacy-candidate
     user: "1000:1000"
     ports:
@@ -134,8 +140,10 @@ services:
   # Candidate Queue Worker
   candidate-queue-worker:
     build:
-      context: ./services/candidate-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/candidate-service
     container_name: candidacy-candidate-worker
     user: "1000:1000"
     environment:
@@ -163,8 +171,10 @@ services:
   # Document Parser Service
   document-parser-service:
     build:
-      context: ./services/document-parser-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/document-parser-service
     container_name: candidacy-document-parser
     user: "1000:1000"
     ports:
@@ -189,8 +199,10 @@ services:
   # Document Parser Worker
   document-parser-worker:
     build:
-      context: ./services/document-parser-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/document-parser-service
     container_name: candidacy-document-parser-worker
     user: "1000:1000"
     environment:
@@ -218,8 +230,10 @@ services:
   # Vacancy Service
   vacancy-service:
     build:
-      context: ./services/vacancy-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/vacancy-service
     container_name: candidacy-vacancy
     user: "1000:1000"
     ports:
@@ -242,8 +256,10 @@ services:
   # AI Service
   ai-service:
     build:
-      context: ./services/ai-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/ai-service
     container_name: candidacy-ai
     user: "1000:1000"
     ports:
@@ -269,8 +285,10 @@ services:
   # Matching Service
   matching-service:
     build:
-      context: ./services/matching-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/matching-service
     container_name: candidacy-matching
     user: "1000:1000"
     ports:
@@ -298,8 +316,10 @@ services:
   # Matching Queue Worker
   matching-queue-worker:
     build:
-      context: ./services/matching-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/matching-service
     container_name: candidacy-matching-worker
     user: "1000:1000"
     environment:
@@ -328,8 +348,10 @@ services:
   # Interview Service
   interview-service:
     build:
-      context: ./services/interview-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/interview-service
     container_name: candidacy-interview
     user: "1000:1000"
     ports:
@@ -351,8 +373,10 @@ services:
   # Offer Service
   offer-service:
     build:
-      context: ./services/offer-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/offer-service
     container_name: candidacy-offer
     user: "1000:1000"
     ports:
@@ -374,8 +398,10 @@ services:
   # Onboarding Service
   onboarding-service:
     build:
-      context: ./services/onboarding-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/onboarding-service
     container_name: candidacy-onboarding
     user: "1000:1000"
     ports:
@@ -397,8 +423,10 @@ services:
   # Reporting Service
   reporting-service:
     build:
-      context: ./services/reporting-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/reporting-service
     container_name: candidacy-reporting
     user: "1000:1000"
     ports:
@@ -420,8 +448,10 @@ services:
   # Admin Service
   admin-service:
     build:
-      context: ./services/admin-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/admin-service
     container_name: candidacy-admin
     user: "1000:1000"
     ports:
@@ -443,8 +473,10 @@ services:
   # Notification Service
   notification-service:
     build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/notification-service
     container_name: candidacy-notification
     user: "1000:1000"
     ports:
@@ -477,8 +509,10 @@ services:
   # Notification Queue Worker
   notification-queue-worker:
     build:
-      context: ./services/notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/notification-service
     container_name: candidacy-notification-worker
     user: "1000:1000"
     environment:
@@ -512,8 +546,10 @@ services:
   # Frontend
   frontend:
     build:
-      context: ./frontend/web-app
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend-dev
+      args:
+        APP_DIR: frontend/web-app
     container_name: candidacy-frontend
     ports:
       - "3001:3000"
@@ -530,8 +566,10 @@ services:
   # Applicant Frontend
   applicant-frontend:
     build:
-      context: ./frontend/applicant-web-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend-dev
+      args:
+        APP_DIR: frontend/applicant-web-app
     container_name: candidacy-applicant-frontend
     ports:
       - "5173:3000"

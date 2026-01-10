@@ -1,0 +1,17 @@
+# Centralized Dockerfile for all Laravel microservices
+# Usage: Build with SERVICE_DIR arg pointing to service directory
+FROM candidacy-base:latest
+
+ARG SERVICE_DIR=.
+
+# Copy application files
+COPY ${SERVICE_DIR} /var/www/html
+
+# Install PHP dependencies (--ignore-platform-reqs for services with mixed PHP version deps)
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+EXPOSE 8080
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
