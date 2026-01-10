@@ -255,7 +255,7 @@ status:
 	printf "%b%b📈 Monitoring & Logging%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
 	echo "  ─────────────────────────────────────────────────────"; \
 	check_service "Grafana" "candidacy-grafana" "http://localhost:3050"; \
-	check_service "Loki" "candidacy-loki" ":3100"; \
+	check_service "Loki" "candidacy-loki" ""; \
 	check_service "Promtail" "candidacy-promtail" ""; \
 	echo ""; \
 	\
