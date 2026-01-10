@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+Route::get('/onboarding/health', [HealthController::class, 'check']);
 use App\Http\Controllers\Api\OnboardingController;
 Route::get('/candidates/{candidateId}/onboarding', [OnboardingController::class, 'index']);
 Route::post('/onboarding', [OnboardingController::class, 'store']);

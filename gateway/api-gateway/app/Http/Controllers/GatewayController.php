@@ -15,6 +15,7 @@ class GatewayController extends Controller
         'matches' => 'matching-service',
         'interviews' => 'interview-service',
         'offers' => 'offer-service',
+        'onboarding' => 'onboarding-service',
         'admin' => 'admin-service',
         'settings' => 'admin-service', // Admin service handles settings
         'system-health' => 'admin-service', // Admin service handles system health
@@ -30,6 +31,7 @@ class GatewayController extends Controller
         'discuss-question' => 'ai-service', // AI service handles question discussions
         'generate-questions-screening' => 'ai-service',
         'providers' => 'ai-service', // AI provider management
+        'ai' => 'ai-service',
     ];
 
     public function handle(Request $request, $path)

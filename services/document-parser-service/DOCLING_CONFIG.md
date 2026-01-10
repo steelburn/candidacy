@@ -15,7 +15,7 @@ Add these to your `.env` file:
 USE_GRANITE_DOCLING=true
 
 # Ollama Configuration
-OLLAMA_URL=http://192.168.88.120:11434
+OLLAMA_URL=http://192.168.88.120:11535
 GRANITE_DOCLING_MODEL=ibm/granite-docling:258m
 
 # Performance Tuning
@@ -28,7 +28,7 @@ DOCLING_IMAGE_RESOLUTION=150    # Image resolution for PDF conversion (default: 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `USE_GRANITE_DOCLING` | `true` | Enable/disable Granite Docling parsing |
-| `OLLAMA_URL` | `http://192.168.88.120:11434` | Ollama API endpoint |
+| `OLLAMA_URL` | `http://192.168.88.120:11535` | Ollama API endpoint |
 | `GRANITE_DOCLING_MODEL` | `ibm/granite-docling:258m` | Model to use |
 | `DOCLING_TIMEOUT` | `60` | API request timeout (seconds) |
 | `DOCLING_IMAGE_RESOLUTION` | `150` | PDF-to-image resolution (DPI) |
@@ -129,7 +129,7 @@ The service includes automatic memory cleanup:
 ### Issue: Always Using Fallback
 
 **Check:**
-1. Ollama service is running: `curl http://192.168.88.120:11434/api/tags`
+1. Ollama service is running: `curl http://192.168.88.120:11535/api/tags`
 2. Model is loaded: `ollama list | grep granite-docling`
 3. Network connectivity to Ollama server
 4. Check logs for specific error messages

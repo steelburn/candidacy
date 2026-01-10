@@ -383,7 +383,7 @@ The Admin panel provides a comprehensive configuration management system with se
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `ai.provider` | AI provider: ollama or openrouter | ollama |
-| `ai.ollama.url` | Ollama API endpoint URL | http://192.168.88.120:11434 |
+| `ai.ollama.url` | Ollama API endpoint URL | http://192.168.88.120:11535 |
 | `ai.ollama.model.default` | Default Ollama model for general AI tasks | mistral |
 | `ai.ollama.model.matching` | Model for candidate-vacancy matching | llama3.2:3b |
 | `ai.ollama.model.cv_parsing` | Model for CV parsing | llama3.2 |

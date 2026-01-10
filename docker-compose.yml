@@ -48,7 +48,7 @@ services:
     image: ollama/ollama:latest
     container_name: candidacy-ollama
     ports:
-      - "11434:11434"
+      - "11535:11434"
     volumes:
       - ollama_data:/root/.ollama
     networks:
@@ -66,7 +66,7 @@ services:
     container_name: candidacy-gateway
     user: "1000:1000"
     ports:
-      - "8080:8080"
+      - "9080:8080"
     environment:
       <<: *laravel-env
       DB_HOST: mysql
@@ -270,7 +270,7 @@ services:
       DB_HOST: mysql
       DB_DATABASE: candidacy_ai
       # OLLAMA_URL: http://ollama:11434
-      OLLAMA_URL: http://192.168.88.120:11434
+      OLLAMA_URL: http://192.168.88.120:11535
       OLLAMA_MODEL: granite3.3:2b
       REDIS_HOST: redis
     volumes:
@@ -552,9 +552,9 @@ services:
         APP_DIR: frontend/web-app
     container_name: candidacy-frontend
     ports:
-      - "3001:3000"
+      - "3501:3000"
     environment:
-      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:8080}
+      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}
     volumes:
       - ./frontend/web-app:/app
       - /app/node_modules
@@ -574,7 +574,7 @@ services:
     ports:
       - "5173:3000"
     environment:
-      - VITE_API_BASE_URL=${PUBLIC_API_URL:-http://localhost:8080/api}
+      - VITE_API_BASE_URL=${PUBLIC_API_URL:-http://localhost:9080/api}
     volumes:
       - ./frontend/applicant-web-app:/app
       - /app/node_modules

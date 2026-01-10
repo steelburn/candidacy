@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+Route::get('/vacancies/health', [HealthController::class, 'check']);
 use App\Http\Controllers\Api\VacancyController;
 Route::apiResource('vacancies', VacancyController::class);
 Route::get('/vacancies/metrics/stats', [VacancyController::class, 'metrics']);

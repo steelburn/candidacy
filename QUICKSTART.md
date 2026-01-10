@@ -212,7 +212,7 @@ The configuration management interface features search, filtering by category, a
 
 **AI Settings:**
 - **AI Provider**: Choose between Ollama (local) or OpenRouter (cloud)
-- **Ollama URL**: Configure Ollama instance (default: http://192.168.88.120:11434)
+- **Ollama URL**: Configure Ollama instance (default: http://192.168.88.120:11535)
 - **AI Models**: Configure separate models for matching, CV parsing, and general tasks
 - **Generation Parameters**: Timeout, temperature, and context length
 

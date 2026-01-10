@@ -12,8 +12,8 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
 // First-time setup routes (only work when no users exist)
-Route::get('/setup/check', [AuthController::class, 'setupCheck']);
-Route::post('/setup/create-admin', [AuthController::class, 'createFirstAdmin']);
+Route::get('/auth/setup/check', [AuthController::class, 'setupCheck']);
+Route::post('/auth/setup/create-admin', [AuthController::class, 'createFirstAdmin']);
 
 // Protected routes - using auth:api for JWT authentication
 Route::middleware('auth:api')->group(function () {
@@ -34,3 +34,4 @@ Route::middleware('auth:api')->group(function () {
 
 // Health check
 Route::get('/health', [HealthController::class, 'check']);
+Route::get('/auth/health', [HealthController::class, 'check']);

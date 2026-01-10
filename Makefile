@@ -84,9 +84,9 @@ help:
 	@echo "  make status         - Show status of all services"
 	@echo ""
 	@echo "🌐 Access Points:"
-	@echo "  Main Frontend (HR/Recruiter): http://localhost:3001"
+	@echo "  Main Frontend (HR/Recruiter): http://localhost:3501"
 	@echo "  Applicant Portal:             http://localhost:5173"
-	@echo "  API Gateway:                  http://localhost:8080"
+	@echo "  API Gateway:                  http://localhost:9080"
 	@echo "  Grafana (Monitoring):         http://localhost:3050"
 	@echo ""
 
@@ -129,9 +129,9 @@ setup:
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "🌐 Access Points:"
-	@echo "  • Main Frontend (HR/Recruiter): http://localhost:3001"
+	@echo "  • Main Frontend (HR/Recruiter): http://localhost:3501"
 	@echo "  • Applicant Portal:             http://localhost:5173"
-	@echo "  • API Gateway:                  http://localhost:8080"
+	@echo "  • API Gateway:                  http://localhost:9080"
 	@echo "  • Admin API:                    http://localhost:8090"
 	@echo "  • Grafana (Monitoring):         http://localhost:3050 (admin/admin)"
 	@echo ""
@@ -159,9 +159,9 @@ up:
 	@echo "✅ All services started!"
 	@echo ""
 	@echo "🌐 Access Points:"
-	@echo "  Main Frontend:    http://localhost:3001"
+	@echo "  Main Frontend:    http://localhost:3501"
 	@echo "  Applicant Portal: http://localhost:5173"
-	@echo "  API Gateway:      http://localhost:8080"
+	@echo "  API Gateway:      http://localhost:9080"
 	@echo "  Grafana:          http://localhost:3050 (admin/admin)"
 	@echo ""
 	@echo "📊 Run 'make logs' to view logs or 'make status' to check service health"
@@ -214,13 +214,13 @@ status:
 	echo "  ─────────────────────────────────────────────────────"; \
 	check_service "MySQL" "candidacy-mysql" ":3306"; \
 	check_service "Redis" "candidacy-redis" ":6379"; \
-	check_service "Ollama (Local AI)" "candidacy-ollama" ":11434"; \
+	check_service "Ollama (Local AI)" "candidacy-ollama" ":11535"; \
 	echo ""; \
 	\
 	printf "%b%b🌐 Gateway & Frontends%b\n" "$$CYAN" "$$BOLD" "$$NC"; \
 	echo "  ─────────────────────────────────────────────────────"; \
-	check_service "API Gateway" "candidacy-gateway" "http://localhost:8080"; \
-	check_service "Main Frontend (HR)" "candidacy-frontend" "http://localhost:3001"; \
+	check_service "API Gateway" "candidacy-gateway" "http://localhost:9080"; \
+	check_service "Main Frontend (HR)" "candidacy-frontend" "http://localhost:3501"; \
 	check_service "Applicant Portal" "candidacy-applicant-frontend" "http://localhost:5173"; \
 	echo ""; \
 	\

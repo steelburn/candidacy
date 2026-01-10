@@ -11,6 +11,8 @@ Log::info('Candidate Service: Request hit api.php', [
     'method' => request()->method()
 ]);
 
+Route::get('/candidates/health', [HealthController::class, 'check']);
+
 // Candidate routes
 Route::post('/candidates/parse-cv', [CandidateController::class, 'parseCv']);
 Route::get('/candidates/cv-parsing/{id}/status', [CandidateController::class, 'getCvParsingStatus']);
@@ -38,3 +40,4 @@ Route::get('/portal/dashboard', [CandidateController::class, 'getPortalData']);
 Route::get('/candidates/jobs/{id}', [CandidateController::class, 'getJobStatus']);
 // Health check
 Route::get('/health', [HealthController::class, 'check']);
+

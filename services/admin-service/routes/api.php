@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', [HealthController::class, 'check']);
+Route::get('/admin/health', [HealthController::class, 'check']);
 
 Route::middleware('api')->group(function () {
     // Settings routes

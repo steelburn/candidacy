@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+Route::get('/reports/health', [HealthController::class, 'check']);
 use App\Http\Controllers\Api\ReportController;
 
 Route::get('/reports/candidates', [ReportController::class, 'candidateMetrics']);

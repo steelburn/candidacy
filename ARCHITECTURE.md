@@ -16,7 +16,7 @@ graph TB
     end
     
     subgraph "Gateway Layer"
-        GW[API Gateway<br/>Laravel 10 - Port 8080]
+        GW[API Gateway<br/>Laravel 10 - Port 9080]
     end
     
     subgraph "Microservices Layer"

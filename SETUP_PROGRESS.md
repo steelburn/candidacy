@@ -15,22 +15,22 @@
 - ✅ admin-service (port 8090)
 - ✅ notification-service (port 8091)
 - ✅ document-parser-service (port 8092)
-- ✅ api-gateway (port 8080)
+- ✅ api-gateway (port 9080)
 - ✅ MySQL database (port 3306)
 - ✅ Redis (port 6379)
 - ✅ Ollama (AI model server)
-- ✅ Main frontend (port 3001)
+- ✅ Main frontend (port 3501)
 - ✅ Applicant frontend (port 5173)
 - ✅ Monitoring stack (Loki/Grafana)
 
 ## Access Your Services
 
-- **Main Frontend (HR/Recruiter)**: http://localhost:3001
+- **Main Frontend (HR/Recruiter)**: http://localhost:3501
 - **Applicant Portal**: http://localhost:5173
-- **API Gateway**: http://localhost:8080
+- **API Gateway**: http://localhost:9080
 - **Grafana Monitoring**: http://localhost:3050 (admin/admin)
 - **Individual Services**: http://localhost:8081-8092
-- **Unified Health**: http://localhost:8080/api/system-health
+- **Unified Health**: http://localhost:9080/api/system-health
 
 ## Core Features Implemented
 

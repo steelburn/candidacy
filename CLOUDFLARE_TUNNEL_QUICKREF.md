@@ -50,9 +50,9 @@ https://ne1-candidacy.comulo.app
 - **Grafana**: https://ne1-candidacy.comulo.app/grafana
 
 ### Local Access (Development)
-- **Main Dashboard**: http://localhost:3001
+- **Main Dashboard**: http://localhost:3501
 - **Applicant Portal**: http://localhost:5173
-- **API Gateway**: http://localhost:8080
+- **API Gateway**: http://localhost:9080
 - **Grafana**: http://localhost:3050
 
 ---

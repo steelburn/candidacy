@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\NotificationController;
 
 // Health check
 Route::get('/health', [HealthController::class, 'check']);
+Route::get('/notifications/health', [HealthController::class, 'check']);
 
 // Notification sending
 Route::post('/notifications', [NotificationController::class, 'send']);

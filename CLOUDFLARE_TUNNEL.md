@@ -224,9 +224,9 @@ Once the tunnel is running, you can access your application at:
 ### Local Access Still Works
 
 Your application is still accessible locally:
-- **Main Dashboard**: http://localhost:3001
+- **Main Dashboard**: http://localhost:3501
 - **Applicant Portal**: http://localhost:5173
-- **API Gateway**: http://localhost:8080
+- **API Gateway**: http://localhost:9080
 
 ## Troubleshooting
 
@@ -256,7 +256,7 @@ Your application is still accessible locally:
    ```
 2. Check if the frontend service is healthy:
    ```bash
-   curl http://localhost:3001
+   curl http://localhost:3501
    ```
 3. Verify the tunnel configuration points to the correct service names
 

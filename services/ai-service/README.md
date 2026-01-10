@@ -36,7 +36,7 @@ Settings are managed via the **Admin Service** and can be adjusted in the HR Das
 | Setting | Description | Default |
 |---------|-------------|--------|
 | `ai.provider` | `ollama` or `openrouter` | ollama |
-| `ai.ollama.url` | URL of the Ollama server | http://192.168.88.120:11434 |
+| `ai.ollama.url` | URL of the Ollama server | http://192.168.88.120:11535 |
 | `ai.ollama.model.default` | Default model for general tasks | mistral |
 | `ai.ollama.model.matching` | Dedicated matching model | llama3.2:3b |
 | `ai.generation.timeout` | Generation timeout (seconds) | 300 |

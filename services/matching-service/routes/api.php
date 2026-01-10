@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+Route::get('/matches/health', [HealthController::class, 'check']);
 use App\Http\Controllers\Api\MatchController;
 Route::get('/matches/candidates/{id}', [MatchController::class, 'matchCandidateToVacancies']);
 Route::get('/matches/vacancies/{id}', [MatchController::class, 'matchVacancyToCandidates']);

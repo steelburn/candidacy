@@ -156,7 +156,7 @@ This creates the default admin user:
 
 ### Frontend Login Flow
 ```javascript
-const response = await axios.post('http://localhost:8080/api/auth/login', {
+const response = await axios.post('http://localhost:9080/api/auth/login', {
   email: 'admin@candidacy.com',
   password: 'password123'
 });
@@ -167,7 +167,7 @@ const token = response.data.token;
 
 ### Authenticated Requests
 ```javascript
-axios.get('http://localhost:8080/api/auth/me', {
+axios.get('http://localhost:9080/api/auth/me', {
   headers: {
     'Authorization': `Bearer ${token}`
   }

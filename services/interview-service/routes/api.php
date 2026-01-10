@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
+Route::get('/interviews/health', [HealthController::class, 'check']);
 use App\Http\Controllers\Api\InterviewController;
 Route::apiResource('interviews', InterviewController::class);
 Route::post('/interviews/{id}/feedback', [InterviewController::class, 'addFeedback']);

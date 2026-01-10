@@ -45,9 +45,9 @@ make seed         # Seed sample data
 
 # Access the application
 # Local Access:
-# Main Frontend (HR/Recruiter): http://localhost:3001
+# Main Frontend (HR/Recruiter): http://localhost:3501
 # Applicant Portal: http://localhost:5173
-# API Gateway: http://localhost:8080
+# API Gateway: http://localhost:9080
 # Grafana (Monitoring): http://localhost:3050 (admin/admin)
 #
 # Public Access (via Cloudflare Tunnel - optional):
@@ -206,7 +206,7 @@ All services expose health check endpoints:
 
 ```bash
 # Check service health
-curl http://localhost:8080/api/system-health
+curl http://localhost:9080/api/system-health
 ```
 
 ## 📊 Quality & Maintenance
@@ -297,7 +297,7 @@ curl http://localhost:8080/api/system-health
 - Check database connectivity if health checks fail
 
 **Service Communication**
-- All inter-service communication goes through API Gateway (port 8080)
+- All inter-service communication goes through API Gateway (port 9080)
 - Services use internal Docker network names (e.g., `auth-service:8080`)
 - Gateway maps routes to appropriate services
 

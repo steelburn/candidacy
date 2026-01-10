@@ -145,7 +145,7 @@ curl -X PUT http://localhost:8090/api/settings/ai.provider \
 
 #### Via Admin UI
 
-1. Login to main frontend: http://localhost:3001
+1. Login to main frontend: http://localhost:3501
 2. Navigate to **Admin** → **Settings**
 3. Browse by category or search
 4. Edit values with specialized controls (color pickers, dropdowns, sliders)
@@ -201,7 +201,7 @@ curl -X PUT http://localhost:8090/api/settings/app.company_name \
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `ai.ollama.url` | `http://192.168.88.120:11434` | Ollama API endpoint |
+| `ai.ollama.url` | `http://192.168.88.120:11535` | Ollama API endpoint |
 | `ai.ollama.model.default` | `mistral` | Default model |
 | `ai.ollama.model.matching` | `llama3.2:3b` | Matching model |
 | `ai.ollama.model.cv_parsing` | `llama3.2` | CV parsing model |
@@ -497,7 +497,7 @@ docker compose exec admin-service php artisan cache:clear
 curl http://localhost:8090/api/settings?category=ai | jq
 
 # 2. Verify Ollama is accessible
-curl http://192.168.88.120:11434/api/tags
+curl http://192.168.88.120:11535/api/tags
 
 # 3. Check AI service logs
 make logs-ai
@@ -633,6 +633,6 @@ Content-Type: application/json
 **Total Configuration Settings**: 50+ settings across 9 categories
 
 **Access Points**:
-- Admin UI: http://localhost:3001/admin/settings
+- Admin UI: http://localhost:3501/admin/settings
 - API: http://localhost:8090/api/settings
 - Grafana: http://localhost:3050 (monitoring)

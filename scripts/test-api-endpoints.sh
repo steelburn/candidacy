@@ -18,7 +18,7 @@ echo "╚═══════════════════════�
 echo ""
 
 # Configuration
-API_GATEWAY="http://localhost:8080"
+API_GATEWAY="http://localhost:9080"
 AUTH_TOKEN=""
 
 # Test counters

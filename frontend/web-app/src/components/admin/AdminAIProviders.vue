@@ -124,7 +124,7 @@
         </div>
         <div class="form-group">
           <label>Base URL</label>
-          <input v-model="newInstance.base_url" type="url" placeholder="http://192.168.1.100:11434" />
+          <input v-model="newInstance.base_url" type="url" placeholder="http://192.168.88.120:11535" />
         </div>
         <div class="form-group">
           <label>Default Model</label>
@@ -219,7 +219,7 @@ const loadProviders = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await fetch('http://localhost:8080/api/providers')
+    const response = await fetch('http://localhost:9080/api/providers')
     if (response.ok) {
       const data = await response.json()
       if (data.providers) providers.value = data.providers
@@ -270,7 +270,7 @@ const handleSave = () => {
 const updateInstance = async () => {
   error.value = ''
   try {
-    const response = await fetch(`http://localhost:8080/api/providers/${editingId.value}`, {
+    const response = await fetch(`http://localhost:9080/api/providers/${editingId.value}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -296,7 +296,7 @@ const updateInstance = async () => {
 const addInstance = async () => {
   error.value = ''
   try {
-    const response = await fetch('http://localhost:8080/api/providers', {
+    const response = await fetch('http://localhost:9080/api/providers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -321,7 +321,7 @@ const addInstance = async () => {
 const deleteInstance = async (id) => {
   if (!confirm('Delete this provider instance?')) return
   try {
-    const response = await fetch(`http://localhost:8080/api/providers/${id}`, {
+    const response = await fetch(`http://localhost:9080/api/providers/${id}`, {
       method: 'DELETE'
     })
     if (response.ok) {
@@ -338,7 +338,7 @@ const fetchModels = async () => {
   fetchingModels.value = true
   availableModels.value = []
   try {
-    const response = await fetch('http://localhost:8080/api/providers/models', {
+    const response = await fetch('http://localhost:9080/api/providers/models', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -371,7 +371,7 @@ const saveChains = async () => {
   error.value = ''
   success.value = ''
   try {
-    const response = await fetch('http://localhost:8080/api/providers/chains', {
+    const response = await fetch('http://localhost:9080/api/providers/chains', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chains: serviceChains.value })

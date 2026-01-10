@@ -13,6 +13,7 @@ Route::post('/generate-questions-screening', [AiController::class, 'generateScre
 Route::post('/discuss-question', [AiController::class, 'discussQuestion']);
 // Health check
 Route::get('/health', [HealthController::class, 'check']);
+Route::get('/ai/health', [HealthController::class, 'check']);
 
 // Metrics
 use App\Http\Controllers\Api\MetricsController;
