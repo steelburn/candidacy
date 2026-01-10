@@ -454,8 +454,7 @@ services:
         SERVICE_DIR: services/admin-service
     container_name: candidacy-admin
     user: "1000:1000"
-    ports:
-      - "8090:8080"
+
     environment:
       <<: *laravel-env
       DB_HOST: mysql

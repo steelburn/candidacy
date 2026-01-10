@@ -132,7 +132,7 @@ setup:
 	@echo "  • Main Frontend (HR/Recruiter): http://localhost:3501"
 	@echo "  • Applicant Portal:             http://localhost:5173"
 	@echo "  • API Gateway:                  http://localhost:9080"
-	@echo "  • Admin API:                    http://localhost:8090"
+
 	@echo "  • Grafana (Monitoring):         http://localhost:3050 (admin/admin)"
 	@echo ""
 	@echo "📊 What was set up:"
@@ -146,7 +146,7 @@ setup:
 	@echo ""
 	@echo "📚 Next Steps:"
 	@echo "  • View logs:           make logs"
-	@echo "  • View configuration:  curl http://localhost:8090/api/settings | jq"
+	@echo "  • View configuration:  curl http://localhost:9080/api/admin/settings | jq"
 	@echo "  • Seed more data:      make seed"
 	@echo "  • Update config:       See CONFIGURATION.md"
 	@echo "  • Documentation:       See README.md"
@@ -239,7 +239,7 @@ status:
 	check_service "Offer Service" "candidacy-offer" ":8087"; \
 	check_service "Onboarding Service" "candidacy-onboarding" ":8088"; \
 	check_service "Reporting Service" "candidacy-reporting" ":8089"; \
-	check_service "Admin Service" "candidacy-admin" ":8090"; \
+	check_service "Admin Service" "candidacy-admin" ""; \
 	check_service "Notification Service" "candidacy-notification" ":8091"; \
 	check_service "Document Parser" "candidacy-document-parser" ":8095"; \
 	echo ""; \
