@@ -22,7 +22,8 @@ return [
     'allowed_origins' => array_filter([
         'http://localhost:3001',
         'http://localhost:3002',
-        'http://localhost:5173',
+        'http://localhost:3501',  // Main frontend (HR/Recruiter)
+        'http://localhost:5173',  // Applicant portal
         env('PUBLIC_DOMAIN') ? 'https://' . env('PUBLIC_DOMAIN') : null,
     ]),
 
