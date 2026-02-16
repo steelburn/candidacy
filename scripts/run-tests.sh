@@ -14,6 +14,11 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
+# Load environment variables if .env exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Test results tracking
 INTEGRATION_PASSED=false
 BACKEND_PASSED=false

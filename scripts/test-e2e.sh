@@ -12,13 +12,19 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Load environment variables if .env exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║        End-to-End Testing - Candidacy Platform                ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
 # Configuration
-API_GATEWAY="http://localhost:8080"
+API_GATEWAY="${PUBLIC_API_URL:-http://localhost:8080}"
+echo "Using API Gateway: $API_GATEWAY"
 AUTH_TOKEN=""
 CANDIDATE_ID=""
 VACANCY_ID=""
@@ -70,6 +76,29 @@ api_call() {
     
     eval $curl_cmd
 }
+
+if [ -n "$PUBLIC_DOMAIN" ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Workflow 0: Public Domain Connectivity"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Step 1: Check main domain
+    echo -n "Step 1: Checking https://$PUBLIC_DOMAIN... "
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    DOMAIN_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$PUBLIC_DOMAIN")
+    
+    if [ "$DOMAIN_STATUS" = "200" ]; then
+         echo -e "${GREEN}✅ PASS${NC}"
+         PASSED_TESTS=$((PASSED_TESTS + 1))
+    else
+         echo -e "${RED}❌ FAIL${NC} (Status: $DOMAIN_STATUS)"
+         FAILED_TESTS=$((FAILED_TESTS + 1))
+         echo "      Note: Ensure Cloudflare Tunnel is running (make tunnel-up)"
+    fi
+    
+    echo ""
+fi
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Workflow 1: User Authentication and Setup"

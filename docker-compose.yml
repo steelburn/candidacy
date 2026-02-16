@@ -563,6 +563,7 @@ services:
       - "3501:3000"
     environment:
       - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
     volumes:
       - ./frontend/web-app:/app
       - /app/node_modules
@@ -582,7 +583,8 @@ services:
     ports:
       - "5173:3000"
     environment:
-      - VITE_API_BASE_URL=${PUBLIC_API_URL:-http://localhost:9080/api}
+      - VITE_API_BASE_URL=${PUBLIC_API_URL:-http://localhost:9080}/api
+      - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
     volumes:
       - ./frontend/applicant-web-app:/app
       - /app/node_modules
@@ -636,7 +638,7 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: candidacy-cloudflared
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate run --protocol http2
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     networks:

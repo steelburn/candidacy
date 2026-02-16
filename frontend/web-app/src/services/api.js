@@ -137,7 +137,14 @@ export const aiAPI = {
         job_requirements: jobRequirements
     }),
     discussQuestion: (data) => api.post('/api/discuss-question', data),
-    generateScreeningQuestions: (data) => api.post('/api/generate-questions-screening', data)
+    generateScreeningQuestions: (data) => api.post('/api/generate-questions-screening', data),
+    // Provider Management
+    getProviders: () => api.get('/api/providers'),
+    createProvider: (data) => api.post('/api/providers', data),
+    updateProvider: (id, data) => api.put(`/api/providers/${id}`, data),
+    deleteProvider: (id) => api.delete(`/api/providers/${id}`),
+    getModels: (data) => api.post('/api/providers/models', data),
+    saveChains: (chains) => api.post('/api/providers/chains', { chains })
 }
 
 // Matching API

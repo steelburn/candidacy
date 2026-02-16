@@ -156,14 +156,15 @@ class ProvidersController extends Controller
             'display_name' => 'nullable|string', // Only for custom
         ]);
 
-        // Case 1: Custom Instance (Numeric ID)
         if (is_numeric($id)) {
             $instance = AIProvider::find($id);
-            if (!$instance) {
-                return response()->json(['error' => 'Instance not found'], 404);
-            }
+        } else {
+            // Also check by name, as frontend might send name for custom instances that appear in provider list
+            $instance = AIProvider::where('name', $id)->first();
+        }
 
-            $updateData = [];
+        if ($instance) {
+             $updateData = [];
             if ($request->has('display_name')) $updateData['display_name'] = $validated['display_name'];
             if ($request->has('base_url')) $updateData['base_url'] = $validated['base_url'];
             
@@ -249,6 +250,8 @@ class ProvidersController extends Controller
             'api_key' => 'nullable|string',
             'base_url' => 'nullable|string',
         ]);
+        
+
 
         $config = [];
 

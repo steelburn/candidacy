@@ -12,13 +12,19 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Load environment variables if .env exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║           API Endpoint Testing - Candidacy Platform            ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
 # Configuration
-API_GATEWAY="http://localhost:9080"
+API_GATEWAY="${PUBLIC_API_URL:-http://localhost:9080}"
+echo "Using API Gateway: $API_GATEWAY"
 AUTH_TOKEN=""
 
 # Test counters

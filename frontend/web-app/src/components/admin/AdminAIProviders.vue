@@ -46,6 +46,7 @@
           <div class="instance-info">
             <span class="instance-name">{{ instance.name }}</span>
             <span class="instance-type">{{ instance.type }}</span>
+            <span v-if="instance.config && instance.config.model" class="instance-model" title="Selected Model">📦 {{ instance.config.model }}</span>
             <span v-if="instance.hasApiKey" class="key-badge-sm" title="API Key Configured">🔑</span>
             <span class="instance-url">{{ instance.baseUrl }}</span>
           </div>
@@ -129,14 +130,17 @@
         <div class="form-group">
           <label>Default Model</label>
           <div class="input-with-btn">
-            <input v-model="newInstance.model" type="text" placeholder="mistral" list="available-models" />
+            <select v-if="availableModels.length > 0" v-model="newInstance.model" style="flex: 1;">
+              <option value="" disabled>Select a model</option>
+              <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+            </select>
+            <input v-else v-model="newInstance.model" type="text" placeholder="mistral" style="flex: 1;" />
+            
+            <button v-if="availableModels.length > 0" @click="availableModels = []" class="btn-secondary" title="Switch to manual entry">✏️</button>
             <button @click="fetchModels" class="btn-secondary btn-icon-text" :disabled="fetchingModels" title="Fetch available models">
               {{ fetchingModels ? '⏳' : '🔄 Fetch' }}
             </button>
           </div>
-          <datalist id="available-models">
-            <option v-for="m in availableModels" :key="m" :value="m" />
-          </datalist>
         </div>
         <div class="modal-actions">
           <button @click="closeModal" class="btn-secondary">Cancel</button>
@@ -151,6 +155,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { aiAPI } from '../../services/api'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -219,13 +224,11 @@ const loadProviders = async () => {
   loading.value = true
   error.value = ''
   try {
-    const response = await fetch('http://localhost:9080/api/providers')
-    if (response.ok) {
-      const data = await response.json()
-      if (data.providers) providers.value = data.providers
-      if (data.instances) instances.value = data.instances
-      if (data.chains) serviceChains.value = data.chains
-    }
+    const response = await aiAPI.getProviders()
+    const data = response.data
+    if (data.providers) providers.value = data.providers
+    if (data.instances) instances.value = data.instances
+    if (data.chains) serviceChains.value = data.chains
   } catch (err) {
     console.log('Using default provider configuration', err)
   } finally {
@@ -242,7 +245,8 @@ const openEditModal = (item) => {
     display_name: item.displayName || item.display_name, // Handle inconsistent naming
     type: item.type,
     base_url: item.baseUrl || item.base_url || '',
-    model: item.defaultModel || item.model || '',
+    base_url: item.baseUrl || item.base_url || '',
+    model: item.defaultModel || item.model || item.config?.model || '',
     api_key: '', // Don't show existing API keys for security, but allow overwrite
     hasApiKey: item.hasApiKey,
     isDefault: item.isDefault || false,
@@ -270,65 +274,44 @@ const handleSave = () => {
 const updateInstance = async () => {
   error.value = ''
   try {
-    const response = await fetch(`http://localhost:9080/api/providers/${editingId.value}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newInstance.value,
-        config: { model: newInstance.value.model }
-      })
+    await aiAPI.updateProvider(editingId.value, {
+      ...newInstance.value,
+      config: { model: newInstance.value.model }
     })
     
-    if (response.ok) {
-      success.value = 'Instance updated successfully!'
-      closeModal()
-      loadProviders()
-      setTimeout(() => success.value = '', 3000)
-    } else {
-      const data = await response.json()
-      error.value = data.message || 'Failed to update instance'
-    }
+    success.value = 'Instance updated successfully!'
+    closeModal()
+    loadProviders()
+    setTimeout(() => success.value = '', 3000)
   } catch (err) {
-    error.value = 'Failed to update instance: ' + err.message
+    error.value = err.response?.data?.message || 'Failed to update instance: ' + err.message
   }
 }
 
 const addInstance = async () => {
   error.value = ''
   try {
-    const response = await fetch('http://localhost:9080/api/providers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newInstance.value,
-        config: { model: newInstance.value.model }
-      })
+    await aiAPI.createProvider({
+      ...newInstance.value,
+      config: { model: newInstance.value.model }
     })
-    if (response.ok) {
-      success.value = 'Instance added successfully!'
-      closeModal()
-      loadProviders()
-      setTimeout(() => success.value = '', 3000)
-    } else {
-      const data = await response.json()
-      error.value = data.message || 'Failed to add instance'
-    }
+    
+    success.value = 'Instance added successfully!'
+    closeModal()
+    loadProviders()
+    setTimeout(() => success.value = '', 3000)
   } catch (err) {
-    error.value = 'Failed to add instance: ' + err.message
+    error.value = err.response?.data?.message || 'Failed to add instance: ' + err.message
   }
 }
 
 const deleteInstance = async (id) => {
   if (!confirm('Delete this provider instance?')) return
   try {
-    const response = await fetch(`http://localhost:9080/api/providers/${id}`, {
-      method: 'DELETE'
-    })
-    if (response.ok) {
-      success.value = 'Instance deleted'
-      loadProviders()
-      setTimeout(() => success.value = '', 3000)
-    }
+    await aiAPI.deleteProvider(id)
+    success.value = 'Instance deleted'
+    loadProviders()
+    setTimeout(() => success.value = '', 3000)
   } catch (err) {
     error.value = 'Failed to delete instance'
   }
@@ -338,29 +321,22 @@ const fetchModels = async () => {
   fetchingModels.value = true
   availableModels.value = []
   try {
-    const response = await fetch('http://localhost:9080/api/providers/models', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: newInstance.value.type,
-        id: editingId.value,
-        api_key: newInstance.value.api_key,
-        base_url: newInstance.value.base_url
-      })
+    const response = await aiAPI.getModels({
+      type: newInstance.value.type,
+      id: editingId.value,
+      api_key: newInstance.value.api_key,
+      base_url: newInstance.value.base_url
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      availableModels.value = data.models || []
+    const data = response.data
+    availableModels.value = data.models || []
       if (availableModels.value.length === 0) {
         alert('No models found for this configuration.')
+      } else {
+        alert(`Successfully fetched ${availableModels.value.length} models. Click the model field to select one.`)
       }
-    } else {
-      const data = await response.json()
-      alert('Failed to fetch models: ' + (data.error || 'Unknown error'))
-    }
-  } catch (err) {
-    alert('Failed to fetch models: ' + err.message)
+    } catch (err) {
+    alert('Failed to fetch models: ' + (err.response?.data?.error || err.message))
   } finally {
     fetchingModels.value = false
   }
@@ -371,17 +347,11 @@ const saveChains = async () => {
   error.value = ''
   success.value = ''
   try {
-    const response = await fetch('http://localhost:9080/api/providers/chains', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chains: serviceChains.value })
-    })
-    if (response.ok) {
-      success.value = 'Failover configuration saved!'
-      setTimeout(() => success.value = '', 3000)
-    }
+    await aiAPI.saveChains(serviceChains.value)
+    success.value = 'Failover configuration saved!'
+    setTimeout(() => success.value = '', 3000)
   } catch (err) {
-    error.value = 'Failed to save: ' + err.message
+    error.value = 'Failed to save: ' + (err.response?.data?.message || err.message)
   } finally {
     saving.value = false
   }
@@ -454,6 +424,7 @@ onMounted(loadProviders)
 .instance-name { font-weight: 600; }
 .instance-type { background: #667eea; color: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
 .instance-url { color: #666; font-size: 0.875rem; }
+.instance-model { background: #e0e7ff; color: #4338ca; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-family: monospace; }
 
 /* Chain Cards */
 .chains-container { display: grid; gap: 1rem; }

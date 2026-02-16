@@ -41,23 +41,23 @@ class OllamaProvider extends BaseProvider
     protected function loadSettings(array $config = []): void
     {
         $this->baseUrl = $config['url'] ?? \Shared\Services\ConfigurationService::get(
-            'ai.ollama.url', 
+            'ai.ollama.url',
             env('OLLAMA_URL', 'http://ollama:11434')
         );
         $this->defaultModel = $config['model'] ?? \Shared\Services\ConfigurationService::get(
-            'ai.ollama.model.default', 
+            'ai.ollama.model.default',
             env('OLLAMA_MODEL', 'mistral')
         );
-        $this->timeout = (int) ($config['timeout'] ?? \Shared\Services\ConfigurationService::get(
-            'ai.generation.timeout', 
+        $this->timeout = (int)($config['timeout'] ?? \Shared\Services\ConfigurationService::get(
+            'ai.generation.timeout',
             300
         ));
-        $this->temperature = (float) ($config['temperature'] ?? \Shared\Services\ConfigurationService::get(
-            'ai.generation.temperature', 
+        $this->temperature = (float)($config['temperature'] ?? \Shared\Services\ConfigurationService::get(
+            'ai.generation.temperature',
             0.7
         ));
-        $this->contextLength = (int) ($config['context_length'] ?? \Shared\Services\ConfigurationService::get(
-            'ai.generation.context_length', 
+        $this->contextLength = (int)($config['context_length'] ?? \Shared\Services\ConfigurationService::get(
+            'ai.generation.context_length',
             8192
         ));
     }
@@ -99,7 +99,8 @@ class OllamaProvider extends BaseProvider
         try {
             $response = Http::timeout(5)->get("{$this->baseUrl}/api/tags");
             return $response->successful();
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::warning("Ollama availability check failed: {$e->getMessage()}");
             return false;
         }
@@ -120,20 +121,16 @@ class OllamaProvider extends BaseProvider
     public function listModels(): array
     {
         $cacheKey = 'ollama_models_' . md5($this->baseUrl);
-        
+
         return Cache::remember($cacheKey, 300, function () {
-            try {
-                $response = Http::timeout(10)->get("{$this->baseUrl}/api/tags");
-                
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return array_column($data['models'] ?? [], 'name');
-                }
-            } catch (\Exception $e) {
-                Log::warning("Failed to list Ollama models: {$e->getMessage()}");
+            $response = Http::timeout(10)->get("{$this->baseUrl}/api/tags");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return array_column($data['models'] ?? [], 'name');
             }
-            
-            return [$this->defaultModel];
+
+            throw new \Exception("Failed to fetch models: " . $response->status());
         });
     }
 
@@ -145,9 +142,9 @@ class OllamaProvider extends BaseProvider
         $model = $options['model'] ?? $this->defaultModel;
         $temperature = $options['temperature'] ?? $this->temperature;
         $contextLength = $options['context_length'] ?? $this->contextLength;
-        
+
         $this->logRequestStart($model, strlen($prompt));
-        
+
         return $this->executeWithTiming(function () use ($prompt, $model, $temperature, $contextLength) {
             $response = Http::timeout($this->timeout)->post("{$this->baseUrl}/api/generate", [
                 'model' => $model,
@@ -168,7 +165,7 @@ class OllamaProvider extends BaseProvider
 
             $data = $response->json();
             $content = $data['response'] ?? '';
-            
+
             if (empty($content)) {
                 throw new \Exception("Empty response from Ollama");
             }
@@ -187,14 +184,11 @@ class OllamaProvider extends BaseProvider
     public function getMatchingModel(): string
     {
         return \Shared\Services\ConfigurationService::get(
-            'ai.ollama.model.matching', 
+            'ai.ollama.model.matching',
             $this->defaultModel
         );
     }
 
-    /**
-     * Get questionnaire-specific model name.
-     */
     public function getQuestionnaireModel(): string
     {
         return \Shared\Services\ConfigurationService::get(
