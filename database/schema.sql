@@ -85,6 +85,7 @@ CREATE TABLE `users` (
   `email_verified_at` timestamp,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100),
+  `current_tenant_id` bigint COMMENT 'Currently active tenant for this user session',
   `created_at` timestamp,
   `updated_at` timestamp,
   `deleted_at` timestamp,
@@ -156,6 +157,7 @@ CREATE TABLE `failed_jobs` (
 
 CREATE TABLE `candidates` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `name` varchar(255),
   `email` varchar(255),
   `phone` varchar(255),
@@ -279,6 +281,7 @@ CREATE TABLE `failed_jobs_parser` (
 
 CREATE TABLE `interviews` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `interviewer_id` bigint,
@@ -312,6 +315,7 @@ CREATE TABLE `interview_feedback` (
 
 CREATE TABLE `matches` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `match_score` int NOT NULL DEFAULT 0,
@@ -357,7 +361,8 @@ CREATE TABLE `failed_jobs_matching` (
 
 CREATE TABLE `notification_templates` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
-  `name` varchar(100) UNIQUE NOT NULL COMMENT 'Unique template identifier',
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table. NULL for system templates',
+  `name` varchar(100) NOT NULL COMMENT 'Unique template identifier',
   `subject` varchar(255) NOT NULL COMMENT 'Email subject with variable placeholders',
   `body` text NOT NULL COMMENT 'Email body content with variable placeholders',
   `type` varchar(50) NOT NULL COMMENT 'interview_scheduled, offer_sent, reminder, etc.',
@@ -369,6 +374,7 @@ CREATE TABLE `notification_templates` (
 
 CREATE TABLE `notification_logs` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `template_id` bigint COMMENT 'Reference to template used, null if direct content',
   `recipient_email` varchar(255) NOT NULL,
   `recipient_name` varchar(255),
@@ -388,6 +394,7 @@ CREATE TABLE `notification_logs` (
 
 CREATE TABLE `offers` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `salary_offered` decimal(12,2) NOT NULL,
@@ -406,6 +413,7 @@ CREATE TABLE `offers` (
 
 CREATE TABLE `onboarding_checklists` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `task_name` varchar(255) NOT NULL,
   `description` text,
@@ -418,8 +426,71 @@ CREATE TABLE `onboarding_checklists` (
   `updated_at` timestamp
 );
 
+CREATE TABLE `tenants` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `uuid` varchar(36) UNIQUE NOT NULL COMMENT 'Public identifier for API use',
+  `name` varchar(255) NOT NULL COMMENT 'Organization display name',
+  `slug` varchar(100) UNIQUE NOT NULL COMMENT 'URL-friendly identifier',
+  `domain` varchar(255) COMMENT 'Custom domain for tenant',
+  `logo_url` varchar(500),
+  `settings` json COMMENT 'Tenant-specific settings and preferences',
+  `subscription_plan` varchar(50) DEFAULT "free" COMMENT 'free, starter, professional, enterprise',
+  `subscription_status` varchar(50) DEFAULT "active" COMMENT 'active, suspended, cancelled, expired',
+  `subscription_ends_at` timestamp,
+  `max_users` int DEFAULT 5 COMMENT 'Maximum users allowed for this tenant',
+  `max_candidates` int DEFAULT 100 COMMENT 'Maximum candidates allowed per month',
+  `max_vacancies` int DEFAULT 10 COMMENT 'Maximum active vacancies',
+  `owner_id` bigint COMMENT 'Logical FK to auth.users - primary account owner',
+  `is_active` boolean NOT NULL DEFAULT true,
+  `created_at` timestamp,
+  `updated_at` timestamp,
+  `deleted_at` timestamp
+);
+
+CREATE TABLE `tenant_users` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL,
+  `user_id` bigint NOT NULL COMMENT 'Logical FK to auth.users',
+  `role` varchar(50) NOT NULL DEFAULT "member" COMMENT 'owner, admin, manager, recruiter, interviewer, member',
+  `permissions` json COMMENT 'Custom permissions override',
+  `is_active` boolean NOT NULL DEFAULT true,
+  `joined_at` timestamp,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `tenant_invitations` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `role` varchar(50) NOT NULL DEFAULT "member",
+  `token` varchar(64) UNIQUE NOT NULL,
+  `invited_by` bigint NOT NULL COMMENT 'Logical FK to auth.users',
+  `message` text COMMENT 'Optional invitation message',
+  `accepted_at` timestamp,
+  `expires_at` timestamp NOT NULL,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
+CREATE TABLE `tenant_api_keys` (
+  `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL,
+  `name` varchar(100) NOT NULL COMMENT 'Friendly name for the API key',
+  `key_prefix` varchar(8) NOT NULL COMMENT 'First 8 chars for identification',
+  `key_hash` varchar(64) NOT NULL COMMENT 'SHA-256 hash of the full key',
+  `scopes` json COMMENT 'Allowed API scopes',
+  `last_used_at` timestamp,
+  `expires_at` timestamp,
+  `created_by` bigint NOT NULL COMMENT 'Logical FK to auth.users',
+  `is_active` boolean NOT NULL DEFAULT true,
+  `created_at` timestamp,
+  `updated_at` timestamp
+);
+
 CREATE TABLE `vacancies` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
   `requirements` text,
@@ -486,17 +557,23 @@ CREATE INDEX `idx_ai_logs_success` ON `ai_request_logs` (`success`);
 
 CREATE INDEX `idx_users_created_at` ON `users` (`created_at`);
 
-CREATE UNIQUE INDEX `role_user_index_13` ON `role_user` (`user_id`, `role_id`);
+CREATE INDEX `idx_users_current_tenant` ON `users` (`current_tenant_id`);
 
-CREATE UNIQUE INDEX `permission_role_index_14` ON `permission_role` (`permission_id`, `role_id`);
+CREATE UNIQUE INDEX `role_user_index_14` ON `role_user` (`user_id`, `role_id`);
+
+CREATE UNIQUE INDEX `permission_role_index_15` ON `permission_role` (`permission_id`, `role_id`);
 
 CREATE INDEX `personal_access_tokens_tokenable` ON `personal_access_tokens` (`tokenable_type`, `tokenable_id`);
+
+CREATE INDEX `idx_candidates_tenant_id` ON `candidates` (`tenant_id`);
 
 CREATE INDEX `idx_candidates_status` ON `candidates` (`status`);
 
 CREATE INDEX `idx_candidates_created_at` ON `candidates` (`created_at`);
 
 CREATE INDEX `idx_candidates_updated_at` ON `candidates` (`updated_at`);
+
+CREATE INDEX `idx_candidates_tenant_status` ON `candidates` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_candidates_status_created` ON `candidates` (`status`, `created_at`);
 
@@ -512,6 +589,8 @@ CREATE INDEX `idx_parse_jobs_status` ON `parse_jobs` (`status`);
 
 CREATE INDEX `idx_parse_jobs_created_at` ON `parse_jobs` (`created_at`);
 
+CREATE INDEX `idx_interviews_tenant_id` ON `interviews` (`tenant_id`);
+
 CREATE INDEX `idx_interviews_candidate_id` ON `interviews` (`candidate_id`);
 
 CREATE INDEX `idx_interviews_vacancy_id` ON `interviews` (`vacancy_id`);
@@ -526,11 +605,15 @@ CREATE INDEX `idx_interviews_scheduled_at` ON `interviews` (`scheduled_at`);
 
 CREATE INDEX `idx_interviews_created_at` ON `interviews` (`created_at`);
 
+CREATE INDEX `idx_interviews_tenant_status` ON `interviews` (`tenant_id`, `status`);
+
 CREATE INDEX `idx_interviews_interviewer_schedule` ON `interviews` (`interviewer_id`, `scheduled_at`);
 
 CREATE INDEX `idx_interviews_candidate_schedule` ON `interviews` (`candidate_id`, `scheduled_at`);
 
 CREATE INDEX `idx_interviews_status_schedule` ON `interviews` (`status`, `scheduled_at`);
+
+CREATE INDEX `idx_matches_tenant_id` ON `matches` (`tenant_id`);
 
 CREATE INDEX `idx_matches_candidate_id` ON `matches` (`candidate_id`);
 
@@ -541,6 +624,8 @@ CREATE INDEX `idx_matches_score` ON `matches` (`match_score`);
 CREATE INDEX `idx_matches_status` ON `matches` (`status`);
 
 CREATE INDEX `idx_matches_created_at` ON `matches` (`created_at`);
+
+CREATE INDEX `idx_matches_tenant_status` ON `matches` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_matches_score_status` ON `matches` (`match_score`, `status`);
 
@@ -554,17 +639,27 @@ CREATE INDEX `idx_matching_job_statuses_status` ON `matching_job_statuses` (`sta
 
 CREATE INDEX `idx_matching_job_statuses_created` ON `matching_job_statuses` (`created_at`);
 
-CREATE INDEX `notification_templates_index_47` ON `notification_templates` (`type`);
+CREATE INDEX `idx_notification_templates_tenant_id` ON `notification_templates` (`tenant_id`);
 
-CREATE INDEX `notification_templates_index_48` ON `notification_templates` (`is_active`);
+CREATE INDEX `notification_templates_index_55` ON `notification_templates` (`type`);
 
-CREATE INDEX `notification_logs_index_49` ON `notification_logs` (`recipient_email`);
+CREATE INDEX `notification_templates_index_56` ON `notification_templates` (`is_active`);
 
-CREATE INDEX `notification_logs_index_50` ON `notification_logs` (`type`);
+CREATE UNIQUE INDEX `notification_templates_tenant_name_unique` ON `notification_templates` (`tenant_id`, `name`);
 
-CREATE INDEX `notification_logs_index_51` ON `notification_logs` (`status`);
+CREATE INDEX `idx_notification_logs_tenant_id` ON `notification_logs` (`tenant_id`);
 
-CREATE INDEX `notification_logs_index_52` ON `notification_logs` (`created_at`);
+CREATE INDEX `notification_logs_index_59` ON `notification_logs` (`recipient_email`);
+
+CREATE INDEX `notification_logs_index_60` ON `notification_logs` (`type`);
+
+CREATE INDEX `notification_logs_index_61` ON `notification_logs` (`status`);
+
+CREATE INDEX `notification_logs_index_62` ON `notification_logs` (`created_at`);
+
+CREATE INDEX `idx_notification_logs_tenant_status` ON `notification_logs` (`tenant_id`, `status`);
+
+CREATE INDEX `idx_offers_tenant_id` ON `offers` (`tenant_id`);
 
 CREATE INDEX `idx_offers_candidate_id` ON `offers` (`candidate_id`);
 
@@ -578,9 +673,51 @@ CREATE INDEX `idx_offers_start_date` ON `offers` (`start_date`);
 
 CREATE INDEX `idx_offers_created_at` ON `offers` (`created_at`);
 
+CREATE INDEX `idx_offers_tenant_status` ON `offers` (`tenant_id`, `status`);
+
 CREATE INDEX `idx_offers_status_expiry` ON `offers` (`status`, `expiry_date`);
 
 CREATE INDEX `idx_offers_candidate_status` ON `offers` (`candidate_id`, `status`);
+
+CREATE INDEX `idx_onboarding_tenant_id` ON `onboarding_checklists` (`tenant_id`);
+
+CREATE INDEX `idx_onboarding_candidate_id` ON `onboarding_checklists` (`candidate_id`);
+
+CREATE INDEX `idx_onboarding_status` ON `onboarding_checklists` (`status`);
+
+CREATE INDEX `idx_onboarding_tenant_status` ON `onboarding_checklists` (`tenant_id`, `status`);
+
+CREATE INDEX `idx_tenants_slug` ON `tenants` (`slug`);
+
+CREATE INDEX `idx_tenants_domain` ON `tenants` (`domain`);
+
+CREATE INDEX `idx_tenants_is_active` ON `tenants` (`is_active`);
+
+CREATE INDEX `idx_tenants_subscription` ON `tenants` (`subscription_status`);
+
+CREATE INDEX `idx_tenants_uuid` ON `tenants` (`uuid`);
+
+CREATE UNIQUE INDEX `tenant_users_unique` ON `tenant_users` (`tenant_id`, `user_id`);
+
+CREATE INDEX `idx_tenant_users_user` ON `tenant_users` (`user_id`);
+
+CREATE INDEX `idx_tenant_users_role` ON `tenant_users` (`role`);
+
+CREATE INDEX `idx_invitations_token` ON `tenant_invitations` (`token`);
+
+CREATE INDEX `idx_invitations_email` ON `tenant_invitations` (`email`);
+
+CREATE INDEX `idx_invitations_expires` ON `tenant_invitations` (`expires_at`);
+
+CREATE INDEX `idx_invitations_tenant_email` ON `tenant_invitations` (`tenant_id`, `email`);
+
+CREATE INDEX `idx_api_keys_prefix` ON `tenant_api_keys` (`key_prefix`);
+
+CREATE UNIQUE INDEX `idx_api_keys_hash` ON `tenant_api_keys` (`key_hash`);
+
+CREATE INDEX `idx_api_keys_tenant` ON `tenant_api_keys` (`tenant_id`);
+
+CREATE INDEX `idx_vacancies_tenant_id` ON `vacancies` (`tenant_id`);
 
 CREATE INDEX `idx_vacancies_status` ON `vacancies` (`status`);
 
@@ -593,6 +730,8 @@ CREATE INDEX `idx_vacancies_employment_type` ON `vacancies` (`employment_type`);
 CREATE INDEX `idx_vacancies_created_at` ON `vacancies` (`created_at`);
 
 CREATE INDEX `idx_vacancies_updated_at` ON `vacancies` (`updated_at`);
+
+CREATE INDEX `idx_vacancies_tenant_status` ON `vacancies` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
 
@@ -617,7 +756,7 @@ ALTER TABLE `ai_service_mappings` COMMENT = 'Service-to-provider mapping with fa
 
 ALTER TABLE `ai_request_logs` COMMENT = 'AI request logging for metrics and debugging';
 
-ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins)';
+ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins). Users can belong to multiple tenants.';
 
 ALTER TABLE `roles` COMMENT = 'User roles: admin, hr_manager, recruiter, interviewer, viewer';
 
@@ -683,6 +822,22 @@ ALTER TABLE `onboarding_checklists` COMMENT = 'Onboarding tasks and checklists f
 Statuses: pending, in_progress, completed
 Logical FK to candidate service';
 
+ALTER TABLE `tenants` COMMENT = 'Organizations/companies using the Candidacy platform.
+Each tenant has complete data isolation.
+Subscription plans control feature access and limits.';
+
+ALTER TABLE `tenant_users` COMMENT = 'User membership in tenants.
+A user can belong to multiple tenants with different roles.
+Role hierarchy: owner > admin > manager > recruiter > interviewer > member';
+
+ALTER TABLE `tenant_invitations` COMMENT = 'Pending invitations to join a tenant.
+Invitations expire after a configurable period (default 7 days).
+Existing users can accept immediately, new users must register first.';
+
+ALTER TABLE `tenant_api_keys` COMMENT = 'API keys for programmatic access to tenant data.
+Keys are hashed and never stored in plain text.
+Scopes control which endpoints the key can access.';
+
 ALTER TABLE `vacancies` COMMENT = 'Job vacancies/positions
 Employment types: full_time, part_time, contract, intern
 Experience levels: entry, mid, senior, lead, executive
@@ -726,6 +881,12 @@ ALTER TABLE `cv_parsing_jobs` ADD FOREIGN KEY (`candidate_id`) REFERENCES `candi
 ALTER TABLE `interview_feedback` ADD FOREIGN KEY (`interview_id`) REFERENCES `interviews` (`id`);
 
 ALTER TABLE `notification_logs` ADD FOREIGN KEY (`template_id`) REFERENCES `notification_templates` (`id`);
+
+ALTER TABLE `tenant_users` ADD FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`);
+
+ALTER TABLE `tenant_invitations` ADD FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`);
+
+ALTER TABLE `tenant_api_keys` ADD FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`);
 
 ALTER TABLE `vacancy_questions` ADD FOREIGN KEY (`vacancy_id`) REFERENCES `vacancies` (`id`);
 

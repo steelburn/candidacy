@@ -1,5 +1,6 @@
 CREATE TABLE `vacancies` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `title` varchar(255) NOT NULL,
   `description` text NOT NULL,
   `requirements` text,
@@ -40,6 +41,8 @@ CREATE TABLE `required_skills` (
   `updated_at` timestamp
 );
 
+CREATE INDEX `idx_vacancies_tenant_id` ON `vacancies` (`tenant_id`);
+
 CREATE INDEX `idx_vacancies_status` ON `vacancies` (`status`);
 
 CREATE INDEX `idx_vacancies_department` ON `vacancies` (`department`);
@@ -51,6 +54,8 @@ CREATE INDEX `idx_vacancies_employment_type` ON `vacancies` (`employment_type`);
 CREATE INDEX `idx_vacancies_created_at` ON `vacancies` (`created_at`);
 
 CREATE INDEX `idx_vacancies_updated_at` ON `vacancies` (`updated_at`);
+
+CREATE INDEX `idx_vacancies_tenant_status` ON `vacancies` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
 

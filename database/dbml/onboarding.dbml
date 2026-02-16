@@ -4,6 +4,7 @@
 
 Table onboarding_checklists {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   task_name varchar(255) [not null]
   description text [null]
@@ -14,6 +15,13 @@ Table onboarding_checklists {
   order int [default: 0, not null]
   created_at timestamp [null]
   updated_at timestamp [null]
+  
+  indexes {
+    tenant_id [name: 'idx_onboarding_tenant_id']
+    candidate_id [name: 'idx_onboarding_candidate_id']
+    status [name: 'idx_onboarding_status']
+    (tenant_id, status) [name: 'idx_onboarding_tenant_status']
+  }
   
   Note: '''
     Onboarding tasks and checklists for new hires

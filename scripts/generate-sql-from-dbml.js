@@ -59,7 +59,8 @@ const services = {
     'onboarding-service': 'candidacy_onboarding',
     'admin-service': 'candidacy_admin',
     'document-parser-service': 'candidacy_document_parser',
-    'notification-service': 'candidacy_notification'
+    'notification-service': 'candidacy_notification',
+    'tenant-service': 'candidacy_tenant'
 };
 
 // Create output directory
@@ -198,6 +199,12 @@ function getDatabaseForTable(tableName, services) {
         'ai_models': 'candidacy_ai',
         'ai_service_mappings': 'candidacy_ai',
         'ai_request_logs': 'candidacy_ai',
+
+        // Tenant service
+        'tenants': 'candidacy_tenant',
+        'tenant_users': 'candidacy_tenant',
+        'tenant_invitations': 'candidacy_tenant',
+        'tenant_api_keys': 'candidacy_tenant',
     };
 
     return tableToDatabase[tableName] || null;

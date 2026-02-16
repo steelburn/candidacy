@@ -4,6 +4,7 @@
 
 Table offers {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   salary_offered decimal(12,2) [not null]
@@ -20,12 +21,14 @@ Table offers {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_offers_tenant_id']
     candidate_id [name: 'idx_offers_candidate_id']
     vacancy_id [name: 'idx_offers_vacancy_id']
     status [name: 'idx_offers_status']
     expiry_date [name: 'idx_offers_expiry_date']
     start_date [name: 'idx_offers_start_date']
     created_at [name: 'idx_offers_created_at']
+    (tenant_id, status) [name: 'idx_offers_tenant_status']
     (status, expiry_date) [name: 'idx_offers_status_expiry']
     (candidate_id, status) [name: 'idx_offers_candidate_status']
   }

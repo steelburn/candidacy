@@ -1,5 +1,6 @@
 CREATE TABLE `matches` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `match_score` int NOT NULL DEFAULT 0,
@@ -43,6 +44,8 @@ CREATE TABLE `failed_jobs_matching` (
   `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
 );
 
+CREATE INDEX `idx_matches_tenant_id` ON `matches` (`tenant_id`);
+
 CREATE INDEX `idx_matches_candidate_id` ON `matches` (`candidate_id`);
 
 CREATE INDEX `idx_matches_vacancy_id` ON `matches` (`vacancy_id`);
@@ -52,6 +55,8 @@ CREATE INDEX `idx_matches_score` ON `matches` (`match_score`);
 CREATE INDEX `idx_matches_status` ON `matches` (`status`);
 
 CREATE INDEX `idx_matches_created_at` ON `matches` (`created_at`);
+
+CREATE INDEX `idx_matches_tenant_status` ON `matches` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_matches_score_status` ON `matches` (`match_score`, `status`);
 

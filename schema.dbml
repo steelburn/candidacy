@@ -255,6 +255,7 @@ Table users {
   email_verified_at timestamp [null]
   password varchar(255) [not null]
   remember_token varchar(100) [null]
+  current_tenant_id bigint [null, note: 'Currently active tenant for this user session']
   created_at timestamp [null]
   updated_at timestamp [null]
   deleted_at timestamp [null]
@@ -262,9 +263,10 @@ Table users {
   
   indexes {
     created_at [name: 'idx_users_created_at']
+    current_tenant_id [name: 'idx_users_current_tenant']
   }
   
-  Note: 'System users (HR managers, recruiters, interviewers, admins)'
+  Note: 'System users (HR managers, recruiters, interviewers, admins). Users can belong to multiple tenants.'
 }
 
 Table roles {
@@ -359,6 +361,7 @@ Table failed_jobs {
 
 Table candidates {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   name varchar(255) [null]
   email varchar(255) [null]
   phone varchar(255) [null]
@@ -379,9 +382,11 @@ Table candidates {
   deleted_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_candidates_tenant_id']
     status [name: 'idx_candidates_status']
     created_at [name: 'idx_candidates_created_at']
     updated_at [name: 'idx_candidates_updated_at']
+    (tenant_id, status) [name: 'idx_candidates_tenant_status']
     (status, created_at) [name: 'idx_candidates_status_created']
   }
   
@@ -537,6 +542,7 @@ Table failed_jobs_parser {
 
 Table interviews {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   interviewer_id bigint [null]
@@ -552,6 +558,7 @@ Table interviews {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_interviews_tenant_id']
     candidate_id [name: 'idx_interviews_candidate_id']
     vacancy_id [name: 'idx_interviews_vacancy_id']
     interviewer_id [name: 'idx_interviews_interviewer_id']
@@ -559,6 +566,7 @@ Table interviews {
     type [name: 'idx_interviews_type']
     scheduled_at [name: 'idx_interviews_scheduled_at']
     created_at [name: 'idx_interviews_created_at']
+    (tenant_id, status) [name: 'idx_interviews_tenant_status']
     (interviewer_id, scheduled_at) [name: 'idx_interviews_interviewer_schedule']
     (candidate_id, scheduled_at) [name: 'idx_interviews_candidate_schedule']
     (status, scheduled_at) [name: 'idx_interviews_status_schedule']
@@ -603,6 +611,7 @@ Table interview_feedback {
 
 Table matches {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   match_score int [default: 0, not null]
@@ -616,11 +625,13 @@ Table matches {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_matches_tenant_id']
     candidate_id [name: 'idx_matches_candidate_id']
     vacancy_id [name: 'idx_matches_vacancy_id']
     match_score [name: 'idx_matches_score']
     status [name: 'idx_matches_status']
     created_at [name: 'idx_matches_created_at']
+    (tenant_id, status) [name: 'idx_matches_tenant_status']
     (match_score, status) [name: 'idx_matches_score_status']
     (candidate_id, match_score) [name: 'idx_matches_candidate_score']
     (vacancy_id, match_score) [name: 'idx_matches_vacancy_score']
@@ -693,7 +704,8 @@ Table failed_jobs_matching {
 
 Table notification_templates {
   id bigint [pk, increment]
-  name varchar(100) [not null, unique, note: 'Unique template identifier']
+  tenant_id bigint [null, note: 'Logical FK to tenants table. NULL for system templates']
+  name varchar(100) [not null, note: 'Unique template identifier']
   subject varchar(255) [not null, note: 'Email subject with variable placeholders']
   body text [not null, note: 'Email body content with variable placeholders']
   type varchar(50) [not null, note: 'interview_scheduled, offer_sent, reminder, etc.']
@@ -703,13 +715,16 @@ Table notification_templates {
   updated_at timestamp
 
   indexes {
+    tenant_id [name: 'idx_notification_templates_tenant_id']
     type
     is_active
+    (tenant_id, name) [unique, name: 'notification_templates_tenant_name_unique']
   }
 }
 
 Table notification_logs {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   template_id bigint [note: 'Reference to template used, null if direct content']
   recipient_email varchar(255) [not null]
   recipient_name varchar(255)
@@ -727,10 +742,12 @@ Table notification_logs {
   updated_at timestamp
 
   indexes {
+    tenant_id [name: 'idx_notification_logs_tenant_id']
     recipient_email
     type
     status
     created_at
+    (tenant_id, status) [name: 'idx_notification_logs_tenant_status']
   }
 }
 
@@ -743,6 +760,7 @@ Ref: notification_logs.template_id > notification_templates.id
 
 Table offers {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   salary_offered decimal(12,2) [not null]
@@ -759,12 +777,14 @@ Table offers {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_offers_tenant_id']
     candidate_id [name: 'idx_offers_candidate_id']
     vacancy_id [name: 'idx_offers_vacancy_id']
     status [name: 'idx_offers_status']
     expiry_date [name: 'idx_offers_expiry_date']
     start_date [name: 'idx_offers_start_date']
     created_at [name: 'idx_offers_created_at']
+    (tenant_id, status) [name: 'idx_offers_tenant_status']
     (status, expiry_date) [name: 'idx_offers_status_expiry']
     (candidate_id, status) [name: 'idx_offers_candidate_status']
   }
@@ -783,6 +803,7 @@ Table offers {
 
 Table onboarding_checklists {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   task_name varchar(255) [not null]
   description text [null]
@@ -794,10 +815,138 @@ Table onboarding_checklists {
   created_at timestamp [null]
   updated_at timestamp [null]
   
+  indexes {
+    tenant_id [name: 'idx_onboarding_tenant_id']
+    candidate_id [name: 'idx_onboarding_candidate_id']
+    status [name: 'idx_onboarding_status']
+    (tenant_id, status) [name: 'idx_onboarding_tenant_status']
+  }
+  
   Note: '''
     Onboarding tasks and checklists for new hires
     Statuses: pending, in_progress, completed
     Logical FK to candidate service
+  '''
+}
+
+
+//==============================================================================
+// TENANT SERVICE DATABASE (candidacy_tenant)
+//==============================================================================
+
+// Multitenancy support for the Candidacy platform.
+// Each tenant represents an organization using the recruitment system.
+
+Table tenants {
+  id bigint [pk, increment]
+  uuid varchar(36) [unique, not null, note: 'Public identifier for API use']
+  name varchar(255) [not null, note: 'Organization display name']
+  slug varchar(100) [unique, not null, note: 'URL-friendly identifier']
+  domain varchar(255) [null, note: 'Custom domain for tenant']
+  logo_url varchar(500) [null]
+  settings json [null, note: 'Tenant-specific settings and preferences']
+  subscription_plan varchar(50) [default: 'free', note: 'free, starter, professional, enterprise']
+  subscription_status varchar(50) [default: 'active', note: 'active, suspended, cancelled, expired']
+  subscription_ends_at timestamp [null]
+  max_users int [default: 5, note: 'Maximum users allowed for this tenant']
+  max_candidates int [default: 100, note: 'Maximum candidates allowed per month']
+  max_vacancies int [default: 10, note: 'Maximum active vacancies']
+  owner_id bigint [null, note: 'Logical FK to auth.users - primary account owner']
+  is_active boolean [default: true, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+
+  indexes {
+    slug [name: 'idx_tenants_slug']
+    domain [name: 'idx_tenants_domain']
+    is_active [name: 'idx_tenants_is_active']
+    subscription_status [name: 'idx_tenants_subscription']
+    uuid [name: 'idx_tenants_uuid']
+  }
+
+  Note: '''
+    Organizations/companies using the Candidacy platform.
+    Each tenant has complete data isolation.
+    Subscription plans control feature access and limits.
+  '''
+}
+
+Table tenant_users {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  user_id bigint [not null, note: 'Logical FK to auth.users']
+  role varchar(50) [default: 'member', not null, note: 'owner, admin, manager, recruiter, interviewer, member']
+  permissions json [null, note: 'Custom permissions override']
+  is_active boolean [default: true, not null]
+  joined_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    (tenant_id, user_id) [unique, name: 'tenant_users_unique']
+    user_id [name: 'idx_tenant_users_user']
+    role [name: 'idx_tenant_users_role']
+  }
+
+  Note: '''
+    User membership in tenants.
+    A user can belong to multiple tenants with different roles.
+    Role hierarchy: owner > admin > manager > recruiter > interviewer > member
+  '''
+}
+
+Table tenant_invitations {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  email varchar(255) [not null]
+  role varchar(50) [default: 'member', not null]
+  token varchar(64) [unique, not null]
+  invited_by bigint [not null, note: 'Logical FK to auth.users']
+  message text [null, note: 'Optional invitation message']
+  accepted_at timestamp [null]
+  expires_at timestamp [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    token [name: 'idx_invitations_token']
+    email [name: 'idx_invitations_email']
+    expires_at [name: 'idx_invitations_expires']
+    (tenant_id, email) [name: 'idx_invitations_tenant_email']
+  }
+
+  Note: '''
+    Pending invitations to join a tenant.
+    Invitations expire after a configurable period (default 7 days).
+    Existing users can accept immediately, new users must register first.
+  '''
+}
+
+Table tenant_api_keys {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  name varchar(100) [not null, note: 'Friendly name for the API key']
+  key_prefix varchar(8) [not null, note: 'First 8 chars for identification']
+  key_hash varchar(64) [not null, note: 'SHA-256 hash of the full key']
+  scopes json [null, note: 'Allowed API scopes']
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_by bigint [not null, note: 'Logical FK to auth.users']
+  is_active boolean [default: true, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    key_prefix [name: 'idx_api_keys_prefix']
+    key_hash [unique, name: 'idx_api_keys_hash']
+    tenant_id [name: 'idx_api_keys_tenant']
+  }
+
+  Note: '''
+    API keys for programmatic access to tenant data.
+    Keys are hashed and never stored in plain text.
+    Scopes control which endpoints the key can access.
   '''
 }
 
@@ -808,6 +957,7 @@ Table onboarding_checklists {
 
 Table vacancies {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   title varchar(255) [not null]
   description text [not null]
   requirements text [null]
@@ -833,12 +983,14 @@ Table vacancies {
   deleted_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_vacancies_tenant_id']
     status [name: 'idx_vacancies_status']
     department [name: 'idx_vacancies_department']
     location [name: 'idx_vacancies_location']
     employment_type [name: 'idx_vacancies_employment_type']
     created_at [name: 'idx_vacancies_created_at']
     updated_at [name: 'idx_vacancies_updated_at']
+    (tenant_id, status) [name: 'idx_vacancies_tenant_status']
     (status, department) [name: 'idx_vacancies_status_dept']
     (status, created_at) [name: 'idx_vacancies_status_created']
   }

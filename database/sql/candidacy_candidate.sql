@@ -1,5 +1,6 @@
 CREATE TABLE `candidates` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `name` varchar(255),
   `email` varchar(255),
   `phone` varchar(255),
@@ -97,11 +98,15 @@ CREATE TABLE `failed_jobs_candidate` (
   `failed_at` timestamp DEFAULT (CURRENT_TIMESTAMP)
 );
 
+CREATE INDEX `idx_candidates_tenant_id` ON `candidates` (`tenant_id`);
+
 CREATE INDEX `idx_candidates_status` ON `candidates` (`status`);
 
 CREATE INDEX `idx_candidates_created_at` ON `candidates` (`created_at`);
 
 CREATE INDEX `idx_candidates_updated_at` ON `candidates` (`updated_at`);
+
+CREATE INDEX `idx_candidates_tenant_status` ON `candidates` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_candidates_status_created` ON `candidates` (`status`, `created_at`);
 

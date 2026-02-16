@@ -9,6 +9,7 @@ Table users {
   email_verified_at timestamp [null]
   password varchar(255) [not null]
   remember_token varchar(100) [null]
+  current_tenant_id bigint [null, note: 'Currently active tenant for this user session']
   created_at timestamp [null]
   updated_at timestamp [null]
   deleted_at timestamp [null]
@@ -16,9 +17,10 @@ Table users {
   
   indexes {
     created_at [name: 'idx_users_created_at']
+    current_tenant_id [name: 'idx_users_current_tenant']
   }
   
-  Note: 'System users (HR managers, recruiters, interviewers, admins)'
+  Note: 'System users (HR managers, recruiters, interviewers, admins). Users can belong to multiple tenants.'
 }
 
 Table roles {

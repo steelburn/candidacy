@@ -4,6 +4,7 @@
 
 Table interviews {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   interviewer_id bigint [null]
@@ -19,6 +20,7 @@ Table interviews {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_interviews_tenant_id']
     candidate_id [name: 'idx_interviews_candidate_id']
     vacancy_id [name: 'idx_interviews_vacancy_id']
     interviewer_id [name: 'idx_interviews_interviewer_id']
@@ -26,6 +28,7 @@ Table interviews {
     type [name: 'idx_interviews_type']
     scheduled_at [name: 'idx_interviews_scheduled_at']
     created_at [name: 'idx_interviews_created_at']
+    (tenant_id, status) [name: 'idx_interviews_tenant_status']
     (interviewer_id, scheduled_at) [name: 'idx_interviews_interviewer_schedule']
     (candidate_id, scheduled_at) [name: 'idx_interviews_candidate_schedule']
     (status, scheduled_at) [name: 'idx_interviews_status_schedule']

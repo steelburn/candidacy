@@ -1,5 +1,6 @@
 CREATE TABLE `interviews` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `interviewer_id` bigint,
@@ -31,6 +32,8 @@ CREATE TABLE `interview_feedback` (
   `updated_at` timestamp
 );
 
+CREATE INDEX `idx_interviews_tenant_id` ON `interviews` (`tenant_id`);
+
 CREATE INDEX `idx_interviews_candidate_id` ON `interviews` (`candidate_id`);
 
 CREATE INDEX `idx_interviews_vacancy_id` ON `interviews` (`vacancy_id`);
@@ -44,6 +47,8 @@ CREATE INDEX `idx_interviews_type` ON `interviews` (`type`);
 CREATE INDEX `idx_interviews_scheduled_at` ON `interviews` (`scheduled_at`);
 
 CREATE INDEX `idx_interviews_created_at` ON `interviews` (`created_at`);
+
+CREATE INDEX `idx_interviews_tenant_status` ON `interviews` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_interviews_interviewer_schedule` ON `interviews` (`interviewer_id`, `scheduled_at`);
 

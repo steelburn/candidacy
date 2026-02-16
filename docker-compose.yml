@@ -455,6 +455,30 @@ services:
     networks:
       - candidacy-network
 
+  # Tenant Service
+  tenant-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/tenant-service
+    container_name: candidacy-tenant
+    user: "1000:1000"
+
+    environment:
+      <<: *laravel-env
+      DB_HOST: mysql
+      DB_DATABASE: candidacy_tenant
+      REDIS_HOST: redis
+    volumes:
+      - ./services/tenant-service:/var/www/html
+      - ./shared:/var/www/shared
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - candidacy-network
+
   # Notification Service
   notification-service:
     build:

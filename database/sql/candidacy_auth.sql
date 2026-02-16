@@ -5,6 +5,7 @@ CREATE TABLE `users` (
   `email_verified_at` timestamp,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100),
+  `current_tenant_id` bigint COMMENT 'Currently active tenant for this user session',
   `created_at` timestamp,
   `updated_at` timestamp,
   `deleted_at` timestamp,
@@ -76,13 +77,15 @@ CREATE TABLE `failed_jobs` (
 
 CREATE INDEX `idx_users_created_at` ON `users` (`created_at`);
 
-CREATE UNIQUE INDEX `role_user_index_13` ON `role_user` (`user_id`, `role_id`);
+CREATE INDEX `idx_users_current_tenant` ON `users` (`current_tenant_id`);
 
-CREATE UNIQUE INDEX `permission_role_index_14` ON `permission_role` (`permission_id`, `role_id`);
+CREATE UNIQUE INDEX `role_user_index_14` ON `role_user` (`user_id`, `role_id`);
+
+CREATE UNIQUE INDEX `permission_role_index_15` ON `permission_role` (`permission_id`, `role_id`);
 
 CREATE INDEX `personal_access_tokens_tokenable` ON `personal_access_tokens` (`tokenable_type`, `tokenable_id`);
 
-ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins)';
+ALTER TABLE `users` COMMENT = 'System users (HR managers, recruiters, interviewers, admins). Users can belong to multiple tenants.';
 
 ALTER TABLE `roles` COMMENT = 'User roles: admin, hr_manager, recruiter, interviewer, viewer';
 

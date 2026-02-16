@@ -1,5 +1,6 @@
 CREATE TABLE `offers` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint NOT NULL COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
   `vacancy_id` bigint NOT NULL,
   `salary_offered` decimal(12,2) NOT NULL,
@@ -16,6 +17,8 @@ CREATE TABLE `offers` (
   `updated_at` timestamp
 );
 
+CREATE INDEX `idx_offers_tenant_id` ON `offers` (`tenant_id`);
+
 CREATE INDEX `idx_offers_candidate_id` ON `offers` (`candidate_id`);
 
 CREATE INDEX `idx_offers_vacancy_id` ON `offers` (`vacancy_id`);
@@ -27,6 +30,8 @@ CREATE INDEX `idx_offers_expiry_date` ON `offers` (`expiry_date`);
 CREATE INDEX `idx_offers_start_date` ON `offers` (`start_date`);
 
 CREATE INDEX `idx_offers_created_at` ON `offers` (`created_at`);
+
+CREATE INDEX `idx_offers_tenant_status` ON `offers` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_offers_status_expiry` ON `offers` (`status`, `expiry_date`);
 

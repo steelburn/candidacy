@@ -1,0 +1,119 @@
+//==============================================================================
+// TENANT SERVICE DATABASE (candidacy_tenant)
+//==============================================================================
+
+// Multitenancy support for the Candidacy platform.
+// Each tenant represents an organization using the recruitment system.
+
+Table tenants {
+  id bigint [pk, increment]
+  uuid varchar(36) [unique, not null, note: 'Public identifier for API use']
+  name varchar(255) [not null, note: 'Organization display name']
+  slug varchar(100) [unique, not null, note: 'URL-friendly identifier']
+  domain varchar(255) [null, note: 'Custom domain for tenant']
+  logo_url varchar(500) [null]
+  settings json [null, note: 'Tenant-specific settings and preferences']
+  subscription_plan varchar(50) [default: 'free', note: 'free, starter, professional, enterprise']
+  subscription_status varchar(50) [default: 'active', note: 'active, suspended, cancelled, expired']
+  subscription_ends_at timestamp [null]
+  max_users int [default: 5, note: 'Maximum users allowed for this tenant']
+  max_candidates int [default: 100, note: 'Maximum candidates allowed per month']
+  max_vacancies int [default: 10, note: 'Maximum active vacancies']
+  owner_id bigint [null, note: 'Logical FK to auth.users - primary account owner']
+  is_active boolean [default: true, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  deleted_at timestamp [null]
+
+  indexes {
+    slug [name: 'idx_tenants_slug']
+    domain [name: 'idx_tenants_domain']
+    is_active [name: 'idx_tenants_is_active']
+    subscription_status [name: 'idx_tenants_subscription']
+    uuid [name: 'idx_tenants_uuid']
+  }
+
+  Note: '''
+    Organizations/companies using the Candidacy platform.
+    Each tenant has complete data isolation.
+    Subscription plans control feature access and limits.
+  '''
+}
+
+Table tenant_users {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  user_id bigint [not null, note: 'Logical FK to auth.users']
+  role varchar(50) [default: 'member', not null, note: 'owner, admin, manager, recruiter, interviewer, member']
+  permissions json [null, note: 'Custom permissions override']
+  is_active boolean [default: true, not null]
+  joined_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    (tenant_id, user_id) [unique, name: 'tenant_users_unique']
+    user_id [name: 'idx_tenant_users_user']
+    role [name: 'idx_tenant_users_role']
+  }
+
+  Note: '''
+    User membership in tenants.
+    A user can belong to multiple tenants with different roles.
+    Role hierarchy: owner > admin > manager > recruiter > interviewer > member
+  '''
+}
+
+Table tenant_invitations {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  email varchar(255) [not null]
+  role varchar(50) [default: 'member', not null]
+  token varchar(64) [unique, not null]
+  invited_by bigint [not null, note: 'Logical FK to auth.users']
+  message text [null, note: 'Optional invitation message']
+  accepted_at timestamp [null]
+  expires_at timestamp [not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    token [name: 'idx_invitations_token']
+    email [name: 'idx_invitations_email']
+    expires_at [name: 'idx_invitations_expires']
+    (tenant_id, email) [name: 'idx_invitations_tenant_email']
+  }
+
+  Note: '''
+    Pending invitations to join a tenant.
+    Invitations expire after a configurable period (default 7 days).
+    Existing users can accept immediately, new users must register first.
+  '''
+}
+
+Table tenant_api_keys {
+  id bigint [pk, increment]
+  tenant_id bigint [not null, ref: > tenants.id]
+  name varchar(100) [not null, note: 'Friendly name for the API key']
+  key_prefix varchar(8) [not null, note: 'First 8 chars for identification']
+  key_hash varchar(64) [not null, note: 'SHA-256 hash of the full key']
+  scopes json [null, note: 'Allowed API scopes']
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_by bigint [not null, note: 'Logical FK to auth.users']
+  is_active boolean [default: true, not null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+
+  indexes {
+    key_prefix [name: 'idx_api_keys_prefix']
+    key_hash [unique, name: 'idx_api_keys_hash']
+    tenant_id [name: 'idx_api_keys_tenant']
+  }
+
+  Note: '''
+    API keys for programmatic access to tenant data.
+    Keys are hashed and never stored in plain text.
+    Scopes control which endpoints the key can access.
+  '''
+}

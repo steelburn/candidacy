@@ -11,7 +11,8 @@
 
 Table notification_templates {
   id bigint [pk, increment]
-  name varchar(100) [not null, unique, note: 'Unique template identifier']
+  tenant_id bigint [null, note: 'Logical FK to tenants table. NULL for system templates']
+  name varchar(100) [not null, note: 'Unique template identifier']
   subject varchar(255) [not null, note: 'Email subject with variable placeholders']
   body text [not null, note: 'Email body content with variable placeholders']
   type varchar(50) [not null, note: 'interview_scheduled, offer_sent, reminder, etc.']
@@ -21,13 +22,16 @@ Table notification_templates {
   updated_at timestamp
 
   indexes {
+    tenant_id [name: 'idx_notification_templates_tenant_id']
     type
     is_active
+    (tenant_id, name) [unique, name: 'notification_templates_tenant_name_unique']
   }
 }
 
 Table notification_logs {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   template_id bigint [note: 'Reference to template used, null if direct content']
   recipient_email varchar(255) [not null]
   recipient_name varchar(255)
@@ -45,10 +49,12 @@ Table notification_logs {
   updated_at timestamp
 
   indexes {
+    tenant_id [name: 'idx_notification_logs_tenant_id']
     recipient_email
     type
     status
     created_at
+    (tenant_id, status) [name: 'idx_notification_logs_tenant_status']
   }
 }
 

@@ -4,6 +4,7 @@
 
 Table matches {
   id bigint [pk, increment]
+  tenant_id bigint [not null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null]
   vacancy_id bigint [not null]
   match_score int [default: 0, not null]
@@ -17,11 +18,13 @@ Table matches {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_matches_tenant_id']
     candidate_id [name: 'idx_matches_candidate_id']
     vacancy_id [name: 'idx_matches_vacancy_id']
     match_score [name: 'idx_matches_score']
     status [name: 'idx_matches_status']
     created_at [name: 'idx_matches_created_at']
+    (tenant_id, status) [name: 'idx_matches_tenant_status']
     (match_score, status) [name: 'idx_matches_score_status']
     (candidate_id, match_score) [name: 'idx_matches_candidate_score']
     (vacancy_id, match_score) [name: 'idx_matches_vacancy_score']
