@@ -84,7 +84,7 @@ const props = defineProps({
   },
   backendUrl: {
     type: String,
-    default: 'http://localhost:8080' // Provide a default or pass from parent
+    default: import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080' // Provide a default or pass from parent
   }
 })
 

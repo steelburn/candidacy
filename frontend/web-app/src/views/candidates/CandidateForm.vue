@@ -211,7 +211,8 @@ onMounted(async () => {
       }
 
       if (data.cv_files && data.cv_files.length > 0) {
-          existingCvUrl.value = `http://localhost:8080/api/candidates/${route.params.id}/cv/download`
+          const baseUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+          existingCvUrl.value = `${baseUrl}/api/candidates/${route.params.id}/cv/download`
       }
     } catch (err) {
       error.value = 'Failed to load candidate'
