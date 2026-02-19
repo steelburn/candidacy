@@ -23,6 +23,9 @@
          <div v-if="previewUrl && fileType === 'pdf'" class="pdf-preview">
             <iframe :src="previewUrl" width="100%" height="500px"></iframe>
          </div>
+         <div v-else-if="fileType === 'docx'" class="docx-preview">
+            <DocxViewer :blob="cvFile" height="500px" />
+         </div>
          <div v-else class="file-info">
             <p>Selected: {{ cvFile.name }}</p>
          </div>
@@ -49,7 +52,16 @@
       <h3>Current Resume</h3>
       
       <div class="pdf-preview existing-preview">
-          <iframe :src="existingCvUrl" width="100%" height="500px"></iframe>
+          <template v-if="existingFileType === 'pdf'">
+              <iframe :src="existingCvUrl" width="100%" height="500px"></iframe>
+          </template>
+          <template v-else-if="existingFileType === 'docx'">
+              <DocxViewer :src="existingCvUrl" height="500px" />
+          </template>
+          <div v-if="!existingFileType || (existingFileType !== 'pdf' && existingFileType !== 'docx')" class="no-preview">
+              <p>Preview not available for this file type.</p>
+          </div>
+           
            <div class="file-actions">
              <a :href="existingCvUrl" target="_blank" class="btn-text">Download / Open in New Tab</a>
           </div>
@@ -73,6 +85,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { candidateAPI, default as api } from '../../../services/api'
+import DocxViewer from '../../DocxViewer.vue'
 
 const props = defineProps({
   isEdit: {
@@ -82,6 +95,10 @@ const props = defineProps({
   existingCvUrl: {
     type: String,
     default: ''
+  },
+  existingCvFile: {
+    type: Object,
+    default: null
   }
 })
 
@@ -96,6 +113,24 @@ const parseError = ref('')
 
 const hasExistingCv = computed(() => !!props.existingCvUrl)
 
+const existingFileType = computed(() => {
+    if (!props.existingCvFile) return 'pdf' // Default to pdf if no file metadata
+    
+    // Check mime type first
+    if (props.existingCvFile.mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+        props.existingCvFile.mime_type === 'application/msword') {
+        return 'docx'
+    }
+    
+    // Check extension
+    const filename = props.existingCvFile.original_filename || props.existingCvFile.stored_filename || ''
+    if (filename.toLowerCase().endsWith('.docx') || filename.toLowerCase().endsWith('.doc')) {
+        return 'docx'
+    }
+    
+    return 'pdf'
+})
+
 const handleFileSelect = (event) => {
   const file = event.target.files[0]
   if (!file) return
@@ -103,9 +138,16 @@ const handleFileSelect = (event) => {
   if (file.type === 'application/pdf') {
       previewUrl.value = URL.createObjectURL(file)
       fileType.value = 'pdf'
+  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+             file.type === 'application/msword' ||
+             file.name.endsWith('.docx') || 
+             file.name.endsWith('.doc')) {
+      // For DOCX, we pass the file object directly to the viewer
+      previewUrl.value = '' // Not used for docx viewer with blob
+      fileType.value = 'docx'
   } else {
       previewUrl.value = ''
-      fileType.value = 'doc'
+      fileType.value = 'unknown'
   }
   
   cvFile.value = file
@@ -162,7 +204,7 @@ const processResume = async () => {
 }
 
 const pollForParsingResults = async (jobId) => {
-  const maxAttempts = 60
+  const maxAttempts = 180 // 6 minutes timeout
   const pollInterval = 2000
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {

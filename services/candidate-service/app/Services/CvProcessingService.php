@@ -33,7 +33,7 @@ class CvProcessingService
         $originalName = $file->getClientOriginalName();
         $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
         $path = $file->storeAs('cvs', $storedName, 'public');
-        
+
         $fullPath = storage_path('app/public/' . $path);
         $extractedText = null;
         $parsedData = null;
@@ -43,10 +43,10 @@ class CvProcessingService
                 'candidate_id' => $candidate->id,
                 'file_path' => $fullPath
             ]);
-            
+
             $extractor = new CvExtractorService();
             $extractedText = $extractor->extractText($fullPath);
-            
+
             Log::info('CV upload: Text extracted', [
                 'candidate_id' => $candidate->id,
                 'text_length' => strlen($extractedText ?? '')
@@ -55,7 +55,8 @@ class CvProcessingService
             if ($extractedText) {
                 $parsedData = $this->parseWithAiService($extractedText, $candidate);
             }
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('CV extraction or AI parsing failed: ' . $e->getMessage());
         }
 
@@ -65,6 +66,8 @@ class CvProcessingService
             'stored_filename' => $storedName,
             'file_path' => $path,
             'mime_type' => $file->getMimeType(),
+            'file_name' => $originalName, // Legacy support
+            'file_type' => $file->getMimeType(), // Legacy support
             'file_size' => $file->getSize(),
             'extracted_text' => $extractedText,
             'parsed_data' => $parsedData,
@@ -85,17 +88,17 @@ class CvProcessingService
             'text_length' => strlen($extractedText),
             'ai_service_url' => 'http://ai-service:8080/api/ai/parse-cv'
         ]);
-        
+
         $aiResponse = Http::timeout(60)->post('http://ai-service:8080/api/ai/parse-cv', [
             'text' => $extractedText
         ]);
-        
+
         Log::info('CV upload: AI service response received', [
             'candidate_id' => $candidate->id,
             'status' => $aiResponse->status(),
             'successful' => $aiResponse->successful()
         ]);
-        
+
         if (!$aiResponse->successful()) {
             Log::error('AI CV parsing failed with status ' . $aiResponse->status() . ': ' . $aiResponse->body());
             return null;
@@ -103,7 +106,7 @@ class CvProcessingService
 
         $parsedData = $aiResponse->json();
         $aiData = $parsedData['parsed_data'] ?? $parsedData;
-        
+
         Log::info('CV upload: Parsed data extracted', [
             'candidate_id' => $candidate->id,
             'name' => $aiData['name'] ?? 'Unknown',
@@ -111,10 +114,10 @@ class CvProcessingService
             'skills_count' => count($aiData['skills'] ?? []),
             'experience_count' => count($aiData['experience'] ?? [])
         ]);
-        
+
         // Update candidate with parsed data
         $this->updateCandidateFromParsedData($candidate, $aiData);
-        
+
         return $parsedData;
     }
 
@@ -127,7 +130,7 @@ class CvProcessingService
     protected function updateCandidateFromParsedData(Candidate $candidate, array $aiData): void
     {
         $updateData = [];
-        
+
         if (!empty($aiData['skills'])) {
             $updateData['skills'] = json_encode($aiData['skills']);
         }
@@ -146,7 +149,7 @@ class CvProcessingService
         if (isset($aiData['years_of_experience'])) {
             $updateData['years_of_experience'] = $aiData['years_of_experience'];
         }
-        
+
         if (!empty($updateData)) {
             $candidate->update($updateData);
         }
@@ -163,7 +166,7 @@ class CvProcessingService
     {
         $originalName = $file->getClientOriginalName();
         $path = $file->store('cvs', 'public');
-        
+
         Log::info('CV parse: File uploaded, creating job', [
             'file' => $originalName,
             'path' => $path
@@ -177,7 +180,7 @@ class CvProcessingService
         ]);
 
         $this->dispatchParsingJob($parsingJob);
-        
+
         return [
             'job_id' => $parsingJob->id,
             'status' => 'parsing_document'
@@ -193,16 +196,17 @@ class CvProcessingService
     {
         try {
             ProcessCvParsingJob::dispatch($parsingJob->id);
-            
+
             Log::info('CV parse: Job dispatched', [
                 'job_id' => $parsingJob->id
             ]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('CV parse: Failed to dispatch job', [
                 'job_id' => $parsingJob->id,
                 'error' => $e->getMessage()
             ]);
-            
+
             $parsingJob->update(['status' => 'failed']);
             throw new \Exception('Failed to queue CV processing job');
         }
@@ -221,11 +225,11 @@ class CvProcessingService
 
         foreach ($files as $file) {
             $originalName = $file->getClientOriginalName();
-            
+
             try {
                 $storedName = Str::uuid() . '.' . $file->getClientOriginalExtension();
                 $permanentPath = 'cvs/' . $storedName;
-                
+
                 Storage::disk('public')->put($permanentPath, file_get_contents($file));
 
                 $parsingJob = CvParsingJob::create([
@@ -236,7 +240,7 @@ class CvProcessingService
 
                 try {
                     ProcessCvParsingJob::dispatch($parsingJob->id);
-                    
+
                     $queuedJobs[] = [
                         'file' => $originalName,
                         'job_id' => $parsingJob->id,
@@ -247,25 +251,27 @@ class CvProcessingService
                         'file' => $originalName,
                         'job_id' => $parsingJob->id
                     ]);
-                } catch (\Exception $e) {
+                }
+                catch (\Exception $e) {
                     Log::error('Bulk upload: Failed to dispatch job', [
                         'file' => $originalName,
                         'error' => $e->getMessage()
                     ]);
-                    
+
                     $parsingJob->update(['status' => 'failed', 'error_message' => 'Dispatch failed']);
-                    
+
                     $failedUploads[] = [
                         'file' => $originalName,
                         'error' => 'Failed to queue processing'
                     ];
                 }
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 Log::error('Bulk upload: File storage failed', [
                     'file' => $originalName,
                     'error' => $e->getMessage()
                 ]);
-                
+
                 $failedUploads[] = [
                     'file' => $originalName,
                     'error' => 'Storage failed: ' . $e->getMessage()
@@ -329,25 +335,25 @@ class CvProcessingService
     public function retryJob(int $jobId, string $mode = 'full'): CvParsingJob
     {
         $job = CvParsingJob::findOrFail($jobId);
-        
+
         $updateData = ['status' => 'parsing_document'];
-        
+
         if ($mode === 'full') {
             $updateData['extracted_text'] = null;
         }
-        
+
         $updateData['error_message'] = null;
         $updateData['parsed_data'] = null;
 
         $job->update($updateData);
 
         ProcessCvParsingJob::dispatch($job->id);
-        
+
         Log::info('Admin retry: Job dispatched', [
             'job_id' => $job->id,
             'mode' => $mode
         ]);
-        
+
         return $job;
     }
 
@@ -377,50 +383,55 @@ class CvProcessingService
             $skills = json_decode($skills, true) ?? [];
         }
         $skillsList = is_array($skills) ? implode(', ', $skills) : $skills;
-        
+
         $experience = $candidateData['experience'] ?? [];
         if (is_string($experience)) {
             $experience = json_decode($experience, true) ?? [];
         }
-        
+
         $education = $candidateData['education'] ?? [];
         if (is_string($education)) {
             $education = json_decode($education, true) ?? [];
         }
-        
+
         // Build concise experience summary
         $expText = '';
         if (is_array($experience) && !empty($experience)) {
             foreach ($experience as $exp) {
                 $title = $exp['title'] ?? 'Role';
-                if (is_array($title)) $title = implode(' ', $title);
-                
+                if (is_array($title))
+                    $title = implode(' ', $title);
+
                 $company = $exp['company'] ?? 'Company';
-                if (is_array($company)) $company = implode(' ', $company);
-                
+                if (is_array($company))
+                    $company = implode(' ', $company);
+
                 $duration = $exp['duration'] ?? '';
-                if (is_array($duration)) $duration = implode(' ', $duration);
+                if (is_array($duration))
+                    $duration = implode(' ', $duration);
 
                 $desc = $exp['description'] ?? '';
-                
+
                 $shortDesc = '';
                 if (!empty($desc)) {
                     if (is_array($desc)) {
                         $desc = implode(' ', $desc);
                     }
                     $firstSentence = preg_split('/[.!?]\s+/', $desc, 2)[0];
-                    $shortDesc = strlen($firstSentence) > 150 
-                        ? substr($firstSentence, 0, 150) . '...' 
+                    $shortDesc = strlen($firstSentence) > 150
+                        ? substr($firstSentence, 0, 150) . '...'
                         : $firstSentence;
                 }
-                
+
                 $expText .= "- {$title} at {$company}";
-                if ($duration) $expText .= " ({$duration})";
-                if ($shortDesc) $expText .= ": {$shortDesc}";
+                if ($duration)
+                    $expText .= " ({$duration})";
+                if ($shortDesc)
+                    $expText .= ": {$shortDesc}";
                 $expText .= "\n";
             }
         }
-        
+
         // Build education summary
         $eduText = '';
         if (is_array($education) && !empty($education)) {
@@ -429,20 +440,21 @@ class CvProcessingService
                 $inst = $edu['institution'] ?? 'Institution';
                 $year = $edu['year'] ?? '';
                 $eduText .= "- {$degree} from {$inst}";
-                if ($year) $eduText .= " ({$year})";
+                if ($year)
+                    $eduText .= " ({$year})";
                 $eduText .= "\n";
             }
         }
-        
+
         $yearsExp = $candidateData['years_of_experience'] ?? 'Not specified';
         $summary = $candidateData['summary'] ?? '';
-        
+
         if (strlen($summary) > 300) {
             $summary = substr($summary, 0, 300) . '...';
         }
-        
+
         $name = $candidateData['name'] ?? '';
-        
+
         return <<<PROFILE
 Name: {$name}
 Years of Experience: {$yearsExp}

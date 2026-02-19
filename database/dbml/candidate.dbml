@@ -39,7 +39,10 @@ Table candidates {
 Table cv_files {
   id bigint [pk, increment]
   candidate_id bigint [not null, ref: > candidates.id]
+  original_filename varchar(255) [null]
+  stored_filename varchar(255) [null]
   file_path varchar(255) [not null]
+  mime_type varchar(255) [null]
   file_name varchar(255) [not null]
   file_type varchar(50) [not null]
   file_size int [not null]

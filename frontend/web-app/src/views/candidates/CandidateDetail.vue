@@ -18,7 +18,7 @@
       <!-- Link Generation Modal -->
       <CandidateLinkModal 
         :show="showLinkModal" 
-        :vacancies="vacancies"
+        :vacancies="filteredVacancies"
         :generated-link="generatedLink"
         :loading="generatingLink"
         @close="closeLinkModal" 
@@ -61,7 +61,12 @@
       <!-- Tab: Original CV -->
       <div v-if="currentTab === 'cv'" class="tab-content">
         <div v-if="previewUrl" class="pdf-container">
-            <iframe :src="previewUrl" width="100%" height="800px"></iframe>
+            <iframe v-if="isPdf" :src="previewUrl" width="100%" height="800px"></iframe>
+            <DocxViewer v-else-if="isDocx" :src="previewUrl" height="800px" />
+            <div v-else class="no-preview">
+                <p>Preview not available for this file type.</p>
+                <a :href="previewUrl" target="_blank" class="btn-primary">Download File</a>
+            </div>
         </div>
         <div v-else class="no-data">
             <p>No CV document available.</p>
@@ -151,10 +156,37 @@ const parsedSkills = computed(() => parseSkills(candidate.value?.skills))
 const parsedExperience = computed(() => parseJsonArray(candidate.value?.experience))
 const parsedEducation = computed(() => parseJsonArray(candidate.value?.education))
 
-const previewUrl = computed(() => {
+import DocxViewer from '../../components/DocxViewer.vue'
+
+// ... existing imports ...
+
+const latestCv = computed(() => {
     if (!candidate.value?.cv_files?.length) return null
-    const latestCv = candidate.value.cv_files[candidate.value.cv_files.length - 1]
+    return candidate.value.cv_files[candidate.value.cv_files.length - 1]
+})
+
+const previewUrl = computed(() => {
+    if (!latestCv.value) return null
     return `${backendUrl}/api/candidates/${candidateId}/cv/download?token=${localStorage.getItem('token')}` 
+})
+
+const isPdf = computed(() => {
+    if (!latestCv.value) return false
+    const mime = latestCv.value.mime_type
+    if (mime === 'application/pdf') return true
+    
+    // Fallback to extension check
+    const filename = latestCv.value.original_filename || latestCv.value.file_name || '' // file_name legacy fallback
+    return filename.toLowerCase().endsWith('.pdf')
+})
+
+const isDocx = computed(() => {
+    if (!latestCv.value) return false
+    const mime = latestCv.value.mime_type
+    const filename = latestCv.value.original_filename || latestCv.value.file_name || ''
+    
+    return mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+           filename.toLowerCase().endsWith('.docx')
 })
 
 // === Methods ===
@@ -181,6 +213,27 @@ const loadVacancies = async () => {
         console.error(e)
     }
 }
+
+// -- Dismissed Matches for filtering --
+const dismissedVacancyIds = ref(new Set())
+
+const loadDismissedMatches = async () => {
+    try {
+        const res = await matchingAPI.getMatches({ 
+            candidate_id: candidateId, 
+            status: 'dismissed',
+            per_page: 100 // Fetch up to 100 dismissed matches
+        })
+        const dismissed = res.data.data
+        dismissedVacancyIds.value = new Set(dismissed.map(m => m.vacancy_id))
+    } catch (e) {
+        console.error("Failed to load dismissed matches", e)
+    }
+}
+
+const filteredVacancies = computed(() => {
+    return vacancies.value.filter(v => !dismissedVacancyIds.value.has(v.id))
+})
 
 // -- Parsing Details --
 const loadParsingDetails = async () => {
@@ -272,6 +325,7 @@ onMounted(() => {
     loadCandidate()
     loadVacancies()
     loadParsingDetails()
+    loadDismissedMatches()
 })
 
 watch(currentTab, (newTab) => {

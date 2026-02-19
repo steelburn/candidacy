@@ -67,10 +67,13 @@ class MatchJob implements ShouldQueue
             $vacancies = [];
             if ($this->vacancyId) {
                 $vacRes = Http::get("{$vacancyServiceUrl}/api/vacancies/{$this->vacancyId}");
-                if ($vacRes->successful()) $vacancies[] = $vacRes->json();
-            } else {
+                if ($vacRes->successful())
+                    $vacancies[] = $vacRes->json();
+            }
+            else {
                 $vacRes = Http::get("{$vacancyServiceUrl}/api/vacancies?status=open");
-                if ($vacRes->successful()) $vacancies = $vacRes->json()['data'] ?? [];
+                if ($vacRes->successful())
+                    $vacancies = $vacRes->json()['data'] ?? [];
             }
 
             if (empty($vacancies)) {
@@ -87,7 +90,7 @@ class MatchJob implements ShouldQueue
                 if ($settingsRes->successful()) {
                     $settings = $settingsRes->json();
                     if (is_array($settings)) {
-                        foreach($settings as $s) {
+                        foreach ($settings as $s) {
                             if (is_array($s) && isset($s['key'])) {
                                 if ($s['key'] === 'matching.min_score_threshold') {
                                     $minScoreThreshold = (int)$s['value'];
@@ -102,7 +105,8 @@ class MatchJob implements ShouldQueue
                         }
                     }
                 }
-            } catch (\Exception $e) {
+            }
+            catch (\Exception $e) {
                 Log::warning("Could not fetch matching settings, using defaults: " . $e->getMessage());
             }
 
@@ -110,19 +114,21 @@ class MatchJob implements ShouldQueue
             $matchController = new MatchController(); // Use controller for helper methods if needed, or just helpers here. 
             // Better to copy helper logic or rely on private methods if accessible? No.
             // Let's implement robust matching here.
-            
+
             $results = [];
 
             foreach ($vacancies as $vacancy) {
                 // Helper to safely encode to string - handles arrays, nested arrays, and JSON strings
-                $safeEncode = function($val) {
-                    if (is_null($val)) return '';
+                $safeEncode = function ($val) {
+                    if (is_null($val))
+                        return '';
                     if (is_string($val)) {
                         // Try to decode if it's JSON
                         $decoded = json_decode($val, true);
                         if (is_array($decoded)) {
                             $val = $decoded;
-                        } else {
+                        }
+                        else {
                             return $val; // Return as-is if not JSON
                         }
                     }
@@ -136,7 +142,8 @@ class MatchJob implements ShouldQueue
                         foreach ($val as $item) {
                             if (is_array($item)) {
                                 $formatted[] = json_encode($item);
-                            } else {
+                            }
+                            else {
                                 $formatted[] = (string)$item;
                             }
                         }
@@ -144,22 +151,23 @@ class MatchJob implements ShouldQueue
                     }
                     return (string)$val;
                 };
-                
+
                 $candidateProfile = "Name: {$candidate['name']}\n";
                 $candidateProfile .= "Summary: " . ($candidate['summary'] ?? '') . "\n";
                 $candidateProfile .= "Skills: " . $safeEncode($candidate['skills'] ?? []) . "\n";
                 $candidateProfile .= "Experience: " . $safeEncode($candidate['experience'] ?? []) . "\n";
-                
+
                 $jobReqs = "Position: {$vacancy['title']}\n";
                 $jobReqs .= "Description: {$vacancy['description']}\n";
                 $jobReqs .= "Skills: " . $safeEncode($vacancy['required_skills'] ?? []) . "\n";
 
                 try {
                     $finalMatchData = null;
-                    
+
                     for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                         try {
-                            $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post("{$aiServiceUrl}/api/match", [
+                            $url = rtrim($aiServiceUrl, '/') . '/api/match';
+                            $aiResponse = Http::timeout(AppConstants::API_TIMEOUT)->post($url, [
                                 'candidate_profile' => $candidateProfile,
                                 'job_requirements' => $jobReqs
                             ]);
@@ -167,13 +175,13 @@ class MatchJob implements ShouldQueue
                             if ($aiResponse->successful()) {
                                 $matchResult = $aiResponse->json();
                                 $score = $matchResult['match_score'] ?? 0;
-                                
+
                                 // Filter out low scores - Do NOT save
                                 if ($score < $minScoreThreshold) {
                                     $finalMatchData = null; // Explicitly null to ensure we don't save previous attempts
                                     break; // Stop retrying, this is a valid "no match"
                                 }
-                                
+
                                 $analysis = $matchResult['analysis'] ?? '';
                                 $hasRecommendation = stripos($analysis, 'RECOMMENDATION:') !== false;
 
@@ -189,52 +197,56 @@ class MatchJob implements ShouldQueue
                                 if ($hasRecommendation) {
                                     break; // Good result
                                 }
-                                
+
                                 Log::warning("MatchJob: Analysis missing RECOMMENDATION. Retrying... (Attempt $attempt)", [
                                     'candidate' => $this->candidateId,
                                     'vacancy' => $vacancy['id']
                                 ]);
                             }
-                        } catch (\Exception $e) {
-                             Log::error("MatchJob: AI Attempt $attempt failed: " . $e->getMessage());
+                        }
+                        catch (\Exception $e) {
+                            Log::error("MatchJob: AI Attempt $attempt failed: " . $e->getMessage());
                         }
                     }
 
                     // Only save if we have valid match data (score >= 40)
                     if ($finalMatchData) {
                         \App\Models\CandidateMatch::updateOrCreate(
-                            [
-                                'candidate_id' => $candidate['id'],
-                                'vacancy_id' => $vacancy['id']
-                            ],
+                        [
+                            'candidate_id' => $candidate['id'],
+                            'vacancy_id' => $vacancy['id']
+                        ],
                             $finalMatchData
                         );
 
                         if ($finalMatchData['match_score'] >= $displayThreshold) {
-                             $results[] = [
+                            $results[] = [
                                 'vacancy' => $vacancy['title'],
                                 'score' => $finalMatchData['match_score']
                             ];
                         }
-                    } else {
-                        // If strict, we might want to delete existing match if score dropped below 40?
-                        // For now, just don't create/update.
+                    }
+                    else {
+                    // If strict, we might want to delete existing match if score dropped below 40?
+                    // For now, just don't create/update.
                     }
 
-                } catch (\Exception $aiEx) {
-                   Log::error("AI Service Error: " . $aiEx->getMessage()); 
+                }
+                catch (\Exception $aiEx) {
+                    Log::error("AI Service Error: " . $aiEx->getMessage());
                 }
             }
 
             $jobStatus->update([
-                'status' => 'completed', 
+                'status' => 'completed',
                 'result' => [
                     'matches_processed' => count($vacancies),
                     'matches_found' => count($results)
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error("MatchJob Critical Error: " . $e->getMessage());
             $jobStatus->update([
                 'status' => 'failed',

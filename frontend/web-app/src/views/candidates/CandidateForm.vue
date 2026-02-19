@@ -7,6 +7,7 @@
         ref="resumeUploadRef"
         :is-edit="isEdit"
         :existing-cv-url="existingCvUrl"
+        :existing-cv-file="existingCvFile"
         @file-selected="handleFileSelected"
         @parsed-data="applyParsedData"
         @clear-file="handleClearFile"
@@ -56,6 +57,7 @@ const loading = ref(false)
 const error = ref('')
 const cvFile = ref(null)
 const existingCvUrl = ref('')
+const existingCvFile = ref(null)
 const resumeUploadRef = ref(null)
 
 const form = ref({
@@ -212,7 +214,8 @@ onMounted(async () => {
 
       if (data.cv_files && data.cv_files.length > 0) {
           const baseUrl = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
-          existingCvUrl.value = `${baseUrl}/api/candidates/${route.params.id}/cv/download`
+          existingCvUrl.value = `${baseUrl}/api/candidates/${route.params.id}/cv/download?token=${localStorage.getItem('token')}`
+          existingCvFile.value = data.cv_files[data.cv_files.length - 1]
       }
     } catch (err) {
       error.value = 'Failed to load candidate'

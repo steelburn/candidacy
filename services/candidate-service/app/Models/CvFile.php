@@ -11,14 +11,17 @@ class CvFile extends Model
 
     protected $fillable = [
         'candidate_id',
-        'file_name',
+        'original_filename',
+        'stored_filename',
         'file_path',
-        'file_type',
+        'mime_type',
+        'file_name', // Legacy support
+        'file_type', // Legacy support
         'file_size',
         'extracted_text',
         'parsed_data',
-        'parsing_status', // pending, completed, failed
-        'parsing_error',
+        'status', // pending, completed, failed
+        'error_message',
     ];
 
     protected $casts = [

@@ -73,25 +73,30 @@ class MatchController extends BaseApiController
     {
         $vacancyServiceUrl = env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080');
         
-        foreach ($matches as $match) {
+        return $matches->map(function ($match) use ($vacancyServiceUrl) {
+            $matchArray = $match->toArray();
+            
+            // Add parsed analysis
+            $matchArray['parsed_analysis'] = AnalysisParserService::toJson($match->analysis);
+            
             try {
                 $response = Http::get("{$vacancyServiceUrl}/api/vacancies/{$match->vacancy_id}");
                 if ($response->successful()) {
                     $vacancyData = $response->json();
-                    $match->vacancy = $vacancyData;
-                    $match->vacancy_title = $vacancyData['title'] ?? 'Untitled Position';
+                    $matchArray['vacancy'] = $vacancyData;
+                    $matchArray['vacancy_title'] = $vacancyData['title'] ?? 'Untitled Position';
+                } else {
+                    $matchArray['vacancy'] = null;
+                    $matchArray['vacancy_title'] = 'Unknown Position';
                 }
             } catch (\Exception $e) {
-                Log::warning("Failed to fetch vacancy {$match->vacancy_id}: " . $e->getMessage());
-                $match->vacancy = null;
-                $match->vacancy_title = 'Unknown Position';
+                // Log::warning("Failed to fetch vacancy {$match->vacancy_id}: " . $e->getMessage());
+                $matchArray['vacancy'] = null;
+                $matchArray['vacancy_title'] = 'Unknown Position';
             }
             
-            // Add parsed analysis with typo handling (server-side)
-            $match->parsed_analysis = AnalysisParserService::toJson($match->analysis);
-        }
-        
-        return $matches;
+            return $matchArray;
+        });
     }
 
     public function getJobStatus($id) {
@@ -135,6 +140,10 @@ class MatchController extends BaseApiController
             $query->where('vacancy_id', $request->vacancy_id);
         }
 
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
         if ($request->has('min_score')) {
             $query->byScore($request->min_score);
         }
@@ -151,7 +160,15 @@ class MatchController extends BaseApiController
             $sortOrder = 'desc';
         }
 
-        $matches = $query->orderBy($sortBy, $sortOrder)->paginate(AppConstants::DEFAULT_PAGE_SIZE);
+        $perPage = (int) $request->input('per_page', AppConstants::DEFAULT_PAGE_SIZE);
+        // Limit max per_page to avoid performance issues
+        if ($perPage > 100) $perPage = 100;
+
+        $matches = $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
+
+        // Enrich the paginated items
+        $enrichedCollection = $this->enrichMatchesWithVacancies($matches->getCollection());
+        $matches->setCollection($enrichedCollection);
 
         return response()->json($matches);
     }

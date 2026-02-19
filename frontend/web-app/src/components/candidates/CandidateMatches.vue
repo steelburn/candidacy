@@ -139,7 +139,7 @@
                                 </button>
                             </div>
                             <div v-if="expandedHints[`${match.vacancy_id}-${idx}`]" class="hint-box">
-                                <strong>What to look for:</strong> {{ q.expected_answer }}
+                                <strong>What to look for:</strong> {{ q.hint || q.expected_answer }}
                             </div>
                             
                             <!-- Discussion Notes -->
