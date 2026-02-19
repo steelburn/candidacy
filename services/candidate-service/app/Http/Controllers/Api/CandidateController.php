@@ -272,12 +272,15 @@ class CandidateController extends BaseApiController
         if (!$latestCv) {
             abort(404, 'CV not found');
         }
-        
-        if (!Storage::exists($latestCv->file_path)) {
+
+        // Files are stored on the 'public' disk (storage/app/public/)
+        if (!Storage::disk('public')->exists($latestCv->file_path)) {
             abort(404, 'File not found on server');
         }
 
-        return response()->file(storage_path('app/' . $latestCv->file_path), [
+        $filePath = Storage::disk('public')->path($latestCv->file_path);
+
+        return response()->file($filePath, [
             'Content-Type' => $latestCv->mime_type,
             'Content-Disposition' => 'inline; filename="' . $latestCv->original_filename . '"'
         ]);
