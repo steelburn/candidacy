@@ -180,6 +180,7 @@ services:
       REDIS_HOST: redis
       QUEUE_CONNECTION: redis
       REDIS_QUEUE: document_parser_queue
+      DOCLING_TIMEOUT: ${DOCLING_TIMEOUT:-300}
     volumes:
       - ./services/document-parser-service:/var/www/html
       - ./shared:/var/www/shared
@@ -208,6 +209,7 @@ services:
       REDIS_QUEUE: document_parser_queue
       FONTCONFIG_PATH: /var/www/html/storage
       XDG_CACHE_HOME: /var/www/html/storage/cache
+      DOCLING_TIMEOUT: ${DOCLING_TIMEOUT:-300}
     volumes:
       - ./services/document-parser-service:/var/www/html
       - ./shared:/var/www/shared
