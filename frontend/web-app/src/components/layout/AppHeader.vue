@@ -17,6 +17,8 @@
       </div>
     </div>
     <div class="header-right">
+      <!-- Tenant Switcher -->
+      <TenantSwitcher />
       <!-- Quick search placeholder -->
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -25,7 +27,7 @@
         </svg>
         <input type="text" placeholder="Search..." class="search-input" />
       </div>
-      <!-- Theme toggle placeholder -->
+      <!-- Theme toggle -->
       <button class="header-action" title="Toggle theme" @click="toggleTheme">
         <svg v-if="isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"/>
@@ -49,6 +51,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import TenantSwitcher from '@/components/layout/TenantSwitcher.vue'
 
 defineProps({
   isCollapsed: {
@@ -64,7 +67,6 @@ const isDarkMode = ref(document.body.classList.contains('dark-mode'))
 
 const pageTitle = computed(() => {
   const routeName = route.name || 'Dashboard'
-  // Convert camelCase/PascalCase to Title Case with spaces
   return routeName.replace(/([A-Z])/g, ' $1').trim()
 })
 

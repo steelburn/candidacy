@@ -55,9 +55,22 @@ export const authAPI = {
     me: () => api.get('/api/auth/me'),
     refresh: () => api.post('/api/auth/refresh'),
     changePassword: (data) => api.post('/api/auth/change-password', data),
+    switchTenant: (tenantId) => api.post('/api/auth/switch-tenant', { tenant_id: tenantId }),
     // First-time setup
     setupCheck: () => axios.get(`${API_GATEWAY_URL}/api/setup/check`),
     createAdmin: (data) => axios.post(`${API_GATEWAY_URL}/api/setup/create-admin`, data)
+}
+
+// Tenant API
+export const tenantAPI = {
+    list: () => api.get('/api/tenants'),
+    get: (uuid) => api.get(`/api/tenants/${uuid}`),
+    create: (data) => api.post('/api/tenants', data),
+    update: (uuid, data) => api.put(`/api/tenants/${uuid}`, data),
+    members: (uuid) => api.get(`/api/tenants/${uuid}/members`),
+    invite: (uuid, data) => api.post(`/api/tenants/${uuid}/invitations`, data),
+    acceptInvitation: (token) => api.post(`/api/invitations/${token}/accept`),
+    getInvitation: (token) => api.get(`/api/invitations/${token}`)
 }
 
 // Candidate API

@@ -162,6 +162,10 @@ router.beforeEach((to, from, next) => {
     } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
         next('/dashboard')
     } else {
+        // If authenticated and tenant list not yet loaded, trigger a background fetch
+        if (authStore.isAuthenticated && authStore.tenants.length === 0 && !authStore.tenantsLoading) {
+            authStore.fetchTenants().catch(() => { })
+        }
         next()
     }
 })
