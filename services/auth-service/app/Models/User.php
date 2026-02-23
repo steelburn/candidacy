@@ -26,6 +26,8 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'status',
         'role',
+        'current_tenant_id',
+        'is_active',
     ];
 
     /**
@@ -49,6 +51,8 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'current_tenant_id' => 'integer',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -60,7 +64,11 @@ class User extends Authenticatable implements JWTSubject
 
     public function getJWTCustomClaims()
     {
-        return [];
+        return [
+            'tenant_id' => $this->current_tenant_id,
+            'user_id'   => $this->id,
+            'roles'     => $this->roles->pluck('name')->toArray(),
+        ];
     }
 
     // RBAC Relationships

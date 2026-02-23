@@ -32,6 +32,7 @@ class InterviewFactory extends Factory
             'type' => $this->faker->randomElement(['in_person', 'video', 'phone']),
             'status' => $this->faker->randomElement(['scheduled', 'completed', 'cancelled', 'rescheduled']),
             'notes' => $this->faker->optional()->paragraph(),
+            'tenant_id' => 1,
         ];
     }
 

@@ -165,6 +165,35 @@ class AuthController extends Controller
         return response()->json(['message' => 'Password changed successfully']);
     }
 
+    /**
+     * Switch the authenticated user's active tenant and reissue a JWT
+     * embedding the new tenant_id claim.
+     */
+    public function switchTenant(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tenant_id' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = auth('api')->user();
+        $tenantId = (int) $request->tenant_id;
+
+        // Persist the new active tenant on the user record
+        $user->current_tenant_id = $tenantId;
+        $user->save();
+
+        // Invalidate the current token and issue a fresh one so the
+        // new tenant_id claim is immediately reflected in the JWT.
+        auth('api')->invalidate();
+        $token = auth('api')->login($user);
+
+        return $this->respondWithToken($token);
+    }
+
     protected function respondWithToken($token)
     {
         return response()->json([

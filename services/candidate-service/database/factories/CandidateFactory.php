@@ -44,6 +44,7 @@ class CandidateFactory extends Factory
             ]),
             'status' => $this->faker->randomElement(['new', 'screening', 'interview', 'offer', 'hired', 'rejected']),
             'notes' => $this->faker->paragraph(),
+            'tenant_id' => 1,
         ];
     }
 }

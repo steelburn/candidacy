@@ -10,6 +10,19 @@ class CandidateManagementTest extends TestCase
 {
     use DatabaseTransactions;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Bind tenant context so BelongsToTenant global scope matches factory records
+        app()->instance('tenant.id', 1);
+    }
+
+    protected function tearDown(): void
+    {
+        app()->forgetInstance('tenant.id');
+        parent::tearDown();
+    }
+
     /**
      * Test listing candidates
      */

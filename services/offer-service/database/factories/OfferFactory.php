@@ -35,6 +35,7 @@ class OfferFactory extends Factory
             'terms' => $this->faker->paragraphs(3, true),
             'candidate_response' => $this->faker->optional()->paragraph(),
             'responded_at' => $this->faker->optional()->dateTimeBetween($offerDate, 'now'),
+            'tenant_id' => 1,
         ];
     }
 

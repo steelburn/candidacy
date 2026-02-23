@@ -32,6 +32,8 @@ class GatewayController extends Controller
         'generate-questions-screening' => 'ai-service',
         'providers' => 'ai-service', // AI provider management
         'ai' => 'ai-service',
+        'tenants' => 'tenant-service',      // Tenant management (CRUD, switch, members)
+        'invitations' => 'tenant-service',  // Invitation accept/reject flows
     ];
 
     public function handle(Request $request, $path)

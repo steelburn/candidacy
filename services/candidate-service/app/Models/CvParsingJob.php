@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Shared\Traits\BelongsToTenant;
 
 class CvParsingJob extends Model
 {
+    use BelongsToTenant;
+
     protected $fillable = [
         'candidate_id',
         'file_path',

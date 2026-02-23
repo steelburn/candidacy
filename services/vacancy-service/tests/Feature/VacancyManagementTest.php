@@ -11,6 +11,18 @@ class VacancyManagementTest extends TestCase
 {
     use DatabaseTransactions;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        app()->instance('tenant.id', 1);
+    }
+
+    protected function tearDown(): void
+    {
+        app()->forgetInstance('tenant.id');
+        parent::tearDown();
+    }
+
     /**
      * Test listing vacancies
      */

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Shared\Traits\BelongsToTenant;
 
 /**
  * NotificationLog Model
@@ -29,7 +30,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  */
 class NotificationLog extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToTenant;
 
     protected $fillable = [
         'template_id',

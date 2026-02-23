@@ -44,6 +44,7 @@ class VacancyFactory extends Factory
             'status' => $this->faker->randomElement(['draft', 'open', 'closed', 'on_hold']),
             'closing_date' => $this->faker->dateTimeBetween('now', '+3 months'),
             'positions_available' => $this->faker->numberBetween(1, 5),
+            'tenant_id' => 1,
         ];
     }
 }

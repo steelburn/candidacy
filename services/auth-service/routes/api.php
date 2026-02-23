@@ -21,6 +21,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/switch-tenant', [AuthController::class, 'switchTenant']);
     
     // User management
     Route::apiResource('users', UserController::class);
