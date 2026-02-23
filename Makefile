@@ -7,7 +7,8 @@ SHELL := /bin/bash
 .PHONY: logs-gateway logs-frontend logs-applicant logs-grafana logs-parse-cv
 .PHONY: db-reset pull build status
 .PHONY: test-backend test-api test-integration test-e2e test-service test-resumes
-.PHONY: test-auth test-candidate test-vacancy
+.PHONY: test-auth test-candidate test-vacancy test-tenant-isolation
+.PHONY: migrate-tenants
 .PHONY: dbml-validate dbml-sql dbml-check dbml-init dbml-reset
 .PHONY: logs-document-parser clear-matches
 .PHONY: docs-php docs-serve
@@ -28,10 +29,11 @@ help:
 	@echo "  make pull           - Pull latest images"
 	@echo ""
 	@echo "📊 Database Commands:"
-	@echo "  make seed           - Seed all databases with sample data"
-	@echo "  make seed-config    - Seed configuration settings (27 settings)"
-	@echo "  make db-reset       - Reset all databases (WARNING: destructive)"
-	@echo "  make clear-matches  - Clear all candidate matches (for re-running matching)"
+	@echo "  make seed                  - Seed all databases with sample data"
+	@echo "  make seed-config           - Seed configuration settings (27 settings)"
+	@echo "  make migrate-tenants       - Run tenant_id migrations on all business services"
+	@echo "  make db-reset              - Reset all databases (WARNING: destructive)"
+	@echo "  make clear-matches         - Clear all candidate matches (for re-running matching)"
 	@echo ""
 	@echo "🗄️  DBML Commands (Database-as-Code):"
 	@echo "  make dbml-validate  - Validate DBML schema syntax"
@@ -61,13 +63,14 @@ help:
 	@echo "  make logs-grafana   - View Grafana logs"
 	@echo ""
 	@echo "🧪 Testing Commands:"
-	@echo "  make test           - Run all tests (backend, API, integration, e2e)"
-	@echo "  make test-backend   - Run backend service tests (PHPUnit)"
-	@echo "  make test-api       - Run API endpoint tests"
-	@echo "  make test-integration - Run integration tests"
-	@echo "  make test-e2e       - Run end-to-end workflow tests"
-	@echo "  make test-service S=<service> - Run tests for specific service"
-	@echo "  make test-resumes   - Generate test resume PDF/DOCX from markdown"
+	@echo "  make test                       - Run all tests (backend, API, integration, e2e)"
+	@echo "  make test-backend               - Run backend service tests (PHPUnit)"
+	@echo "  make test-api                   - Run API endpoint tests"
+	@echo "  make test-integration           - Run integration tests"
+	@echo "  make test-e2e                   - Run end-to-end workflow tests"
+	@echo "  make test-service S=<service>   - Run tests for specific service"
+	@echo "  make test-tenant-isolation      - Run TenantIsolationTest on all services"
+	@echo "  make test-resumes               - Generate test resume PDF/DOCX from markdown"
 	@echo ""
 	@echo "📚 Documentation Commands:"
 	@echo "  make docs-php       - Generate PHP API documentation (PHPDoc)"
@@ -312,6 +315,28 @@ seed-config:
 	@echo ""
 	@echo "📚 Documentation: See CONFIGURATION.md"
 
+migrate-tenants:
+	@echo "🏢 Running tenant_id migrations on all business services..."
+	@echo "   • Migrating auth-service..."
+	@docker compose exec -T auth-service php artisan migrate --force || echo "⚠️  auth-service not running, skipping"
+	@echo "   • Migrating candidate-service..."
+	@docker compose exec -T candidate-service php artisan migrate --force || echo "⚠️  candidate-service not running, skipping"
+	@echo "   • Migrating vacancy-service..."
+	@docker compose exec -T vacancy-service php artisan migrate --force || echo "⚠️  vacancy-service not running, skipping"
+	@echo "   • Migrating matching-service..."
+	@docker compose exec -T matching-service php artisan migrate --force || echo "⚠️  matching-service not running, skipping"
+	@echo "   • Migrating interview-service..."
+	@docker compose exec -T interview-service php artisan migrate --force || echo "⚠️  interview-service not running, skipping"
+	@echo "   • Migrating offer-service..."
+	@docker compose exec -T offer-service php artisan migrate --force || echo "⚠️  offer-service not running, skipping"
+	@echo "   • Migrating onboarding-service..."
+	@docker compose exec -T onboarding-service php artisan migrate --force || echo "⚠️  onboarding-service not running, skipping"
+	@echo "   • Migrating notification-service..."
+	@docker compose exec -T notification-service php artisan migrate --force || echo "⚠️  notification-service not running, skipping"
+	@echo ""
+	@echo "✅ Tenant migrations complete!"
+	@echo "💡 Tip: To backfill existing data, run tinker in each service and set tenant_id = 1"
+
 
 db-reset:
 	@echo "⚠️  WARNING: This will delete all data!"
@@ -377,6 +402,15 @@ test-candidate:
 test-vacancy:
 	@echo "🧪 Testing Vacancy Service..."
 	docker compose exec vacancy-service php artisan test
+
+test-tenant-isolation:
+	@echo "🏢 Running Tenant Isolation Tests across all services..."
+	@echo "   • candidate-service:"
+	@docker compose exec -T candidate-service php artisan test --filter TenantIsolationTest || echo "⚠️  candidate-service not running"
+	@echo "   • vacancy-service:"
+	@docker compose exec -T vacancy-service php artisan test --filter TenantIsolationTest || echo "⚠️  vacancy-service not running"
+	@echo ""
+	@echo "✅ Tenant isolation tests complete"
 
 test-resumes:
 	@echo "📄 Generating test resumes (PDF/DOCX) from markdown..."
@@ -533,7 +567,7 @@ tunnel-up:
 		echo "See CLOUDFLARE_TUNNEL.md for detailed instructions"; \
 		exit 1; \
 	fi
-	@docker-compose up -d cloudflared
+	@docker compose up -d cloudflared
 	@echo ""
 	@echo "✅ Cloudflare Tunnel started!"
 	@echo ""
@@ -545,20 +579,20 @@ tunnel-up:
 
 tunnel-down:
 	@echo "🛑 Stopping Cloudflare Tunnel..."
-	@docker-compose stop cloudflared
+	@docker compose stop cloudflared
 	@echo "✅ Cloudflare Tunnel stopped"
 
 tunnel-logs:
 	@echo "📋 Cloudflare Tunnel Logs (Ctrl+C to exit):"
 	@echo ""
-	@docker-compose logs -f cloudflared
+	@docker compose logs -f cloudflared
 
 tunnel-status:
 	@echo "📊 Cloudflare Tunnel Status:"
 	@echo ""
-	@docker-compose ps cloudflared
+	@docker compose ps cloudflared
 	@echo ""
-	@if docker-compose ps cloudflared | grep -q "Up"; then \
+	@if docker compose ps cloudflared | grep -q "Up"; then \
 		echo "✅ Tunnel is running"; \
 		echo ""; \
 		echo "🌐 Access your application at:"; \

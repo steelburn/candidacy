@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-02-23
+
+#### Multitenancy Implementation (Phases 1–3)
+
+**Phase 1 — Auth Service: JWT Tenant Claims**
+- **JWT claims** — `getJWTCustomClaims()` now embeds `tenant_id`, `user_id`, and `roles` in every token
+- **Switch-tenant endpoint** — `POST /auth/switch-tenant` validates user belongs to requested tenant, updates `current_tenant_id`, invalidates old token, and issues a fresh JWT
+- **Migration** — `2026_02_23_000001_add_current_tenant_id_to_users_table.php` safely adds `current_tenant_id` column to `users` table if missing
+
+**Phase 2 — Business Services: Data Isolation**
+- **`BelongsToTenant` trait** applied to 13 models across 7 services:
+  - `Candidate`, `CvFile`, `CvParsingJob` (candidate-service)
+  - `Vacancy`, `VacancyQuestion` (vacancy-service)
+  - `CandidateMatch` (matching-service)
+  - `Interview`, `InterviewFeedback` (interview-service)
+  - `Offer` (offer-service)
+  - `OnboardingChecklist` (onboarding-service)
+  - `NotificationTemplate`, `NotificationLog` (notification-service)
+- **Idempotent migrations** adding `tenant_id` + index to all affected tables (safe to re-run)
+- **Kernel aliases** — `tenant` and `require.tenant` middleware registered in all 7 service Kernels
+
+**Phase 3 — API Gateway: Tenant Service Routing**
+- `tenants` and `invitations` route prefixes added to `GatewayController` service map
+
+**DBML Updates**
+- Added `tenant_id` column to `cv_files`, `cv_parsing_jobs`, `vacancy_questions`, `interview_feedback`
+
+**Testing**
+- `TenantIsolationTest` added to `candidate-service` and `vacancy-service` (7 test cases each)
+- `setUp`/`tearDown` tenant context added to `CandidateManagementTest` and `VacancyManagementTest`
+- `tenant_id` default added to `CandidateFactory`, `VacancyFactory`, `InterviewFactory`, `OfferFactory`
+
+**Makefile**
+- `make migrate-tenants` — runs `php artisan migrate --force` on all 8 services
+- `make test-tenant-isolation` — runs `TenantIsolationTest` across candidate and vacancy services
+- Fixed stale `docker-compose` → `docker compose` in all tunnel targets
+
 ### Added - 2026-01-09
 
 #### Containerized DBML Tools

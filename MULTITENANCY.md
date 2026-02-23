@@ -118,14 +118,26 @@ curl -X GET http://localhost:9080/api/candidates \
 ```
 
 ### JWT Claims
-The auth service includes `tenant_id` in JWT tokens:
+The auth service embeds `tenant_id`, `user_id`, and `roles` in JWT tokens:
 ```php
 public function getJWTCustomClaims()
 {
     return [
         'tenant_id' => $this->current_tenant_id,
+        'user_id'   => $this->id,
+        'roles'     => $this->roles->pluck('name'),
     ];
 }
+```
+
+### Switching Tenants
+Users can switch their active tenant without logging out:
+```bash
+curl -X POST http://localhost:9080/api/auth/switch-tenant \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tenant_id": 2}'
+# Returns a new JWT with updated tenant_id claim
 ```
 
 ## API Endpoints
@@ -202,45 +214,86 @@ All these tables have a `tenant_id` column:
 
 ## Migration Guide
 
-For existing installations, run the migration script:
+For existing installations, run:
 
 ```bash
 # 1. Run tenant-service migrations
-docker-compose exec tenant-service php artisan migrate
+docker compose exec tenant-service php artisan migrate --force
 
-# 2. Create default tenant
-docker-compose exec tenant-service php artisan tinker
->>> App\Models\Tenant::create(['name' => 'Default', 'slug' => 'default']);
+# 2. Create a default tenant
+docker compose exec tenant-service php artisan tinker
+>>> App\Models\Tenant::create(['name' => 'Default', 'slug' => 'default', 'status' => 'active']);
 
-# 3. Run service migrations to add tenant_id columns
-docker-compose exec candidate-service php artisan migrate
-docker-compose exec vacancy-service php artisan migrate
-# ... repeat for other services
+# 3. Run tenant_id migrations on all business services (or use make)
+make migrate-tenants
 
-# 4. Backfill existing data (sets tenant_id = 1)
-docker-compose exec candidate-service php artisan db:seed --class=TenantBackfillSeeder
+# Equivalently, run each service individually:
+docker compose exec auth-service php artisan migrate --force
+docker compose exec candidate-service php artisan migrate --force
+docker compose exec vacancy-service php artisan migrate --force
+docker compose exec matching-service php artisan migrate --force
+docker compose exec interview-service php artisan migrate --force
+docker compose exec offer-service php artisan migrate --force
+docker compose exec onboarding-service php artisan migrate --force
+docker compose exec notification-service php artisan migrate --force
+
+# 4. Backfill existing data (sets tenant_id = 1 for all pre-existing records)
+docker compose exec candidate-service php artisan tinker
+>>> DB::statement('UPDATE candidates SET tenant_id = 1 WHERE tenant_id IS NULL');
+>>> DB::statement('UPDATE vacancies SET tenant_id = 1 WHERE tenant_id IS NULL');
+# ... repeat for other tables as needed
 ```
 
 ## Testing
 
-### Unit Test Example
+### Running Tenant Isolation Tests
+
+```bash
+# Run all tenant isolation tests (all services)
+make test-tenant-isolation
+
+# Run for a specific service
+docker compose exec candidate-service php artisan test --filter TenantIsolationTest
+docker compose exec vacancy-service php artisan test --filter TenantIsolationTest
+```
+
+### Test Files
+| Service | Test File |
+|---------|----------|
+| candidate-service | `tests/Feature/TenantIsolationTest.php` |
+| vacancy-service | `tests/Feature/TenantIsolationTest.php` |
+
+### What is Tested
+- Cross-tenant data is invisible (global scope applied)
+- `find()` returns `null` for records from other tenants
+- `withoutTenant()` scope bypasses filtering (admin use)
+- `tenant_id` is auto-stamped on `create()` from context
+- `belongsToTenant()` / `belongsToCurrentTenant()` helpers
+- HTTP API responses only contain own-tenant records
+
+### Writing New Tenant Tests
 ```php
-public function test_candidates_are_scoped_to_tenant(): void
+protected function setUp(): void
 {
-    // Set tenant context
-    app()->instance('tenant.id', 1);
-    
-    // Create candidate
-    $candidate = Candidate::factory()->create();
-    
-    // Assert tenant_id was set
-    $this->assertEquals(1, $candidate->tenant_id);
-    
-    // Switch tenant
+    parent::setUp();
+    app()->instance('tenant.id', 1); // bind tenant context
+}
+
+protected function tearDown(): void
+{
+    app()->forgetInstance('tenant.id'); // always clean up
+    parent::tearDown();
+}
+
+public function test_records_are_scoped(): void
+{
+    // Factory already includes tenant_id = 1 by default
+    $record = MyModel::factory()->create();
+    $this->assertEquals(1, $record->tenant_id);
+
+    // Switch to tenant 2 — record is invisible
     app()->instance('tenant.id', 2);
-    
-    // Cannot see other tenant's data
-    $this->assertCount(0, Candidate::all());
+    $this->assertNull(MyModel::find($record->id));
 }
 ```
 
