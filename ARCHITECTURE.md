@@ -201,6 +201,7 @@ Notification Service subscribes and sends confirmation email
 - JWT token generation and validation
 - Role-based access control (RBAC)
 - User management
+- **Token Claims**: Includes `sub` (User ID) and `tenant_id` which are used by downstream services.
 
 ### Candidate Service
 - Candidate profile management
@@ -405,16 +406,14 @@ Services can be scaled independently:
 4. Auth Service generates JWT token
    ↓
 5. Frontend stores token
-   ↓
 6. All subsequent requests include token
-   ↓
-7. API Gateway validates token
-   ↓
-8. Request forwarded to target service
+7. API Gateway extracts claims from token (`sub`, `tenant_id`)
+8. API Gateway injects headers (`X-User-ID`, `X-Tenant-ID`)
+9. Request forwarded to target service
 ```
 
 ### Security Layers
-- **API Gateway**: CORS, rate limiting, token validation
+- **API Gateway**: CORS, rate limiting, token validation, JWT header injection
 - **Services**: Role-based access control
 - **Database**: Encrypted connections, user isolation
 - **Files**: Secure storage, access control

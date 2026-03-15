@@ -43,6 +43,9 @@ class GatewayController extends Controller
         // So if request is /api/candidates/parse-cv
         // Route is /candidates/parse-cv (relative to group) if I define Route::any('{any}').
         
+        // Normalize path by removing leading api/ if present
+        $path = preg_replace('/^api\//', '', $path);
+        
         $segments = explode('/', $path);
         $serviceKey = $segments[0];
 
@@ -72,10 +75,35 @@ class GatewayController extends Controller
         ]);
 
         try {
-            // Forward request
             $headers = collect($request->header())
                 ->except(['content-type', 'content-length', 'host'])
                 ->all();
+
+            // Extract info from JWT if present
+            $token = $request->bearerToken();
+            if ($token) {
+                try {
+                    $segments = explode('.', $token);
+                    if (count($segments) === 3) {
+                        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $segments[1])), true);
+                        
+                        if (isset($payload['sub'])) {
+                            $headers['X-User-ID'] = $payload['sub'];
+                        }
+                        
+                        if (isset($payload['tenant_id'])) {
+                            $headers['X-Tenant-ID'] = $payload['tenant_id'];
+                        }
+                        
+                        Log::info("Injected auth headers from JWT", [
+                            'user_id' => $payload['sub'] ?? 'none',
+                            'tenant_id' => $payload['tenant_id'] ?? 'none'
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to decode JWT for header injection: " . $e->getMessage());
+                }
+            }
 
             $httpClient = Http::timeout(300)->withHeaders($headers);
             

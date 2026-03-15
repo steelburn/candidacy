@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   // Note: we need to go up two levels to find the root .env file
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), '')
 
-  const allowedHosts = ['applicant-frontend', 'candidacy-applicant-frontend', 'localhost']
+  const allowedHosts = ['applicant-frontend', 'candidacy-applicant-frontend', 'localhost', 'candidacy.comulo.app']
   if (env.PUBLIC_DOMAIN) {
     allowedHosts.push(env.PUBLIC_DOMAIN)
   }
