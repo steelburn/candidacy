@@ -235,7 +235,7 @@ The configuration management interface features search, filtering by category, a
 
 ## Production Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment instructions using Kubernetes.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment instructions.
 
 ## API Documentation
 

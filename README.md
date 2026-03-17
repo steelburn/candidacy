@@ -274,6 +274,10 @@ curl http://localhost:9080/api/system-health
 ## 📚 Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** - Fast track setup guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment guide
+- **[TESTING.md](TESTING.md)** - Comprehensive testing guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[MAKEFILE_REFERENCE.md](MAKEFILE_REFERENCE.md)** - Complete Makefile command reference
 - **[DATABASE.md](DATABASE.md)** - DBML schema documentation and workflow
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system architecture
 - **[CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md)** - Public access via Cloudflare Tunnel

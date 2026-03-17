@@ -7,155 +7,85 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
+/**
+ * Configuration Service
+ * 
+ * Provides centralized configuration management with caching and
+ * real-time updates via Redis Pub/Sub.
+ */
 class ConfigurationService
 {
-    private static $instance = null;
-    private $adminServiceUrl;
-    private $cacheTtl = 3600; // 1 hour
-    private $isSubscribed = false;
+    private const DEFAULT_TTL = 3600;
+    private const DEFAULT_TIMEOUT = 3;
 
-    private function __construct()
-    {
-        $this->adminServiceUrl = env('ADMIN_SERVICE_URL', 'http://admin-service:8080');
-    }
+    private string $adminServiceUrl;
+    private int $cacheTtl;
+    private int $timeout;
 
-    /**
-     * Get singleton instance
-     */
-    public static function getInstance(): self
+    public function __construct(?string $adminServiceUrl = null, ?int $cacheTtl = null, ?int $timeout = null)
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
-        }
-        return self::$instance;
+        $this->adminServiceUrl = $adminServiceUrl ?? config('services.admin_service_url', 'http://admin-service:8080');
+        $this->cacheTtl = $cacheTtl ?? config('services.admin_service_ttl', self::DEFAULT_TTL);
+        $this->timeout = $timeout ?? self::DEFAULT_TIMEOUT;
     }
 
     /**
      * Get a configuration value
      */
-    public static function get(string $key, $default = null)
+    public function get(string $key, $default = null)
     {
-        $instance = self::getInstance();
         $cacheKey = "config:{$key}";
 
-        return Cache::remember($cacheKey, $instance->cacheTtl, function () use ($instance, $key, $default) {
-            try {
-                $response = Http::timeout(2)->get("{$instance->adminServiceUrl}/api/settings/{$key}");
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $data['value'] ?? $default;
-                }
-
-                Log::warning("Failed to fetch configuration: {$key}", [
-                    'status' => $response->status()
-                ]);
-
-                return $default;
-            } catch (\Exception $e) {
-                Log::error("Configuration fetch error: {$key}", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return $default;
-            }
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($key, $default) {
+            return $this->fetchFromAdminService("/api/settings/{$key}", $default);
         });
     }
 
     /**
      * Get all configurations
      */
-    public static function getAll(): array
+    public function getAll(): array
     {
-        $instance = self::getInstance();
-        $cacheKey = "config:all";
+        $cacheKey = 'config:all';
 
-        return Cache::remember($cacheKey, $instance->cacheTtl, function () use ($instance) {
-            try {
-                $response = Http::timeout(5)->get("{$instance->adminServiceUrl}/api/settings");
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $data['settings'] ?? [];
-                }
-
-                return [];
-            } catch (\Exception $e) {
-                Log::error("Failed to fetch all configurations", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return [];
-            }
+        return Cache::remember($cacheKey, $this->cacheTtl, function () {
+            return $this->fetchFromAdminService('/api/settings', []);
         });
     }
 
     /**
      * Get configurations by category
      */
-    public static function getByCategory(string $category): array
+    public function getByCategory(string $category): array
     {
-        $instance = self::getInstance();
         $cacheKey = "config:category:{$category}";
 
-        return Cache::remember($cacheKey, $instance->cacheTtl, function () use ($instance, $category) {
-            try {
-                $response = Http::timeout(3)->get("{$instance->adminServiceUrl}/api/settings/category/{$category}");
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $data['settings'] ?? [];
-                }
-
-                return [];
-            } catch (\Exception $e) {
-                Log::error("Failed to fetch category configurations: {$category}", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return [];
-            }
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($category) {
+            return $this->fetchFromAdminService("/api/settings/category/{$category}", []);
         });
     }
 
     /**
      * Get configurations by service scope
      */
-    public static function getByScope(string $scope): array
+    public function getByScope(string $scope): array
     {
-        $instance = self::getInstance();
         $cacheKey = "config:scope:{$scope}";
 
-        return Cache::remember($cacheKey, $instance->cacheTtl, function () use ($instance, $scope) {
-            try {
-                $response = Http::timeout(3)->get("{$instance->adminServiceUrl}/api/settings/scope/{$scope}");
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    return $data['settings'] ?? [];
-                }
-
-                return [];
-            } catch (\Exception $e) {
-                Log::error("Failed to fetch scope configurations: {$scope}", [
-                    'error' => $e->getMessage()
-                ]);
-
-                return [];
-            }
+        return Cache::remember($cacheKey, $this->cacheTtl, function () use ($scope) {
+            return $this->fetchFromAdminService("/api/settings/scope/{$scope}", []);
         });
     }
 
     /**
      * Refresh a specific configuration (invalidate cache)
      */
-    public static function refresh(string $key = null): void
+    public function refresh(?string $key = null): void
     {
         if ($key) {
             Cache::forget("config:{$key}");
             Log::info("Configuration cache refreshed: {$key}");
         } else {
-            // Clear all config caches
             Cache::forget('config:all');
             Log::info("All configuration caches cleared");
         }
@@ -163,41 +93,19 @@ class ConfigurationService
 
     /**
      * Subscribe to configuration change events via Redis Pub/Sub
+     * 
+     * @return \React\Promise\Deferred|null Returns null if already subscribed or on error
      */
-    public static function subscribe(): void
+    public function subscribe(?callable $callback = null): void
     {
-        $instance = self::getInstance();
-
-        if ($instance->isSubscribed) {
-            return;
-        }
-
         try {
-            // Subscribe to configuration change events
-            Redis::subscribe(['config:changed', 'config:changed:bulk', 'config:reload'], function ($message) {
-                $data = json_decode($message, true);
-
-                if (isset($data['key'])) {
-                    // Single config change
-                    Cache::forget("config:{$data['key']}");
-                    Log::info("Configuration updated via Pub/Sub: {$data['key']}");
-                } elseif (isset($data['changes'])) {
-                    // Bulk changes
-                    foreach ($data['changes'] as $key => $value) {
-                        Cache::forget("config:{$key}");
-                    }
-                    Cache::forget('config:all');
-                    Log::info("Bulk configuration update via Pub/Sub", [
-                        'count' => count($data['changes'])
-                    ]);
-                } elseif (isset($data['action']) && $data['action'] === 'reload') {
-                    // Full reload
-                    Cache::forget('config:all');
-                    Log::info("Configuration reload signal received");
-                }
-            });
-
-            $instance->isSubscribed = true;
+            $channels = ['config:changed', 'config:changed:bulk', 'config:reload'];
+            
+            foreach ($channels as $channel) {
+                Redis::subscribe([$channel], function ($message) use ($callback) {
+                    $this->handleConfigChange($message, $callback);
+                });
+            }
         } catch (\Exception $e) {
             Log::error("Failed to subscribe to configuration changes", [
                 'error' => $e->getMessage()
@@ -206,24 +114,61 @@ class ConfigurationService
     }
 
     /**
-     * Start background listener for configuration changes
-     * This should be called in a separate process/worker
+     * Handle incoming configuration change message
      */
-    public static function startListener(): void
+    protected function handleConfigChange(string $message, ?callable $callback = null): void
     {
-        Log::info("Starting configuration change listener...");
+        $data = json_decode($message, true);
 
-        while (true) {
-            try {
-                self::subscribe();
-            } catch (\Exception $e) {
-                Log::error("Configuration listener error", [
-                    'error' => $e->getMessage()
-                ]);
+        if (!$data) {
+            return;
+        }
 
-                // Wait before retrying
-                sleep(5);
+        if (isset($data['key'])) {
+            Cache::forget("config:{$data['key']}");
+            Log::info("Configuration updated via Pub/Sub: {$data['key']}");
+        } elseif (isset($data['changes'])) {
+            foreach ($data['changes'] as $key => $value) {
+                Cache::forget("config:{$key}");
             }
+            Cache::forget('config:all');
+            Log::info("Bulk configuration update via Pub/Sub", [
+                'count' => count($data['changes'])
+            ]);
+        } elseif (isset($data['action']) && $data['action'] === 'reload') {
+            Cache::forget('config:all');
+            Log::info("Configuration reload signal received");
+        }
+
+        if ($callback) {
+            $callback($data);
+        }
+    }
+
+    /**
+     * Fetch configuration from admin service
+     */
+    private function fetchFromAdminService(string $endpoint, $default)
+    {
+        try {
+            $response = Http::timeout($this->timeout)->get("{$this->adminServiceUrl}{$endpoint}");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['value'] ?? $data['settings'] ?? $default;
+            }
+
+            Log::warning("Failed to fetch configuration: {$endpoint}", [
+                'status' => $response->status()
+            ]);
+
+            return $default;
+        } catch (\Exception $e) {
+            Log::error("Configuration fetch error: {$endpoint}", [
+                'error' => $e->getMessage()
+            ]);
+
+            return $default;
         }
     }
 }
