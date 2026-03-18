@@ -136,6 +136,44 @@ class AuthController extends Controller
     }
 
     /**
+     * Validate a JWT token.
+     * Used by other services to verify tokens.
+     */
+    public function validateToken(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Token is required'], 422);
+        }
+
+        try {
+            $token = $request->input('token');
+            $decoded = JWTAuth::parseToken($token);
+            $user = $decoded->authenticate();
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            return response()->json([
+                'valid' => true,
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+            ]);
+        } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+            return response()->json(['error' => 'Token expired'], 401);
+        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+            return response()->json(['error' => 'Token invalid'], 401);
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            return response()->json(['error' => 'Token absent or malformed'], 401);
+        }
+    }
+
+    /**
      * Change the authenticated user's password
      */
     public function changePassword(Request $request)

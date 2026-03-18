@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\RoleController;
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
+// Token validation endpoint (public - used by other services)
+Route::post('/auth/validate', [AuthController::class, 'validateToken']);
+
 // First-time setup routes (only work when no users exist)
 Route::get('/auth/setup/check', [AuthController::class, 'setupCheck']);
 Route::post('/auth/setup/create-admin', [AuthController::class, 'createFirstAdmin']);

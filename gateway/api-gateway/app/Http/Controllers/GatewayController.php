@@ -79,29 +79,35 @@ class GatewayController extends Controller
                 ->except(['content-type', 'content-length', 'host'])
                 ->all();
 
-            // Extract info from JWT if present
+            // Extract and verify JWT if present
             $token = $request->bearerToken();
             if ($token) {
                 try {
-                    $segments = explode('.', $token);
-                    if (count($segments) === 3) {
-                        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $segments[1])), true);
-                        
-                        if (isset($payload['sub'])) {
-                            $headers['X-User-ID'] = $payload['sub'];
+                    $jwtValid = $this->verifyJwtSignature($token);
+                    
+                    if ($jwtValid) {
+                        $segments = explode('.', $token);
+                        if (count($segments) === 3) {
+                            $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $segments[1])), true);
+                            
+                            if (isset($payload['sub'])) {
+                                $headers['X-User-ID'] = $payload['sub'];
+                            }
+                            
+                            if (isset($payload['tenant_id'])) {
+                                $headers['X-Tenant-ID'] = $payload['tenant_id'];
+                            }
+                            
+                            Log::info("Injected auth headers from verified JWT", [
+                                'user_id' => $payload['sub'] ?? 'none',
+                                'tenant_id' => $payload['tenant_id'] ?? 'none'
+                            ]);
                         }
-                        
-                        if (isset($payload['tenant_id'])) {
-                            $headers['X-Tenant-ID'] = $payload['tenant_id'];
-                        }
-                        
-                        Log::info("Injected auth headers from JWT", [
-                            'user_id' => $payload['sub'] ?? 'none',
-                            'tenant_id' => $payload['tenant_id'] ?? 'none'
-                        ]);
+                    } else {
+                        Log::warning("JWT signature verification failed - not injecting auth headers");
                     }
                 } catch (\Exception $e) {
-                    Log::warning("Failed to decode JWT for header injection: " . $e->getMessage());
+                    Log::warning("Failed to process JWT for header injection: " . $e->getMessage());
                 }
             }
 
@@ -161,5 +167,40 @@ class GatewayController extends Controller
             Log::error("Gateway Error: " . $e->getMessage());
             return response()->json(['error' => 'Gateway Error'], 502);
         }
+    }
+    
+    /**
+     * Verify JWT signature using the shared JWT_SECRET.
+     * 
+     * This ensures the gateway only trusts JWT tokens that were signed
+     * by the auth-service with the correct secret.
+     *
+     * @param string $token
+     * @return bool
+     */
+    protected function verifyJwtSignature(string $token): bool
+    {
+        $segments = explode('.', $token);
+        
+        if (count($segments) !== 3) {
+            return false;
+        }
+        
+        [$header, $payload, $signature] = $segments;
+        
+        // Get JWT secret from environment
+        $secret = env('JWT_SECRET');
+        
+        if (empty($secret)) {
+            Log::warning('JWT_SECRET not configured in gateway - rejecting all tokens');
+            return false;
+        }
+        
+        // Compute expected signature using HS256
+        $rawSignature = hash_hmac('sha256', "{$header}.{$payload}", $secret, true);
+        $expectedSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($rawSignature));
+        
+        // Use timing-safe comparison to prevent timing attacks
+        return hash_equals($expectedSignature, $signature);
     }
 }
