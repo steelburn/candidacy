@@ -198,10 +198,12 @@ Notification Service subscribes and sends confirmation email
 
 ### Auth Service
 - User authentication and authorization
-- JWT token generation and validation
+- **JWT token generation and validation** (using `tymon/jwt-auth`)
 - Role-based access control (RBAC)
 - User management
 - **Token Claims**: Includes `sub` (User ID) and `tenant_id` which are used by downstream services.
+
+> **Authentication**: Uses JWT (JSON Web Tokens) via the `tymon/jwt-auth` package. All protected routes use the `auth:api` guard. Tokens include claims for user ID (`sub`) and tenant ID (`tenant_id`) which are extracted by the API Gateway and injected as headers to downstream services.
 
 ### Candidate Service
 - Candidate profile management
@@ -395,7 +397,7 @@ Services can be scaled independently:
 
 ## Security
 
-### Authentication Flow
+### Authentication Flow (JWT)
 ```
 1. User logs in via Frontend
    ↓
@@ -403,18 +405,25 @@ Services can be scaled independently:
    ↓
 3. Auth Service validates credentials
    ↓
-4. Auth Service generates JWT token
+4. Auth Service generates JWT token (using tymon/jwt-auth)
    ↓
-5. Frontend stores token
-6. All subsequent requests include token
-7. API Gateway extracts claims from token (`sub`, `tenant_id`)
+5. Frontend stores JWT token
+6. All subsequent requests include JWT token
+7. API Gateway validates JWT token and extracts claims (`sub`, `tenant_id`)
 8. API Gateway injects headers (`X-User-ID`, `X-Tenant-ID`)
 9. Request forwarded to target service
 ```
 
+**JWT Configuration**:
+- **Package**: `tymon/jwt-auth` (v1.x)
+- **Guard**: `auth:api`
+- **Token TTL**: Configurable via `JWT_TTL` environment variable (default: 60 minutes)
+- **Refresh TTL**: Configurable via `JWT_REFRESH_TTL` (default: 2 weeks)
+- **Secret**: Generated via `php artisan jwt:secret` or `make generate-secrets`
+
 ### Security Layers
-- **API Gateway**: CORS, rate limiting, token validation, JWT header injection
-- **Services**: Role-based access control
+- **API Gateway**: CORS, rate limiting, JWT validation, header injection
+- **Services**: Role-based access control via `auth:api` guard
 - **Database**: Encrypted connections, user isolation
 - **Files**: Secure storage, access control
 - **Logs**: Sensitive data redaction
@@ -483,6 +492,7 @@ Services → Docker Logs → Promtail → Loki → Grafana
 | Frontend Layout | Sidebar-based DashboardLayout |
 | Gateway | Laravel 10 |
 | Services | Laravel 10 |
+| Authentication | JWT (tymon/jwt-auth) |
 | Database | MySQL 8.0 (Managed via DBML) |
 | Cache/Events | Redis 7 |
 | AI | Ollama, OpenRouter |

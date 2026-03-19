@@ -117,6 +117,7 @@ candidacy/
 
 - **Backend**: Laravel 10 (PHP)
 - **Frontend**: Vue.js 3 with Vite
+- **Authentication**: JWT (tymon/jwt-auth)
 - **Database**: MySQL/MariaDB (Managed via DBML)
 - **Message Broker**: Redis Pub/Sub
 - **AI**: Ollama (local) / OpenRouter (cloud)
@@ -168,8 +169,9 @@ candidacy/
 
 ## 🔐 Security
 
-- **JWT-based authentication** (tymon/jwt-auth)
+- **JWT-based authentication** using `tymon/jwt-auth` package
 - **Authentication Guard**: `auth:api` for all protected routes
+- **Token Configuration**: Configurable TTL (default: 60 minutes access, 2 weeks refresh)
 - **Shared Security Middleware**: Standardized security headers and protection across all services
 - **Proper 401 JSON responses** for all unauthenticated requests
 - Role-based permissions
@@ -290,10 +292,10 @@ curl http://localhost:9080/api/system-health
 ### Common Issues
 
 **Authentication Issues**
-- Ensure you're using JWT tokens (not Sanctum)
+- Ensure you're using JWT tokens
 - Login endpoint: `POST /api/auth/login`
 - Include token in requests: `Authorization: Bearer {token}`
-- Token expires after 60 minutes
+- Token expires after 60 minutes (configurable via JWT_TTL)
 
 **Health Check Failures**
 - All services should report as "healthy" at `/api/health`

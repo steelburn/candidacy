@@ -77,8 +77,11 @@ APP_URL=https://your-domain.com
 
 # Security
 APP_KEY=base64:your-generated-key
-JWT_SECRET=your-jwt-secret
-SANCTUM_STATEFUL_DOMAINS=your-domain.com
+
+# JWT Authentication (REQUIRED)
+JWT_SECRET=your-jwt-secret-min-32-chars
+JWT_TTL=60                      # Access token validity in minutes
+JWT_REFRESH_TTL=20160           # Refresh token validity in minutes (2 weeks)
 
 # Database
 DB_HOST=mysql
@@ -113,11 +116,15 @@ PUBLIC_API_URL=https://your-domain.com
 # Generate application key
 php artisan key:generate
 
-# Generate JWT secret
+# Generate JWT secret (REQUIRED for authentication)
+# This creates a secure 64-character secret for JWT token signing
 php artisan jwt:secret
 
-# Or use Makefile
+# Or use Makefile (recommended - generates all secrets at once)
 make generate-secrets
+
+# Verify JWT_SECRET is set in .env:
+grep JWT_SECRET .env
 ```
 
 ---
@@ -239,7 +246,9 @@ make tunnel-status
 
 - [ ] `APP_DEBUG=false`
 - [ ] Strong database passwords
-- [ ] JWT secret rotated
+- [ ] **JWT secret generated and rotated** (`make generate-secrets`)
+- [ ] JWT_TTL configured (default: 60 minutes)
+- [ ] JWT_REFRESH_TTL configured (default: 2 weeks)
 - [ ] Redis password set
 - [ ] Firewall configured
 - [ ] Cloudflare security headers enabled
