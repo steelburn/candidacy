@@ -62,3 +62,7 @@ coverage/
 # PHPDoc
 .phpdoc/
 docs/api/
+.copilot-specs-cache/
+
+# Claude AI
+.claude/

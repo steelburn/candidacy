@@ -13,8 +13,8 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Delete existing users (avoid truncate due to foreign key constraints)
-        User::query()->delete();
+        // Hard-delete existing users to avoid soft-delete conflicts on re-seed
+        User::withTrashed()->forceDelete();
 
         // Create admin user
         User::create([

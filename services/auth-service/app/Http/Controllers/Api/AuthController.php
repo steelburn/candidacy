@@ -14,7 +14,7 @@ class AuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register', 'setupCheck', 'createFirstAdmin']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'setupCheck', 'createFirstAdmin', 'validateToken']]);
     }
 
     /**
@@ -151,8 +151,7 @@ class AuthController extends Controller
 
         try {
             $token = $request->input('token');
-            $decoded = JWTAuth::parseToken($token);
-            $user = $decoded->authenticate();
+            $user = JWTAuth::setToken($token)->authenticate();
 
             if (!$user) {
                 return response()->json(['error' => 'User not found'], 404);

@@ -22,6 +22,9 @@ class ConfigurationService
     private int $cacheTtl;
     private int $timeout;
 
+    /** @var static|null Singleton instance for static access */
+    private static ?self $instance = null;
+
     public function __construct(?string $adminServiceUrl = null, ?int $cacheTtl = null, ?int $timeout = null)
     {
         $this->adminServiceUrl = $adminServiceUrl ?? config('services.admin_service_url', 'http://admin-service:8080');
@@ -30,15 +33,34 @@ class ConfigurationService
     }
 
     /**
-     * Get a configuration value
+     * Get the singleton instance for static access.
      */
-    public function get(string $key, $default = null)
+    protected static function getInstance(): static
+    {
+        if (static::$instance === null) {
+            static::$instance = new static();
+        }
+        return static::$instance;
+    }
+
+    /**
+     * Get a configuration value (instance method)
+     */
+    public function getValue(string $key, $default = null)
     {
         $cacheKey = "config:{$key}";
 
         return Cache::remember($cacheKey, $this->cacheTtl, function () use ($key, $default) {
             return $this->fetchFromAdminService("/api/settings/{$key}", $default);
         });
+    }
+
+    /**
+     * Get a configuration value (static proxy for backward compatibility)
+     */
+    public static function get(string $key, $default = null)
+    {
+        return static::getInstance()->getValue($key, $default);
     }
 
     /**
@@ -78,9 +100,9 @@ class ConfigurationService
     }
 
     /**
-     * Refresh a specific configuration (invalidate cache)
+     * Refresh a specific configuration (invalidate cache) - instance method
      */
-    public function refresh(?string $key = null): void
+    public function refreshCache(?string $key = null): void
     {
         if ($key) {
             Cache::forget("config:{$key}");
@@ -89,6 +111,14 @@ class ConfigurationService
             Cache::forget('config:all');
             Log::info("All configuration caches cleared");
         }
+    }
+
+    /**
+     * Refresh a specific configuration (static proxy for backward compatibility)
+     */
+    public static function refresh(?string $key = null): void
+    {
+        static::getInstance()->refreshCache($key);
     }
 
     /**

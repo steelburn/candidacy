@@ -38,7 +38,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && !error.config?._skipAuthRedirect) {
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             window.location.href = '/login'
@@ -49,193 +49,192 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-    login: (credentials) => axios.post(`${API_GATEWAY_URL}/api/auth/login`, credentials),
-    register: (data) => axios.post(`${API_GATEWAY_URL}/api/auth/register`, data),
-    logout: () => api.post('/api/auth/logout'),
-    me: () => api.get('/api/auth/me'),
-    refresh: () => api.post('/api/auth/refresh'),
-    changePassword: (data) => api.post('/api/auth/change-password', data),
-    switchTenant: (tenantId) => api.post('/api/auth/switch-tenant', { tenant_id: tenantId }),
+    login: (credentials) => axios.post(`${API_GATEWAY_URL}/auth/login`, credentials),
+    register: (data) => axios.post(`${API_GATEWAY_URL}/auth/register`, data),
+    logout: () => api.post('/auth/logout'),
+    me: () => api.get('/auth/me'),
+    refresh: () => api.post('/auth/refresh'),
+    changePassword: (data) => api.post('/auth/change-password', data),
+    switchTenant: (tenantId) => api.post('/auth/switch-tenant', { tenant_id: tenantId }),
     // First-time setup
-    setupCheck: () => axios.get(`${API_GATEWAY_URL}/api/setup/check`),
-    createAdmin: (data) => axios.post(`${API_GATEWAY_URL}/api/setup/create-admin`, data)
+    setupCheck: () => axios.get(`${API_GATEWAY_URL}/setup/check`),
+    createAdmin: (data) => axios.post(`${API_GATEWAY_URL}/setup/create-admin`, data)
 }
 
 // Tenant API
 export const tenantAPI = {
-    list: () => api.get('/api/tenants'),
-    get: (uuid) => api.get(`/api/tenants/${uuid}`),
-    create: (data) => api.post('/api/tenants', data),
-    update: (uuid, data) => api.put(`/api/tenants/${uuid}`, data),
-    members: (uuid) => api.get(`/api/tenants/${uuid}/members`),
-    invite: (uuid, data) => api.post(`/api/tenants/${uuid}/invitations`, data),
-    acceptInvitation: (token) => api.post(`/api/invitations/${token}/accept`),
-    getInvitation: (token) => api.get(`/api/invitations/${token}`)
+    list: () => api.get('/tenants', { _skipAuthRedirect: true }),
+    get: (uuid) => api.get(`/tenants/${uuid}`),
+    create: (data) => api.post('/tenants', data),
+    update: (uuid, data) => api.put(`/tenants/${uuid}`, data),
+    members: (uuid) => api.get(`/tenants/${uuid}/members`),
+    invite: (uuid, data) => api.post(`/tenants/${uuid}/invitations`, data),
+    acceptInvitation: (token) => api.post(`/invitations/${token}/accept`),
+    getInvitation: (token) => api.get(`/invitations/${token}`)
 }
 
 // Candidate API
 export const candidateAPI = {
-    list: (params) => api.get('/api/candidates', { params }),
-    get: (id) => api.get(`/api/candidates/${id}`),
+    list: (params) => api.get('/candidates', { params }),
+    get: (id) => api.get(`/candidates/${id}`),
     create: (data) => {
         const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
-        return api.post('/api/candidates', data, config)
+        return api.post('/candidates', data, config)
     },
     update: (id, data) => {
         if (data instanceof FormData) {
             data.append('_method', 'PUT')
-            return api.post(`/api/candidates/${id}`, data, {
+            return api.post(`/candidates/${id}`, data, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
         }
-        return api.put(`/api/candidates/${id}`, data)
+        return api.put(`/candidates/${id}`, data)
     },
-    delete: (id) => api.delete(`/api/candidates/${id}`),
+    delete: (id) => api.delete(`/candidates/${id}`),
     uploadCV: (id, file) => {
         const formData = new FormData()
         formData.append('cv_file', file)
-        return api.post(`/api/candidates/${id}/cv`, formData, {
+        return api.post(`/candidates/${id}/cv`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
     },
-    getCv: (id) => api.get(`/api/candidates/${id}/cv`),
+    getCv: (id) => api.get(`/candidates/${id}/cv`),
     parseCv: (formData) => {
-        return api.post('/api/candidates/parse-cv', formData, {
+        return api.post('/candidates/parse-cv', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         })
     },
-    downloadCv: (id) => api.get(`/api/candidates/${id}/cv/download`, { responseType: 'blob' }),
+    downloadCv: (id) => api.get(`/candidates/${id}/cv/download`, { responseType: 'blob' }),
     bulkUpload: (files, onProgress) => {
         const formData = new FormData()
         files.forEach((file) => {
             formData.append('files[]', file)
         })
-        return api.post('/api/candidates/bulk-upload', formData, {
+        return api.post('/candidates/bulk-upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
             onUploadProgress: onProgress
         })
     },
-    generateToken: (id, vacancyId) => api.post(`/api/candidates/${id}/generate-token`, { vacancy_id: vacancyId }),
-    validateToken: (token) => api.get(`/api/portal/validate-token/${token}`),
-    validateToken: (token) => api.get(`/api/portal/validate-token/${token}`),
-    submitAnswers: (token, data) => api.post(`/api/portal/submit-answers/${token}`, data),
+    generateToken: (id, vacancyId) => api.post(`/candidates/${id}/generate-token`, { vacancy_id: vacancyId }),
+    validateToken: (token) => api.get(`/portal/validate-token/${token}`),
+    submitAnswers: (token, data) => api.post(`/portal/submit-answers/${token}`, data),
     // Admin CV Jobs
-    listCvJobs: (params) => api.get('/api/candidates/cv-jobs', { params }),
-    retryCvJob: (id) => api.post(`/api/candidates/cv-jobs/${id}/retry`),
-    deleteCvJob: (id) => api.delete(`/api/candidates/cv-jobs/${id}`),
+    listCvJobs: (params) => api.get('/candidates/cv-jobs', { params }),
+    retryCvJob: (id) => api.post(`/candidates/cv-jobs/${id}/retry`),
+    deleteCvJob: (id) => api.delete(`/candidates/cv-jobs/${id}`),
     // Parsing Details
-    getParsingDetails: (id) => api.get(`/api/candidates/${id}/parsing-details`)
+    getParsingDetails: (id) => api.get(`/candidates/${id}/parsing-details`)
 }
 
 // Vacancy API
 export const vacancyAPI = {
-    list: (params) => api.get('/api/vacancies', { params }),
-    get: (id) => api.get(`/api/vacancies/${id}`),
-    create: (data) => api.post('/api/vacancies', data),
-    update: (id, data) => api.put(`/api/vacancies/${id}`, data),
-    delete: (id) => api.delete(`/api/vacancies/${id}`),
-    generateJD: (id) => api.post(`/api/vacancies/${id}/generate-description`),
-    addQuestion: (id, data) => api.post(`/api/vacancies/${id}/questions`, data),
-    getQuestions: (id) => api.get(`/api/vacancies/${id}/questions`),
-    updateQuestion: (vacancyId, questionId, data) => api.put(`/api/vacancies/${vacancyId}/questions/${questionId}`, data),
-    deleteQuestion: (vacancyId, questionId) => api.delete(`/api/vacancies/${vacancyId}/questions/${questionId}`)
+    list: (params) => api.get('/vacancies', { params }),
+    get: (id) => api.get(`/vacancies/${id}`),
+    create: (data) => api.post('/vacancies', data),
+    update: (id, data) => api.put(`/vacancies/${id}`, data),
+    delete: (id) => api.delete(`/vacancies/${id}`),
+    generateJD: (id) => api.post(`/vacancies/${id}/generate-description`),
+    addQuestion: (id, data) => api.post(`/vacancies/${id}/questions`, data),
+    getQuestions: (id) => api.get(`/vacancies/${id}/questions`),
+    updateQuestion: (vacancyId, questionId, data) => api.put(`/vacancies/${vacancyId}/questions/${questionId}`, data),
+    deleteQuestion: (vacancyId, questionId) => api.delete(`/vacancies/${vacancyId}/questions/${questionId}`)
 }
 
 // AI API (direct calls)
 export const aiAPI = {
-    parseCV: (text) => api.post('/api/parse-cv', { text }),
-    generateJD: (data) => api.post('/api/generate-jd', data),
-    match: (candidateProfile, jobRequirements) => api.post('/api/match', {
+    parseCV: (text) => api.post('/parse-cv', { text }),
+    generateJD: (data) => api.post('/generate-jd', data),
+    match: (candidateProfile, jobRequirements) => api.post('/match', {
         candidate_profile: candidateProfile,
         job_requirements: jobRequirements
     }),
-    discussQuestion: (data) => api.post('/api/discuss-question', data),
-    generateScreeningQuestions: (data) => api.post('/api/generate-questions-screening', data),
+    discussQuestion: (data) => api.post('/discuss-question', data),
+    generateScreeningQuestions: (data) => api.post('/generate-questions-screening', data),
     // Provider Management
-    getProviders: () => api.get('/api/providers'),
-    createProvider: (data) => api.post('/api/providers', data),
-    updateProvider: (id, data) => api.put(`/api/providers/${id}`, data),
-    deleteProvider: (id) => api.delete(`/api/providers/${id}`),
-    getModels: (data) => api.post('/api/providers/models', data),
-    saveChains: (chains) => api.post('/api/providers/chains', { chains })
+    getProviders: () => api.get('/providers'),
+    createProvider: (data) => api.post('/providers', data),
+    updateProvider: (id, data) => api.put(`/providers/${id}`, data),
+    deleteProvider: (id) => api.delete(`/providers/${id}`),
+    getModels: (data) => api.post('/providers/models', data),
+    saveChains: (chains) => api.post('/providers/chains', { chains })
 }
 
 // Matching API
 export const matchingAPI = {
-    forCandidate: (id) => api.get(`/api/matches/candidates/${id}`),
-    forVacancy: (id) => api.get(`/api/matches/vacancies/${id}`),
-    matchCandidate: (id, params) => api.get(`/api/matches/candidates/${id}`, { params }),
-    matchVacancy: (id, params) => api.get(`/api/matches/vacancies/${id}`, { params }),
-    getMatches: (params) => api.get('/api/matches', { params }),
-    list: (params) => api.get('/api/matches', { params }),
-    clear: () => api.delete('/api/matches/clear'),
-    getJobStatus: (id) => api.get(`/api/matches/jobs/${id}`),
-    generateQuestions: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/questions`),
+    forCandidate: (id) => api.get(`/matches/candidates/${id}`),
+    forVacancy: (id) => api.get(`/matches/vacancies/${id}`),
+    matchCandidate: (id, params) => api.get(`/matches/candidates/${id}`, { params }),
+    matchVacancy: (id, params) => api.get(`/matches/vacancies/${id}`, { params }),
+    getMatches: (params) => api.get('/matches', { params }),
+    list: (params) => api.get('/matches', { params }),
+    clear: () => api.delete('/matches/clear'),
+    getJobStatus: (id) => api.get(`/matches/jobs/${id}`),
+    generateQuestions: (candidateId, vacancyId) => api.post(`/matches/${candidateId}/${vacancyId}/questions`),
     saveDiscussion: (candidateId, vacancyId, questionIndex, discussion) =>
-        api.post(`/api/matches/${candidateId}/${vacancyId}/questions/${questionIndex}/discussion`, { discussion }),
-    dismiss: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/dismiss`),
-    restore: (candidateId, vacancyId) => api.post(`/api/matches/${candidateId}/${vacancyId}/restore`)
+        api.post(`/matches/${candidateId}/${vacancyId}/questions/${questionIndex}/discussion`, { discussion }),
+    dismiss: (candidateId, vacancyId) => api.post(`/matches/${candidateId}/${vacancyId}/dismiss`),
+    restore: (candidateId, vacancyId) => api.post(`/matches/${candidateId}/${vacancyId}/restore`)
 }
 
 // Interview API
 export const interviewAPI = {
-    list: (params) => api.get('/api/interviews', { params }),
-    get: (id) => api.get(`/api/interviews/${id}`),
-    create: (data) => api.post('/api/interviews', data),
-    update: (id, data) => api.put(`/api/interviews/${id}`, data),
-    delete: (id) => api.delete(`/api/interviews/${id}`),
-    addFeedback: (id, feedback) => api.post(`/api/interviews/${id}/feedback`, feedback),
-    upcoming: () => api.get('/api/interviews/upcoming/all')
+    list: (params) => api.get('/interviews', { params }),
+    get: (id) => api.get(`/interviews/${id}`),
+    create: (data) => api.post('/interviews', data),
+    update: (id, data) => api.put(`/interviews/${id}`, data),
+    delete: (id) => api.delete(`/interviews/${id}`),
+    addFeedback: (id, feedback) => api.post(`/interviews/${id}/feedback`, feedback),
+    upcoming: () => api.get('/interviews/upcoming/all')
 }
 
 // Offer API
 export const offerAPI = {
-    list: (params) => api.get('/api/offers', { params }),
-    get: (id) => api.get(`/api/offers/${id}`),
-    create: (data) => api.post('/api/offers', data),
-    update: (id, data) => api.put(`/api/offers/${id}`, data),
-    delete: (id) => api.delete(`/api/offers/${id}`),
-    respond: (id, response) => api.post(`/api/offers/${id}/respond`, response)
+    list: (params) => api.get('/offers', { params }),
+    get: (id) => api.get(`/offers/${id}`),
+    create: (data) => api.post('/offers', data),
+    update: (id, data) => api.put(`/offers/${id}`, data),
+    delete: (id) => api.delete(`/offers/${id}`),
+    respond: (id, response) => api.post(`/offers/${id}/respond`, response)
 }
 
 // Reporting API
 export const reportAPI = {
-    candidateMetrics: () => api.get('/api/reports/candidates'),
-    vacancyMetrics: () => api.get('/api/reports/vacancies'),
-    pipeline: () => api.get('/api/reports/pipeline'),
-    performance: () => api.get('/api/reports/performance')
+    candidateMetrics: () => api.get('/reports/candidates'),
+    vacancyMetrics: () => api.get('/reports/vacancies'),
+    pipeline: () => api.get('/reports/pipeline'),
+    performance: () => api.get('/reports/performance')
 }
 
 // Admin API
 export const adminAPI = {
-    getSettings: () => api.get('/api/settings'),
-    updateSettings: (settings) => api.put('/api/settings', settings),
-    getSystemHealth: () => api.get('/api/system-health'),
+    getSettings: () => api.get('/settings'),
+    updateSettings: (settings) => api.put('/settings', settings),
+    getSystemHealth: () => api.get('/system-health'),
     // Configuration Management
-    getDetailedSettings: () => api.get('/api/settings/detailed'),
-    getSettingsByCategory: (category) => api.get(`/api/settings/category/${category}`),
-    getSettingsByScope: (scope) => api.get(`/api/settings/scope/${scope}`),
-    updateSetting: (key, value) => api.put('/api/settings', { [key]: value }),
-    getSettingHistory: (key) => api.get(`/api/settings/${key}/history`),
-    exportSettings: () => api.get('/api/settings/export'),
-    importSettings: (data) => api.post('/api/settings/import', data)
+    getDetailedSettings: () => api.get('/settings/detailed'),
+    getSettingsByCategory: (category) => api.get(`/settings/category/${category}`),
+    getSettingsByScope: (scope) => api.get(`/settings/scope/${scope}`),
+    updateSetting: (key, value) => api.put('/settings', { [key]: value }),
+    getSettingHistory: (key) => api.get(`/settings/${key}/history`),
+    exportSettings: () => api.get('/settings/export'),
+    importSettings: (data) => api.post('/settings/import', data)
 }
 
 // Role API
 export const roleAPI = {
-    list: () => api.get('/api/roles'),
-    get: (id) => api.get(`/api/roles/${id}`)
+    list: () => api.get('/roles'),
+    get: (id) => api.get(`/roles/${id}`)
 }
 
 // User Management API (via auth service)
 export const userAPI = {
-    list: () => api.get('/api/users'),
-    get: (id) => api.get(`/api/users/${id}`),
-    create: (data) => api.post('/api/users', data),
-    update: (id, data) => api.put(`/api/users/${id}`, data),
-    delete: (id) => api.delete(`/api/users/${id}`),
-    assignRole: (userId, roleId) => api.post(`/api/users/${userId}/roles`, { role_id: roleId }),
-    removeRole: (userId, roleId) => api.delete(`/api/users/${userId}/roles/${roleId}`)
+    list: () => api.get('/users'),
+    get: (id) => api.get(`/users/${id}`),
+    create: (data) => api.post('/users', data),
+    update: (id, data) => api.put(`/users/${id}`, data),
+    delete: (id) => api.delete(`/users/${id}`),
+    assignRole: (userId, roleId) => api.post(`/users/${userId}/roles`, { role_id: roleId }),
+    removeRole: (userId, roleId) => api.delete(`/users/${userId}/roles/${roleId}`)
 }
 
 export default api

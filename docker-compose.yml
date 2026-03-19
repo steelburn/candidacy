@@ -582,7 +582,7 @@ services:
     ports:
       - "3501:3000"
     environment:
-      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}
+      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}/api
       - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
     volumes:
       - ./frontend/web-app:/app

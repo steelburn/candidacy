@@ -292,6 +292,8 @@ seed:
 	docker compose exec -T auth-service php artisan db:seed --force || true
 	@echo "Seeding Admin Service..."
 	docker compose exec -T admin-service php artisan db:seed --force || true
+	@echo "Seeding Tenant Service..."
+	docker compose exec -T tenant-service php artisan db:seed --force || true
 	@echo "✅ Seeding complete"
 
 seed-config:
