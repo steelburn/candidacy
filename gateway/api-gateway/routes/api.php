@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\GatewayController;
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+// JWT authenticated user endpoint
+Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
@@ -29,4 +30,5 @@ Route::get('/health', function () {
 });
 
 // Catch-all route for API Gateway
+// Note: Auth is handled internally by GatewayController using JWT
 Route::any('/{any}', [GatewayController::class, 'handle'])->where('any', '.*');
