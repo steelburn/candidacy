@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     ghostscript \
     libmagickwand-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip sockets \
+    openssl \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip sockets openssl \
     && pecl install redis imagick \
     && docker-php-ext-enable redis imagick \
     && apt-get clean \
