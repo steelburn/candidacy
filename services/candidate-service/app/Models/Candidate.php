@@ -31,6 +31,7 @@ class Candidate extends Model
         'expected_salary',
         'notice_period',
         'pin_code',
+        'tenant_id',
     ];
 
     protected $hidden = [

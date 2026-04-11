@@ -46,6 +46,7 @@ class NotificationLog extends Model
         'failed_at',
         'error_message',
         'retry_count',
+        'tenant_id',
     ];
 
     protected $casts = [

@@ -144,8 +144,32 @@ const routes = [
                 name: 'AdminCvJobs',
                 component: () => import('../components/admin/AdminCvJobs.vue'),
                 meta: { requiresAuth: true }
+            },
+            {
+                path: 'workspaces',
+                name: 'AdminWorkspaces',
+                component: () => import('../views/tenants/TenantList.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'workspaces/:id',
+                name: 'AdminWorkspaceDetail',
+                component: () => import('../views/tenants/TenantDetail.vue'),
+                meta: { requiresAuth: true }
             }
         ]
+    },
+    {
+        path: '/tenants',
+        name: 'Tenants',
+        component: () => import('../views/tenants/TenantList.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/tenants/:id',
+        name: 'TenantDetail',
+        component: () => import('../views/tenants/TenantDetail.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 
@@ -162,11 +186,15 @@ router.beforeEach((to, from, next) => {
     } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
         next('/dashboard')
     } else {
-        // If authenticated and tenant list not yet loaded, trigger a background fetch
-        if (authStore.isAuthenticated && authStore.tenants.length === 0 && !authStore.tenantsLoading) {
-            authStore.fetchTenants().catch(() => { })
-        }
         next()
+    }
+})
+
+router.afterEach((to) => {
+    const authStore = useAuthStore()
+    const skipFetch = ['Auth', 'Setup', 'ApplicantPortal'].includes(to.name)
+    if (!skipFetch && authStore.isAuthenticated && !authStore.tenantsFetched && !authStore.tenantsLoading && !authStore.tenantSwitching) {
+        authStore.fetchTenants().catch(() => { })
     }
 })
 

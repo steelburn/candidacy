@@ -28,10 +28,12 @@ class TenantScope implements Scope
      */
     public function apply(Builder $builder, Model $model): void
     {
-        // Only apply scope if a tenant is set in context
-        if ($tenantId = $this->getTenantId()) {
-            $builder->where($model->getTable() . '.tenant_id', $tenantId);
-        }
+        $tenantId = $this->getTenantId();
+
+        // If a tenant context is resolved, scope the query to that tenant.
+        // If NO tenant context is available, we filter by an impossible ID (-1)
+        // to ensure no records are leaked across tenants (Fail-Closed security).
+        $builder->where($model->getTable() . '.tenant_id', $tenantId ?? -1);
     }
 
     /**
@@ -58,12 +60,12 @@ class TenantScope implements Scope
     {
         // Add a withoutTenant scope to explicitly bypass tenant filtering
         $builder->macro('withoutTenant', function (Builder $builder) {
-            return $builder->withoutGlobalScope($this);
+            return $builder->withoutGlobalScope(static::class);
         });
 
         // Add a forTenant scope to query a specific tenant
         $builder->macro('forTenant', function (Builder $builder, int $tenantId) {
-            return $builder->withoutGlobalScope($this)
+            return $builder->withoutGlobalScope(static::class)
                 ->where($builder->getModel()->getTable() . '.tenant_id', $tenantId);
         });
     }

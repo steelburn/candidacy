@@ -252,6 +252,8 @@ Table users {
   id bigint [pk, increment]
   name varchar(255) [not null]
   email varchar(255) [unique, not null]
+  phone varchar(255) [null]
+  role varchar(255) [default: 'user', not null]
   email_verified_at timestamp [null]
   password varchar(255) [not null]
   remember_token varchar(100) [null]
@@ -395,8 +397,12 @@ Table candidates {
 
 Table cv_files {
   id bigint [pk, increment]
+  tenant_id bigint [null, note: 'Logical FK to tenants table']
   candidate_id bigint [not null, ref: > candidates.id]
+  original_filename varchar(255) [null]
+  stored_filename varchar(255) [null]
   file_path varchar(255) [not null]
+  mime_type varchar(255) [null]
   file_name varchar(255) [not null]
   file_type varchar(50) [not null]
   file_size int [not null]
@@ -406,6 +412,10 @@ Table cv_files {
   parsing_error text [null]
   created_at timestamp [null]
   updated_at timestamp [null]
+  
+  indexes {
+    tenant_id [name: 'idx_cv_files_tenant_id']
+  }
   
   Note: 'Uploaded CV/resume files and their parsing status'
 }
@@ -448,6 +458,7 @@ Table job_statuses {
 
 Table cv_parsing_jobs {
   id bigint [pk, increment]
+  tenant_id bigint [null, note: 'Logical FK to tenants table']
   candidate_id bigint [null, ref: > candidates.id]
   file_path varchar(255) [not null]
   extracted_text longtext [null]
@@ -458,6 +469,7 @@ Table cv_parsing_jobs {
   updated_at timestamp [null]
   
   indexes {
+    tenant_id [name: 'idx_cv_parsing_jobs_tenant_id']
     status [name: 'idx_cv_parsing_jobs_status']
     candidate_id [name: 'idx_cv_parsing_jobs_candidate_id']
     created_at [name: 'idx_cv_parsing_jobs_created_at']
@@ -583,6 +595,7 @@ Table interviews {
 
 Table interview_feedback {
   id bigint [pk, increment]
+  tenant_id bigint [null, note: 'Logical FK to tenants table']
   interview_id bigint [not null, ref: > interviews.id]
   reviewer_id bigint [not null]
   technical_score int [null]
@@ -595,6 +608,10 @@ Table interview_feedback {
   recommendation varchar(255) [null]
   created_at timestamp [null]
   updated_at timestamp [null]
+  
+  indexes {
+    tenant_id [name: 'idx_interview_feedback_tenant_id']
+  }
   
   Note: '''
     Interview feedback and scoring
@@ -1006,11 +1023,16 @@ Table vacancies {
 
 Table vacancy_questions {
   id bigint [pk, increment]
+  tenant_id bigint [null, note: 'Logical FK to tenants table']
   vacancy_id bigint [not null, ref: > vacancies.id]
   question_text varchar(255) [not null]
   question_type varchar(255) [default: 'text', not null]
   created_at timestamp [null]
   updated_at timestamp [null]
+  
+  indexes {
+    tenant_id [name: 'idx_vacancy_questions_tenant_id']
+  }
   
   Note: 'Custom questions for vacancy applications'
 }

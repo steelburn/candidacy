@@ -3,25 +3,29 @@
 namespace App\Http\Controllers\Api;
 
 use Shared\Http\Controllers\BaseApiController;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Shared\Http\Traits\TenantForwarding;
 
 class ReportController extends BaseApiController
 {
+    use TenantForwarding;
+
     public function candidateMetrics()
     {
         try {
-            $response = Http::get(env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080') . '/api/candidates/metrics/stats');
+            $response = $this->serviceHttp()->get(env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080') . '/api/candidates/metrics/stats');
             
             if ($response->successful()) {
                 return response()->json($response->json());
             }
             
-            // Fallback if service fails but we want to show something? Or just error.
-            // For now, return empty structure or error.
-            return response()->json(['error' => 'Failed to fetch candidate metrics'], 502);
+            Log::error("Candidate service metrics error: " . $response->status());
+            return response()->json(['error' => 'Failed to fetch candidate metrics', 'status' => $response->status()], 502);
         } catch (\Exception $e) {
+            Log::error("Candidate service metrics fetch exception: " . $e->getMessage());
             return response()->json(['error' => 'Candidate service unavailable'], 503);
         }
     }
@@ -29,33 +33,29 @@ class ReportController extends BaseApiController
     public function vacancyMetrics()
     {
         try {
-            $response = Http::get(env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080') . '/api/vacancies/metrics/stats');
+            $response = $this->serviceHttp()->get(env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080') . '/api/vacancies/metrics/stats');
             
             if ($response->successful()) {
                 return response()->json($response->json());
             }
-
-            return response()->json(['error' => 'Failed to fetch vacancy metrics'], 502);
+            
+            Log::error("Vacancy service metrics error: " . $response->status());
+            return response()->json(['error' => 'Failed to fetch vacancy metrics', 'status' => $response->status()], 502);
         } catch (\Exception $e) {
+            Log::error("Vacancy service metrics fetch exception: " . $e->getMessage());
             return response()->json(['error' => 'Vacancy service unavailable'], 503);
         }
     }
 
     public function hiringPipeline()
     {
-        // This requires aggregating data from interviews and offers
-        // Or we can define a pipeline based on candidate statuses or interview stages.
-        // Dashboard.vue uses this.
-        
         try {
-            // Get candidate counts by status which maps to pipeline stages roughly
-            $candidateResponse = Http::get(env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080') . '/api/candidates/metrics/stats');
+            $candidateResponse = $this->serviceHttp()->get(env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080') . '/api/candidates/metrics/stats');
             
             if ($candidateResponse->successful()) {
                 $data = $candidateResponse->json();
-                $byStatus = $data['by_status'];
+                $byStatus = $data['by_status'] ?? [];
                 
-                // Map candidate statuses to pipeline stages
                 $pipeline = [
                     'screening' => ($byStatus['new'] ?? 0) + ($byStatus['reviewing'] ?? 0),
                     'shortlisted' => $byStatus['shortlisted'] ?? 0,
@@ -67,8 +67,10 @@ class ReportController extends BaseApiController
                 return response()->json($pipeline);
             }
             
+            Log::error("Pipeline data fetch error: " . $candidateResponse->status());
             return response()->json(['error' => 'Failed to fetch pipeline data'], 502);
         } catch (\Exception $e) {
+            Log::error("Pipeline data fetch exception: " . $e->getMessage());
             return response()->json(['error' => 'Service unavailable'], 503);
         }
     }
@@ -76,18 +78,12 @@ class ReportController extends BaseApiController
     public function performance()
     {
         try {
-            $vacancyResponse = Http::get(env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080') . '/api/vacancies/metrics/stats');
-            $offerResponse = Http::get(env('OFFER_SERVICE_URL', 'http://offer-service:8080') . '/api/offers/metrics/stats');
+            $vacancyResponse = $this->serviceHttp()->get(env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080') . '/api/vacancies/metrics/stats');
+            $offerResponse = $this->serviceHttp()->get(env('OFFER_SERVICE_URL', 'http://offer-service:8080') . '/api/offers/metrics/stats');
+            $interviewResponse = $this->serviceHttp()->get(env('INTERVIEW_SERVICE_URL', 'http://interview-service:8080') . '/api/interviews/metrics/stats');
             
             $avgTimeFill = $vacancyResponse->successful() ? ($vacancyResponse->json()['avg_time_to_fill'] ?? 'N/A') : 'N/A';
             $acceptanceRate = $offerResponse->successful() ? ($offerResponse->json()['acceptance_rate'] ?? 'N/A') : 'N/A';
-            
-            // "Avg Time to Hire" is conceptually similar to "Avg Time to Fill" for this MVP, or we could calculate from candidate creation to hire.
-            // Using Vacancy metrics for now.
-            
-            // Interview to Offer Ratio needs interview data
-            // We can get total interviews and total offers
-            $interviewResponse = Http::get(env('INTERVIEW_SERVICE_URL', 'http://interview-service:8080') . '/api/interviews/metrics/stats');
             
             $interviewToOffer = 'N/A';
             if ($interviewResponse->successful() && $offerResponse->successful()) {
@@ -100,13 +96,32 @@ class ReportController extends BaseApiController
             }
 
             return response()->json([
-                'avg_time_to_hire' => $avgTimeFill, // Using time to fill as proxy
+                'avg_time_to_hire' => $avgTimeFill,
                 'offer_acceptance_rate' => $acceptanceRate,
                 'interview_to_offer_ratio' => $interviewToOffer,
             ]);
         } catch (\Exception $e) {
+            Log::error("Performance metrics calculation failed: " . $e->getMessage());
             return response()->json(['error' => 'Failed to calculate performance metrics'], 503);
         }
+    }
+
+    /**
+     * Dashboard - aggregations of all metrics.
+     */
+    public function dashboard()
+    {
+        $candidateResponse = $this->candidateMetrics();
+        $vacancyResponse = $this->vacancyMetrics();
+        $pipelineResponse = $this->hiringPipeline();
+        $performanceResponse = $this->performance();
+        
+        return response()->json([
+            'candidates' => json_decode($candidateResponse->getContent(), true),
+            'vacancies' => json_decode($vacancyResponse->getContent(), true),
+            'pipeline' => json_decode($pipelineResponse->getContent(), true),
+            'performance' => json_decode($performanceResponse->getContent(), true),
+        ]);
     }
 
     /**
@@ -115,13 +130,12 @@ class ReportController extends BaseApiController
     public function aiMetrics()
     {
         try {
-            $response = Http::get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/metrics');
+            $response = $this->serviceHttp()->get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/metrics');
             
             if ($response->successful()) {
                 return response()->json($response->json());
             }
 
-            // Return mock data if AI service metrics endpoint not available
             return response()->json([
                 'total_requests' => 0,
                 'success_rate' => 0,
@@ -130,6 +144,7 @@ class ReportController extends BaseApiController
                 'by_provider' => [],
             ]);
         } catch (\Exception $e) {
+            Log::error("AI metrics fetch failed: " . $e->getMessage());
             return response()->json(['error' => 'AI metrics unavailable'], 503);
         }
     }
@@ -140,7 +155,7 @@ class ReportController extends BaseApiController
     public function aiFailoverStats()
     {
         try {
-            $response = Http::get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/failover-stats');
+            $response = $this->serviceHttp()->get(env('AI_SERVICE_URL', 'http://ai-service:8080') . '/api/failover-stats');
             
             if ($response->successful()) {
                 return response()->json($response->json());
@@ -151,6 +166,7 @@ class ReportController extends BaseApiController
                 'by_service' => [],
             ]);
         } catch (\Exception $e) {
+            Log::error("AI failover stats fetch failed: " . $e->getMessage());
             return response()->json(['error' => 'Failover stats unavailable'], 503);
         }
     }

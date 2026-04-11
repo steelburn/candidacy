@@ -7,15 +7,44 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->latest()->get();
+        $user = auth('api')->user();
+        $tenantId = $request->header('X-Tenant-ID');
+
+        $query = User::with('roles')->latest();
+
+        // If not a Super Admin, filter by tenant membership
+        if (!$user->hasRole('admin')) {
+            if (!$tenantId) {
+                return response()->json(['error' => 'Tenant context required'], 400);
+            }
+
+            try {
+                // Fetch member IDs from tenant-service
+                $response = Http::get("http://tenant-service:8080/api/internal/tenants/{$tenantId}/user-ids");
+                
+                if ($response->successful()) {
+                    $memberIds = $response->json('user_ids');
+                    $query->whereIn('id', $memberIds);
+                } else {
+                    return response()->json(['error' => 'Failed to fetch tenant members'], 500);
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to fetch tenant members: " . $e->getMessage());
+                return response()->json(['error' => 'Membership verification failed'], 500);
+            }
+        }
+
+        $users = $query->get();
         return response()->json($users);
     }
 

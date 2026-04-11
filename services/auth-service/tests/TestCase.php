@@ -5,10 +5,24 @@ namespace Tests;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Http;
 
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Fake internal service calls to prevent hangs in tests
+        Http::preventStrayRequests();
+        Http::fake([
+            'http://tenant-service:8080/api/internal/verify-membership' => Http::response(['is_member' => true], 200),
+            'http://tenant-service:8080/*' => Http::response(['success' => true], 200),
+            '*' => Http::response([], 200),
+        ]);
+    }
 
     /**
      * Create an authenticated user and return user with JWT token

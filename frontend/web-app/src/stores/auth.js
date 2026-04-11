@@ -24,6 +24,7 @@ export const useAuthStore = defineStore('auth', {
         tenants: [],
         currentTenantId: storedToken ? parseTenantIdFromToken(storedToken) : null,
         tenantsLoading: false,
+        tenantsFetched: false, // Track if we've attempted to fetch tenants
         tenantSwitching: false
     }),
 
@@ -68,6 +69,7 @@ export const useAuthStore = defineStore('auth', {
                 this.user = null
                 this.token = null
                 this.tenants = []
+                this.tenantsFetched = false
                 this.currentTenantId = null
                 localStorage.removeItem('token')
                 localStorage.removeItem('user')
@@ -97,6 +99,7 @@ export const useAuthStore = defineStore('auth', {
                 this.tenants = []
             } finally {
                 this.tenantsLoading = false
+                this.tenantsFetched = true
             }
         },
 

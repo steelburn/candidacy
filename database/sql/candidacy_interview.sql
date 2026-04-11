@@ -18,6 +18,7 @@ CREATE TABLE `interviews` (
 
 CREATE TABLE `interview_feedback` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `interview_id` bigint NOT NULL,
   `reviewer_id` bigint NOT NULL,
   `technical_score` int,
@@ -55,6 +56,8 @@ CREATE INDEX `idx_interviews_interviewer_schedule` ON `interviews` (`interviewer
 CREATE INDEX `idx_interviews_candidate_schedule` ON `interviews` (`candidate_id`, `scheduled_at`);
 
 CREATE INDEX `idx_interviews_status_schedule` ON `interviews` (`status`, `scheduled_at`);
+
+CREATE INDEX `idx_interview_feedback_tenant_id` ON `interview_feedback` (`tenant_id`);
 
 ALTER TABLE `interviews` COMMENT = 'Interview scheduling and management
 Stages: screening, technical, behavioral, final

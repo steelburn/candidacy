@@ -46,3 +46,10 @@ Route::middleware('api')->group(function () {
     Route::post('/tenants/{uuid}/invitations', [TenantInvitationController::class, 'store']);
     Route::delete('/tenants/{uuid}/invitations/{invitation}', [TenantInvitationController::class, 'destroy']);
 });
+
+// Internal routes (for inter-service communication)
+Route::prefix('internal')->group(function () {
+    Route::post('/verify-membership', [\App\Http\Controllers\Internal\InternalTenantController::class, 'verifyMembership']);
+    Route::get('/tenants/{tenantId}/user-ids', [\App\Http\Controllers\Internal\InternalTenantController::class, 'getTenantUserIds']);
+});
+

@@ -23,8 +23,12 @@ CREATE TABLE `candidates` (
 
 CREATE TABLE `cv_files` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
+  `original_filename` varchar(255),
+  `stored_filename` varchar(255),
   `file_path` varchar(255) NOT NULL,
+  `mime_type` varchar(255),
   `file_name` varchar(255) NOT NULL,
   `file_type` varchar(50) NOT NULL,
   `file_size` int NOT NULL,
@@ -68,6 +72,7 @@ CREATE TABLE `job_statuses` (
 
 CREATE TABLE `cv_parsing_jobs` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint,
   `file_path` varchar(255) NOT NULL,
   `extracted_text` longtext,
@@ -109,6 +114,10 @@ CREATE INDEX `idx_candidates_updated_at` ON `candidates` (`updated_at`);
 CREATE INDEX `idx_candidates_tenant_status` ON `candidates` (`tenant_id`, `status`);
 
 CREATE INDEX `idx_candidates_status_created` ON `candidates` (`status`, `created_at`);
+
+CREATE INDEX `idx_cv_files_tenant_id` ON `cv_files` (`tenant_id`);
+
+CREATE INDEX `idx_cv_parsing_jobs_tenant_id` ON `cv_parsing_jobs` (`tenant_id`);
 
 CREATE INDEX `idx_cv_parsing_jobs_status` ON `cv_parsing_jobs` (`status`);
 

@@ -26,6 +26,7 @@ class User extends Authenticatable implements JWTSubject
         'phone',
         'status',
         'role',
+        'tenant_id',
         'current_tenant_id',
         'is_active',
     ];
@@ -51,6 +52,7 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'tenant_id' => 'integer',
             'current_tenant_id' => 'integer',
             'is_active' => 'boolean',
         ];

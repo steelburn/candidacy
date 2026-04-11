@@ -8,31 +8,39 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RoleController;
 
 // Public routes
-Route::post('/auth/login', [AuthController::class, 'login']);
-Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/login', [AuthController::class , 'login']);
+Route::post('/auth/register', [AuthController::class , 'register']);
 
 // First-time setup routes (only work when no users exist)
-Route::get('/auth/setup/check', [AuthController::class, 'setupCheck']);
-Route::post('/auth/setup/create-admin', [AuthController::class, 'createFirstAdmin']);
+Route::get('/auth/setup/check', [AuthController::class , 'setupCheck']);
+Route::post('/auth/setup/create-admin', [AuthController::class , 'createFirstAdmin']);
+// Gateway aliases for setup routes
+Route::get('/setup/check', [AuthController::class , 'setupCheck']);
+Route::post('/setup/create-admin', [AuthController::class , 'createFirstAdmin']);
 
 // Protected routes - using auth:api for JWT authentication
 Route::middleware('auth:api')->group(function () {
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
-    Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/auth/switch-tenant', [AuthController::class, 'switchTenant']);
-    
+    Route::post('/auth/logout', [AuthController::class , 'logout']);
+    Route::post('/auth/refresh', [AuthController::class , 'refresh']);
+    Route::get('/auth/me', [AuthController::class , 'me']);
+    Route::post('/auth/change-password', [AuthController::class , 'changePassword']);
+    Route::post('/auth/switch-tenant', [AuthController::class , 'switchTenant']);
+
     // User management
     Route::apiResource('users', UserController::class);
-    
+
     // Role management
-    Route::get('/roles', [RoleController::class, 'index']);
-    Route::get('/roles/{id}', [RoleController::class, 'show']);
-    Route::post('/users/{userId}/roles', [RoleController::class, 'assignRole']);
-    Route::delete('/users/{userId}/roles/{roleId}', [RoleController::class, 'removeRole']);
+    Route::get('/roles', [RoleController::class , 'index']);
+    Route::get('/roles/{id}', [RoleController::class , 'show']);
+    Route::post('/users/{userId}/roles', [RoleController::class , 'assignRole']);
+    Route::delete('/users/{userId}/roles/{roleId}', [RoleController::class , 'removeRole']);
+});
+
+// Internal routes (for inter-service communication)
+Route::prefix('internal')->group(function () {
+    Route::post('/users/details', [\App\Http\Controllers\Internal\InternalUserController::class, 'getUserDetails']);
 });
 
 // Health check
-Route::get('/health', [HealthController::class, 'check']);
-Route::get('/auth/health', [HealthController::class, 'check']);
+Route::get('/health', [HealthController::class , 'check']);
+Route::get('/auth/health', [HealthController::class , 'check']);

@@ -7,6 +7,8 @@ use App\Models\TenantUser;
 use Shared\Http\Controllers\BaseApiController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * TenantMemberController
@@ -40,6 +42,45 @@ class TenantMemberController extends BaseApiController
         $members = TenantUser::where('tenant_id', $tenant->id)
             ->where('is_active', true)
             ->get();
+
+        // Enrich with user details from auth-service
+        $userIds = $members->pluck('user_id')->unique()->toArray();
+        if (!empty($userIds)) {
+            try {
+                $response = Http::post('http://auth-service:8080/api/internal/users/details', [
+                    'user_ids' => $userIds
+                ]);
+
+                if ($response->successful()) {
+                    $userDetails = collect($response->json('users'))->keyBy('id');
+                    $members->transform(function ($member) use ($userDetails) {
+                        $user = $userDetails->get($member->user_id);
+                        if ($user) {
+                            $member->user = [
+                                'id' => $user['id'],
+                                'name' => $user['name'],
+                                'email' => $user['email'],
+                                'phone' => $user['phone'] ?? null,
+                            ];
+                        } else {
+                            // Provide valid placeholder if user not found in auth service
+                            $member->user = [
+                                'id' => $member->user_id,
+                                'name' => 'Unknown User',
+                                'email' => '',
+                            ];
+                        }
+                        return $member;
+                    });
+                } else {
+                    Log::error("Auth service returned error " . $response->status() . " for user details enrichment");
+                    $this->fallbackMemberEnrichment($members);
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to fetch user details for members: " . $e->getMessage());
+                $this->fallbackMemberEnrichment($members);
+            }
+        }
 
         return $this->success($members);
     }
@@ -226,5 +267,22 @@ class TenantMemberController extends BaseApiController
         $membership->update(['is_active' => false]);
 
         return $this->success(null, 'You have left the tenant');
+    }
+
+    /**
+     * Fallback for member enrichment when auth service is unavailable.
+     */
+    protected function fallbackMemberEnrichment($members): void
+    {
+        $members->transform(function ($member) {
+            if (!isset($member->user)) {
+                $member->user = [
+                    'id' => $member->user_id,
+                    'name' => 'User ' . $member->user_id,
+                    'email' => 'auth-service-unavailable',
+                ];
+            }
+            return $member;
+        });
     }
 }

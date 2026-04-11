@@ -169,6 +169,8 @@ candidacy/
 ## 🔐 Security
 
 - **JWT-based authentication** (tymon/jwt-auth)
+- **Stateless User Recovery**: Shared library implementation allows microservices to reconstitute user context directly from JWT claims without database lookups.
+- **Tenant Context Propagation**: Automatic `X-Tenant-Id` header forwarding for all inter-service API calls via shared `TenantForwarding` trait.
 - **Authentication Guard**: `auth:api` for all protected routes
 - **Shared Security Middleware**: Standardized security headers and protection across all services
 - **Proper 401 JSON responses** for all unauthenticated requests
@@ -219,7 +221,13 @@ curl http://localhost:9080/api/system-health
 - ✅ Clean codebase with standardized controller patterns
 
 ### Recent Improvements (Dec 2024)
-- ✅ **Integrated IBM Granite Docling for advanced document processing**
+- ✅ **Stateless User Recovery & Tenant Forwarding (Apr 2026)**
+  - Reconstituted users from JWT claims in business microservices without database hits
+  - Automated tenant context propagation across inter-service calls
+  - Standardized JWT configuration across all 12 services
+  - Fixed 500 errors in Reporting and Candidate dashboards
+  - Expanded Tenant Isolation testing coverage
+- ✅ **Integrated IBM Granite Docling for advanced document processing (Dec 2024)**
   - 258M parameter vision-language model for PDF parsing
   - Structure preservation (tables, lists, sections)
   - 85-95% accuracy for resume parsing

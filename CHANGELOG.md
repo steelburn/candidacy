@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-04-11
+
+#### Stateless JWT Authentication & Multi-Tenant Support
+- **Stateless User Recovery** — Implemented `StatelessUser.php` in shared library to reconstitute users from JWT claims without database lookups in business microservices.
+- **Tenant Context Propagation** — Added `TenantForwarding` trait to shared HTTP library to ensure `X-Tenant-Id` header is automatically passed during inter-service API calls.
+- **JWT Middleware Configuration** — Standardized `jwt.php` across services to support stateless authentication.
+- **Improved Authentication Persistence** — Migrated from session-based to token-based user context in `reporting-service`, `candidate-service`, and `vacancy-service`.
+
+#### Testing & Security
+- **Tenant Isolation Testing** — Expanded `TenantIsolationTest.php` coverage across multiple services (`interview-service`, `notification-service`, `offer-service`, `onboarding-service`) to ensure strict data separation.
+- **Report Security** — Added `ReportSecurityTest.php` to verify that analytics data is only accessible to authorized tenant users.
+- **Factory Updates** — Standardized factories for `NotificationTemplate`, `NotificationLog`, and `OnboardingChecklist` to include tenant context.
+
+#### Bug Fixes & Stability
+- **500 Error Resolution** — Fixed Internal Server Errors in Reporting and Candidate dashboards by resolving missing tenant context and authentication failures.
+- **Request/Response Logging** — Improved logging middleware in `vacancy-service` to include reliable user tracking.
+
 ### Added - 2026-02-23
 
 #### Multitenancy Implementation (Phases 1–3)

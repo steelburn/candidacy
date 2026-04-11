@@ -16,7 +16,8 @@ class ConfigurationService
 
     private function __construct()
     {
-        $this->adminServiceUrl = env('ADMIN_SERVICE_URL', 'http://admin-service:8080');
+        // Use direct superglobal access to avoid env() triggering .env file scans in test environments
+        $this->adminServiceUrl = $_ENV['ADMIN_SERVICE_URL'] ?? $_SERVER['ADMIN_SERVICE_URL'] ?? 'http://admin-service:8080';
     }
 
     /**

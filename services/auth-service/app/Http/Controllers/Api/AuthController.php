@@ -8,7 +8,11 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Exception;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -182,6 +186,23 @@ class AuthController extends Controller
         $user = auth('api')->user();
         $tenantId = (int) $request->tenant_id;
 
+        // Verify membership via tenant-service (unless Super Admin)
+        if (!$user->hasRole('admin')) {
+            try {
+                $response = Http::timeout(5)->post('http://tenant-service:8080/api/internal/verify-membership', [
+                    'user_id' => $user->id,
+                    'tenant_id' => $tenantId,
+                ]);
+
+                if (!$response->successful() || !$response->json('is_member')) {
+                    return response()->json(['error' => 'You do not have access to this tenant'], 403);
+                }
+            } catch (\Exception $e) {
+                Log::error("Failed to verify tenant membership: " . $e->getMessage());
+                return response()->json(['error' => 'Membership verification failed'], 500);
+            }
+        }
+
         // Persist the new active tenant on the user record
         $user->current_tenant_id = $tenantId;
         $user->save();
@@ -192,6 +213,46 @@ class AuthController extends Controller
         $token = auth('api')->login($user);
 
         return $this->respondWithToken($token);
+    }
+
+    /**
+     * Validate the provided JWT and return its payload.
+     */
+    public function validateToken(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $payload = JWTAuth::setToken($request->token)->getPayload();
+            return response()->json(['valid' => true, 'payload' => $payload]);
+        } catch (Exception $e) {
+            return response()->json(['valid' => false, 'error' => $e->getMessage()], 401);
+        }
+    }
+
+    /**
+     * Check if the user has the required role.
+     */
+    public function roleCheck(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'required_role' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = auth('api')->user();
+        $hasRole = $user->roles->contains('name', $request->required_role);
+
+        return response()->json(['access' => $hasRole]);
     }
 
     protected function respondWithToken($token)

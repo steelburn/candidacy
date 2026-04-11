@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\User;
 
 class UserManagementTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
 
 

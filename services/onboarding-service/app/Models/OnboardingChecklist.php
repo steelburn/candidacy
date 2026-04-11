@@ -12,7 +12,8 @@ class OnboardingChecklist extends Model
 
     protected $fillable = [
         'candidate_id', 'task_name', 'description', 'status',
-        'due_date', 'completed_at', 'notes', 'order'
+        'due_date', 'completed_at', 'notes', 'order',
+        'tenant_id',
     ];
 
     protected $casts = [

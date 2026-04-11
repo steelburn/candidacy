@@ -51,6 +51,15 @@ class TenantUser extends Model
     }
 
     /**
+     * Get the user (Note: User data exists in auth-service, but this relation
+     * can be used if users are mirrored or for architectural consistency).
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Check if user has a specific role.
      */
     public function hasRole(string $role): bool

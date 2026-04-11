@@ -23,6 +23,7 @@ class CvFile extends Model
         'parsed_data',
         'status', // pending, completed, failed
         'error_message',
+        'tenant_id',
     ];
 
     protected $casts = [

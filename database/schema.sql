@@ -82,6 +82,8 @@ CREATE TABLE `users` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
+  `phone` varchar(255),
+  `role` varchar(255) NOT NULL DEFAULT "user",
   `email_verified_at` timestamp,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100),
@@ -180,8 +182,12 @@ CREATE TABLE `candidates` (
 
 CREATE TABLE `cv_files` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint NOT NULL,
+  `original_filename` varchar(255),
+  `stored_filename` varchar(255),
   `file_path` varchar(255) NOT NULL,
+  `mime_type` varchar(255),
   `file_name` varchar(255) NOT NULL,
   `file_type` varchar(50) NOT NULL,
   `file_size` int NOT NULL,
@@ -225,6 +231,7 @@ CREATE TABLE `job_statuses` (
 
 CREATE TABLE `cv_parsing_jobs` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `candidate_id` bigint,
   `file_path` varchar(255) NOT NULL,
   `extracted_text` longtext,
@@ -299,6 +306,7 @@ CREATE TABLE `interviews` (
 
 CREATE TABLE `interview_feedback` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `interview_id` bigint NOT NULL,
   `reviewer_id` bigint NOT NULL,
   `technical_score` int,
@@ -518,6 +526,7 @@ CREATE TABLE `vacancies` (
 
 CREATE TABLE `vacancy_questions` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `vacancy_id` bigint NOT NULL,
   `question_text` varchar(255) NOT NULL,
   `question_type` varchar(255) NOT NULL DEFAULT "text",
@@ -577,6 +586,10 @@ CREATE INDEX `idx_candidates_tenant_status` ON `candidates` (`tenant_id`, `statu
 
 CREATE INDEX `idx_candidates_status_created` ON `candidates` (`status`, `created_at`);
 
+CREATE INDEX `idx_cv_files_tenant_id` ON `cv_files` (`tenant_id`);
+
+CREATE INDEX `idx_cv_parsing_jobs_tenant_id` ON `cv_parsing_jobs` (`tenant_id`);
+
 CREATE INDEX `idx_cv_parsing_jobs_status` ON `cv_parsing_jobs` (`status`);
 
 CREATE INDEX `idx_cv_parsing_jobs_candidate_id` ON `cv_parsing_jobs` (`candidate_id`);
@@ -613,6 +626,8 @@ CREATE INDEX `idx_interviews_candidate_schedule` ON `interviews` (`candidate_id`
 
 CREATE INDEX `idx_interviews_status_schedule` ON `interviews` (`status`, `scheduled_at`);
 
+CREATE INDEX `idx_interview_feedback_tenant_id` ON `interview_feedback` (`tenant_id`);
+
 CREATE INDEX `idx_matches_tenant_id` ON `matches` (`tenant_id`);
 
 CREATE INDEX `idx_matches_candidate_id` ON `matches` (`candidate_id`);
@@ -641,21 +656,21 @@ CREATE INDEX `idx_matching_job_statuses_created` ON `matching_job_statuses` (`cr
 
 CREATE INDEX `idx_notification_templates_tenant_id` ON `notification_templates` (`tenant_id`);
 
-CREATE INDEX `notification_templates_index_55` ON `notification_templates` (`type`);
+CREATE INDEX `notification_templates_index_58` ON `notification_templates` (`type`);
 
-CREATE INDEX `notification_templates_index_56` ON `notification_templates` (`is_active`);
+CREATE INDEX `notification_templates_index_59` ON `notification_templates` (`is_active`);
 
 CREATE UNIQUE INDEX `notification_templates_tenant_name_unique` ON `notification_templates` (`tenant_id`, `name`);
 
 CREATE INDEX `idx_notification_logs_tenant_id` ON `notification_logs` (`tenant_id`);
 
-CREATE INDEX `notification_logs_index_59` ON `notification_logs` (`recipient_email`);
+CREATE INDEX `notification_logs_index_62` ON `notification_logs` (`recipient_email`);
 
-CREATE INDEX `notification_logs_index_60` ON `notification_logs` (`type`);
+CREATE INDEX `notification_logs_index_63` ON `notification_logs` (`type`);
 
-CREATE INDEX `notification_logs_index_61` ON `notification_logs` (`status`);
+CREATE INDEX `notification_logs_index_64` ON `notification_logs` (`status`);
 
-CREATE INDEX `notification_logs_index_62` ON `notification_logs` (`created_at`);
+CREATE INDEX `notification_logs_index_65` ON `notification_logs` (`created_at`);
 
 CREATE INDEX `idx_notification_logs_tenant_status` ON `notification_logs` (`tenant_id`, `status`);
 
@@ -736,6 +751,8 @@ CREATE INDEX `idx_vacancies_tenant_status` ON `vacancies` (`tenant_id`, `status`
 CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
 
 CREATE INDEX `idx_vacancies_status_created` ON `vacancies` (`status`, `created_at`);
+
+CREATE INDEX `idx_vacancy_questions_tenant_id` ON `vacancy_questions` (`tenant_id`);
 
 ALTER TABLE `settings` COMMENT = 'Application-wide settings and configuration
 Types: string, integer, boolean, json

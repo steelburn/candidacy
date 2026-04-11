@@ -6,11 +6,30 @@
       @logout="logout"
       @changePassword="showChangePassword = true"
     >
-      <router-view />
+      <Suspense>
+        <template #default>
+          <router-view />
+        </template>
+        <template #fallback>
+          <div class="app-loading">
+            <div class="loader"></div>
+            <span>Loading...</span>
+          </div>
+        </template>
+      </Suspense>
     </DashboardLayout>
 
     <!-- Guest Routes (Login, Setup, Portal) -->
-    <router-view v-else />
+    <Suspense v-else>
+      <template #default>
+        <router-view />
+      </template>
+      <template #fallback>
+        <div class="app-loading">
+          <div class="loader"></div>
+        </div>
+      </template>
+    </Suspense>
 
     <!-- Change Password Modal -->
     <div v-if="showChangePassword" class="modal-overlay" @click.self="showChangePassword = false">
@@ -198,6 +217,31 @@ const handleChangePassword = async () => {
 </script>
 
 <style scoped>
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: 1rem;
+  color: #6366f1;
+}
+
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #6366f1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;

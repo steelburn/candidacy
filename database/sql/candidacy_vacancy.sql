@@ -28,6 +28,7 @@ CREATE TABLE `vacancies` (
 
 CREATE TABLE `vacancy_questions` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `tenant_id` bigint COMMENT 'Logical FK to tenants table',
   `vacancy_id` bigint NOT NULL,
   `question_text` varchar(255) NOT NULL,
   `question_type` varchar(255) NOT NULL DEFAULT "text",
@@ -60,6 +61,8 @@ CREATE INDEX `idx_vacancies_tenant_status` ON `vacancies` (`tenant_id`, `status`
 CREATE INDEX `idx_vacancies_status_dept` ON `vacancies` (`status`, `department`);
 
 CREATE INDEX `idx_vacancies_status_created` ON `vacancies` (`status`, `created_at`);
+
+CREATE INDEX `idx_vacancy_questions_tenant_id` ON `vacancy_questions` (`tenant_id`);
 
 ALTER TABLE `vacancies` COMMENT = 'Job vacancies/positions
 Employment types: full_time, part_time, contract, intern

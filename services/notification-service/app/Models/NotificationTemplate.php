@@ -33,6 +33,7 @@ class NotificationTemplate extends Model
         'type',
         'variables',
         'is_active',
+        'tenant_id',
     ];
 
     protected $casts = [

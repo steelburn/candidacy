@@ -21,6 +21,7 @@ class CandidateMatch extends Model
         'questions_generated_at',
         'questions_model',
         'status',
+        'tenant_id',
     ];
 
     protected $casts = [

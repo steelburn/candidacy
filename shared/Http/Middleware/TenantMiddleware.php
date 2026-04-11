@@ -16,11 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
  * 
  * The resolved tenant ID is stored in the application container
  * for use by TenantScope and BelongsToTenant trait.
- * 
- * Usage in service routes:
- *   Route::middleware('tenant')->group(function () {
- *       // All routes in this group are tenant-scoped
- *   });
  */
 class TenantMiddleware
 {
@@ -33,6 +28,11 @@ class TenantMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // If already bound (e.g. by a test or previous middleware), skip resolution
+        if (app()->bound('tenant.id')) {
+            return $next($request);
+        }
+
         $tenantId = $this->resolveTenantId($request);
 
         if ($tenantId) {
@@ -51,33 +51,31 @@ class TenantMiddleware
      */
     protected function resolveTenantId(Request $request): ?int
     {
-        // Priority 1: Explicit header (for API clients and tenant switching)
+        // Priority 1: Explicit header (Fastest & used in tests)
         if ($headerId = $request->header('X-Tenant-ID')) {
             return (int) $headerId;
         }
 
-        // Priority 2: From authenticated user
+        // Priority 2: From authenticated user / JWT
         if ($user = $request->user()) {
-            // First check JWT claims (faster, no DB lookup)
-            if (method_exists($user, 'getJWTCustomClaims')) {
-                // JWT claims are already validated, so we trust them
-                $token = request()->bearerToken();
-                if ($token) {
-                    try {
-                        $payload = auth()->payload();
-                        if ($payload && $payload->get('tenant_id')) {
-                            return (int) $payload->get('tenant_id');
-                        }
-                    } catch (\Exception $e) {
-                        // Fall through to current_tenant_id
+            return $user->current_tenant_id ?? $user->tenant_id;
+        }
+
+        // Priority 3: Extract from JWT token if no user is resolved yet (or for context discovery)
+        try {
+            // Check for bearer token without triggering guard initialization
+            $token = $request->bearerToken();
+            if ($token && class_exists(\Tymon\JWTAuth\Facades\JWTAuth::class)) {
+                // Use the facade directly with a check to avoid triggering .env scans if not configured
+                if (\Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->check(false)) {
+                    $payload = \Tymon\JWTAuth\Facades\JWTAuth::getPayload();
+                    if ($payload && $payload->get('tenant_id')) {
+                        return (int) $payload->get('tenant_id');
                     }
                 }
             }
-
-            // Fallback to user's current_tenant_id
-            if (isset($user->current_tenant_id) && $user->current_tenant_id) {
-                return (int) $user->current_tenant_id;
-            }
+        } catch (\Throwable $e) {
+            // Silently fail - avoid crashing or triggering file_get_contents warnings
         }
 
         return null;
@@ -92,7 +90,6 @@ class TenantMiddleware
      */
     public function terminate(Request $request, Response $response): void
     {
-        // Clear tenant context after request
         if (app()->bound('tenant.id')) {
             app()->forgetInstance('tenant.id');
         }

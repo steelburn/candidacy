@@ -204,6 +204,7 @@ Tenants have subscription limits:
 
 ### Tenant-Scoped Tables
 All these tables have a `tenant_id` column:
+- `auth.users` (stores current tenant association)
 - `candidates`, `cv_files`, `cv_parsing_jobs`
 - `vacancies`, `vacancy_questions`
 - `matches`
@@ -255,6 +256,10 @@ make test-tenant-isolation
 # Run for a specific service
 docker compose exec candidate-service php artisan test --filter TenantIsolationTest
 docker compose exec vacancy-service php artisan test --filter TenantIsolationTest
+docker compose exec interview-service php artisan test --filter TenantIsolationTest
+docker compose exec offer-service php artisan test --filter TenantIsolationTest
+docker compose exec onboarding-service php artisan test --filter TenantIsolationTest
+docker compose exec notification-service php artisan test --filter TenantIsolationTest
 ```
 
 ### Test Files
@@ -262,6 +267,11 @@ docker compose exec vacancy-service php artisan test --filter TenantIsolationTes
 |---------|----------|
 | candidate-service | `tests/Feature/TenantIsolationTest.php` |
 | vacancy-service | `tests/Feature/TenantIsolationTest.php` |
+| matching-service | `tests/Feature/TenantIsolationTest.php` |
+| interview-service | `tests/Feature/TenantIsolationTest.php` |
+| offer-service | `tests/Feature/TenantIsolationTest.php` |
+| onboarding-service | `tests/Feature/TenantIsolationTest.php` |
+| notification-service | `tests/Feature/TenantIsolationTest.php` |
 
 ### What is Tested
 - Cross-tenant data is invisible (global scope applied)
@@ -307,3 +317,28 @@ Check that the tenant context is set correctly. Use `withoutTenant()` to debug.
 
 ### Cannot create records
 Verify that `app('tenant.id')` returns a valid tenant ID before creating records.
+
+## Frontend Tenant Management UI
+
+The frontend provides a user interface for workspace management:
+
+### Routes
+| Route | Component | Description |
+|-------|-----------|-------------|
+| `/tenants` | `TenantList.vue` | List all accessible workspaces |
+| `/tenants/{uuid}` | `TenantDetail.vue` | View workspace details |
+| `/admin/workspaces` | `TenantList.vue` | Admin workspace management |
+| `/admin/workspaces/{uuid}` | `TenantDetail.vue` | Admin workspace details |
+
+### Features
+- **Workspace List**: View all accessible workspaces, create new ones, switch between them
+- **Workspace Details**: Edit workspace settings, manage team members, handle invitations
+- **Member Management**: Add/remove members, change roles (owner/admin only)
+- **Invitation System**: Send email invitations, copy invitation links, cancel pending invites
+
+### Access Control
+- View workspaces: All authenticated users
+- Edit workspace: Admin and Owner roles
+- Delete workspace: Owner only
+- Manage members: Admin and Owner roles
+- Send invitations: Admin and Owner roles

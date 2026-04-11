@@ -2,6 +2,8 @@ CREATE TABLE `users` (
   `id` bigint PRIMARY KEY AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
+  `phone` varchar(255),
+  `role` varchar(255) NOT NULL DEFAULT "user",
   `email_verified_at` timestamp,
   `password` varchar(255) NOT NULL,
   `remember_token` varchar(100),

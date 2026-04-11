@@ -12,7 +12,8 @@ class Interview extends Model
 
     protected $fillable = [
         'candidate_id', 'vacancy_id', 'interviewer_id', 'interviewer_ids', 'stage',
-        'scheduled_at', 'duration_minutes', 'location', 'type', 'status', 'notes'
+        'scheduled_at', 'duration_minutes', 'location', 'type', 'status', 'notes',
+        'tenant_id',
     ];
 
     protected $casts = [

@@ -13,7 +13,8 @@ class Offer extends Model
     protected $fillable = [
         'candidate_id', 'vacancy_id', 'salary_offered', 'currency',
         'benefits', 'start_date', 'offer_date', 'expiry_date',
-        'status', 'terms', 'candidate_response', 'responded_at'
+        'status', 'terms', 'candidate_response', 'responded_at',
+        'tenant_id',
     ];
 
     protected $casts = [

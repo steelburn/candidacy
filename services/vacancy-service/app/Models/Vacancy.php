@@ -32,6 +32,7 @@ class Vacancy extends Model
         'status',
         'closing_date',
         'positions_available',
+        'tenant_id',
     ];
 
     protected $casts = [
