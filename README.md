@@ -117,6 +117,7 @@ candidacy/
 
 - **Backend**: Laravel 10 (PHP)
 - **Frontend**: Vue.js 3 with Vite
+- **Authentication**: JWT (tymon/jwt-auth)
 - **Database**: MySQL/MariaDB (Managed via DBML)
 - **Message Broker**: Redis Pub/Sub
 - **AI**: Ollama (local) / OpenRouter (cloud)
@@ -172,6 +173,7 @@ candidacy/
 - **Stateless User Recovery**: Shared library implementation allows microservices to reconstitute user context directly from JWT claims without database lookups.
 - **Tenant Context Propagation**: Automatic `X-Tenant-Id` header forwarding for all inter-service API calls via shared `TenantForwarding` trait.
 - **Authentication Guard**: `auth:api` for all protected routes
+- **Token Configuration**: Configurable TTL (default: 60 minutes access, 2 weeks refresh)
 - **Shared Security Middleware**: Standardized security headers and protection across all services
 - **Proper 401 JSON responses** for all unauthenticated requests
 - Role-based permissions
@@ -282,6 +284,10 @@ curl http://localhost:9080/api/system-health
 ## 📚 Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** - Fast track setup guide
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Production deployment guide
+- **[TESTING.md](TESTING.md)** - Comprehensive testing guide
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[MAKEFILE_REFERENCE.md](MAKEFILE_REFERENCE.md)** - Complete Makefile command reference
 - **[DATABASE.md](DATABASE.md)** - DBML schema documentation and workflow
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed system architecture
 - **[CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md)** - Public access via Cloudflare Tunnel
@@ -294,10 +300,10 @@ curl http://localhost:9080/api/system-health
 ### Common Issues
 
 **Authentication Issues**
-- Ensure you're using JWT tokens (not Sanctum)
+- Ensure you're using JWT tokens
 - Login endpoint: `POST /api/auth/login`
 - Include token in requests: `Authorization: Bearer {token}`
-- Token expires after 60 minutes
+- Token expires after 60 minutes (configurable via JWT_TTL)
 
 **Health Check Failures**
 - All services should report as "healthy" at `/api/health`

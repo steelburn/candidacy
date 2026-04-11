@@ -32,11 +32,11 @@ class MatchController extends BaseApiController
     protected $vacancyServiceUrl;
     protected $aiServiceUrl;
 
-    public function __construct()
+    public function __construct(ConfigurationService $configurationService)
     {
         $this->candidateServiceUrl = env('CANDIDATE_SERVICE_URL', 'http://candidate-service:8080');
         $this->vacancyServiceUrl = env('VACANCY_SERVICE_URL', 'http://vacancy-service:8080');
-        $this->aiServiceUrl = ConfigurationService::get('services.ai_service_url', env('AI_SERVICE_URL', 'http://ai-service:8080'));
+        $this->aiServiceUrl = $configurationService->get('services.ai_service_url', env('AI_SERVICE_URL', 'http://ai-service:8080'));
     }
 
     public function matchCandidateToVacancies(Request $request, $id)
@@ -80,7 +80,7 @@ class MatchController extends BaseApiController
             $matchArray['parsed_analysis'] = AnalysisParserService::toJson($match->analysis);
             
             try {
-                $response = Http::get("{$vacancyServiceUrl}/api/vacancies/{$match->vacancy_id}");
+                $response = Http::timeout(10)->get("{$vacancyServiceUrl}/api/vacancies/{$match->vacancy_id}");
                 if ($response->successful()) {
                     $vacancyData = $response->json();
                     $matchArray['vacancy'] = $vacancyData;
@@ -90,7 +90,7 @@ class MatchController extends BaseApiController
                     $matchArray['vacancy_title'] = 'Unknown Position';
                 }
             } catch (\Exception $e) {
-                // Log::warning("Failed to fetch vacancy {$match->vacancy_id}: " . $e->getMessage());
+                Log::warning("Failed to fetch vacancy {$match->vacancy_id}: " . $e->getMessage());
                 $matchArray['vacancy'] = null;
                 $matchArray['vacancy_title'] = 'Unknown Position';
             }
@@ -130,47 +130,70 @@ class MatchController extends BaseApiController
 
     public function getMatches(Request $request)
     {
-        $query = CandidateMatch::query();
+        try {
+            $query = CandidateMatch::query();
 
-        if ($request->has('candidate_id')) {
-            $query->where('candidate_id', $request->candidate_id);
+            // Validate and filter input parameters
+            if ($request->has('candidate_id')) {
+                $candidateId = filter_var($request->candidate_id, FILTER_VALIDATE_INT);
+                if (!$candidateId) {
+                    return response()->json(['error' => 'Invalid candidate_id'], 400);
+                }
+                $query->where('candidate_id', $candidateId);
+            }
+
+            if ($request->has('vacancy_id')) {
+                $vacancyId = filter_var($request->vacancy_id, FILTER_VALIDATE_INT);
+                if (!$vacancyId) {
+                    return response()->json(['error' => 'Invalid vacancy_id'], 400);
+                }
+                $query->where('vacancy_id', $vacancyId);
+            }
+
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('min_score')) {
+                $minScore = filter_var($request->min_score, FILTER_VALIDATE_FLOAT);
+                if ($minScore === false) {
+                    return response()->json(['error' => 'Invalid min_score'], 400);
+                }
+                $query->byScore($minScore);
+            }
+
+            $sortBy = $request->input('sort_by', 'created_at');
+            $sortOrder = $request->input('sort_order', 'desc');
+
+            // Validate allowed sort columns to prevent SQL injection or errors
+            if (!in_array($sortBy, ['match_score', 'created_at', 'updated_at'])) {
+                $sortBy = 'created_at';
+            }
+
+            if (!in_array(strtolower($sortOrder), ['asc', 'desc'])) {
+                $sortOrder = 'desc';
+            }
+
+            $perPage = (int) $request->input('per_page', AppConstants::DEFAULT_PAGE_SIZE);
+            // Limit max per_page to avoid performance issues
+            if ($perPage > 100) $perPage = 100;
+
+            $matches = $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
+
+            // Enrich the paginated items
+            $enrichedCollection = $this->enrichMatchesWithVacancies($matches->getCollection());
+            $matches->setCollection($enrichedCollection);
+
+            return response()->json($matches);
+        } catch (\Exception $e) {
+            // Log the error for debugging purposes
+            Log::error('Error fetching matches: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json(['error' => 'An unexpected error occurred. Please try again later.'], 500);
         }
-
-        if ($request->has('vacancy_id')) {
-            $query->where('vacancy_id', $request->vacancy_id);
-        }
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('min_score')) {
-            $query->byScore($request->min_score);
-        }
-
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
-
-        // Validate allowed sort columns to prevent SQL injection or errors
-        if (!in_array($sortBy, ['match_score', 'created_at', 'updated_at'])) {
-            $sortBy = 'created_at';
-        }
-        
-        if (!in_array(strtolower($sortOrder), ['asc', 'desc'])) {
-            $sortOrder = 'desc';
-        }
-
-        $perPage = (int) $request->input('per_page', AppConstants::DEFAULT_PAGE_SIZE);
-        // Limit max per_page to avoid performance issues
-        if ($perPage > 100) $perPage = 100;
-
-        $matches = $query->orderBy($sortBy, $sortOrder)->paginate($perPage);
-
-        // Enrich the paginated items
-        $enrichedCollection = $this->enrichMatchesWithVacancies($matches->getCollection());
-        $matches->setCollection($enrichedCollection);
-
-        return response()->json($matches);
     }
 
     public function generateQuestions($candidateId, $vacancyId)

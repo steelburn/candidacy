@@ -18,7 +18,7 @@ class AuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register', 'setupCheck', 'createFirstAdmin']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'setupCheck', 'createFirstAdmin', 'validateToken']]);
     }
 
     /**
@@ -137,6 +137,43 @@ class AuthController extends Controller
     public function refresh()
     {
         return $this->respondWithToken(auth('api')->refresh());
+    }
+
+    /**
+     * Validate a JWT token.
+     * Used by other services to verify tokens.
+     */
+    public function validateToken(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Token is required'], 422);
+        }
+
+        try {
+            $token = $request->input('token');
+            $user = JWTAuth::setToken($token)->authenticate();
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found'], 404);
+            }
+
+            return response()->json([
+                'valid' => true,
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+            ]);
+        } catch (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
+            return response()->json(['error' => 'Token expired'], 401);
+        } catch (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+            return response()->json(['error' => 'Token invalid'], 401);
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            return response()->json(['error' => 'Token absent or malformed'], 401);
+        }
     }
 
     /**

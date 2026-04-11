@@ -24,6 +24,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **500 Error Resolution** — Fixed Internal Server Errors in Reporting and Candidate dashboards by resolving missing tenant context and authentication failures.
 - **Request/Response Logging** — Improved logging middleware in `vacancy-service` to include reliable user tracking.
 
+### Added - 2026-03-19
+
+#### JWT Authentication Migration (Phase 1-5 Complete)
+
+**Migration from Laravel Sanctum to Tymon JWT Authentication**
+
+All microservices and API Gateway have been migrated from Laravel Sanctum to Tymon JWT for stateless API authentication.
+
+**Phase 1 — Auth Service**
+- Removed `laravel/sanctum` from composer.json
+- Added `tymon/jwt-auth` package
+- Updated User model to implement JWTSubject interface
+- Updated auth.php config with JWT guard
+
+**Phase 2 — Microservices Migration**
+- Migrated all 12 microservices from Sanctum to JWT:
+  - admin-service, ai-service, candidate-service, document-parser-service
+  - interview-service, matching-service, notification-service
+  - offer-service, onboarding-service, reporting-service
+  - vacancy-service, tenant-service
+- Added `config/jwt.php` configuration files to all services
+- Updated User models to implement JWTSubject
+- Added JWT API guard to auth.php
+- Removed `config/sanctum.php` from all services
+
+**Phase 3 — API Gateway**
+- Updated GatewayController for JWT token validation
+- Added jwt.php configuration
+- Removed sanctum.php configuration
+
+**Phase 4 — Frontend Integration**
+- Updated frontend/web-app/src/services/api.js for JWT authentication
+- JWT token stored in localStorage
+- Bearer token included in Authorization header
+
+**Phase 5 — Final Cleanup**
+- Completed tenant-service migration
+- Created release tag v2.0.0-jwt-migration-complete
+
+**Breaking Changes**
+- All API endpoints now require JWT Bearer token authentication
+- Session-based authentication no longer supported for API routes
+- Use `GET /auth/login` to obtain JWT token
+
 ### Added - 2026-02-23
 
 #### Multitenancy Implementation (Phases 1–3)

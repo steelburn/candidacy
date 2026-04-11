@@ -1,0 +1,49 @@
+# Version Control
+.git
+.gitignore
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files (should be set via docker-compose env vars)
+.env
+.env.local
+.env.*.local
+
+# Node.js (for frontend only builds)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel specific
+/vendor/
+/storage/*.key
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Testing
+.phpunit/
+coverage/
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+*.md
+
+# Database
+*.sql
+*.dbml
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+*.cache

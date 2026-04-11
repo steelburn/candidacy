@@ -23,7 +23,7 @@ Route::prefix('invitations')->group(function () {
 });
 
 // Protected routes (require authentication via gateway)
-Route::middleware('api')->group(function () {
+Route::middleware(['api', 'jwt-validate'])->group(function () {
     // Tenant CRUD
     Route::get('/tenants', [TenantController::class, 'index']);
     Route::post('/tenants', [TenantController::class, 'store']);

@@ -182,6 +182,13 @@ If you see unexpected database errors, verify your SQL files match the DBML:
 make dbml-check
 ```
 
+### Authentication Issues
+If you encounter 401 Unauthorized errors:
+1. Verify JWT_SECRET is set in `.env`
+2. Check token hasn't expired (default: 60 minutes)
+3. Ensure token is included in requests: `Authorization: Bearer <token>`
+4. Check service logs: `make logs-auth`
+
 ### Service Health
 If a service is behaving unexpectedly, check its health endpoint:
 `http://localhost:8080/api/system-health`
@@ -196,6 +203,42 @@ Ensure Ollama is running and the models are pulled. You can check Ollama status 
 - **Grafana**: admin / admin
 
 (Change these in production!)
+
+## Authentication (JWT)
+
+The Candidacy platform uses **JWT (JSON Web Tokens)** for authentication via the `tymon/jwt-auth` package.
+
+### JWT Configuration
+
+JWT secrets are automatically generated during `make setup`. The following environment variables control JWT behavior:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JWT_SECRET` | auto-generated | Secret key for signing tokens |
+| `JWT_TTL` | 60 | Access token validity (minutes) |
+| `JWT_REFRESH_TTL` | 20160 | Refresh token validity (minutes) |
+
+### Using JWT Tokens
+
+```bash
+# Login to get JWT token
+curl -X POST http://localhost:8081/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@candidacy.com", "password": "password123"}'
+
+# Use token in subsequent requests
+curl http://localhost:8082/api/candidates \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
+### Token Refresh
+
+Tokens can be refreshed using the refresh endpoint:
+
+```bash
+curl -X POST http://localhost:8081/api/auth/refresh \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
 
 ## Admin Panel Configuration
 
@@ -235,7 +278,7 @@ The configuration management interface features search, filtering by category, a
 
 ## Production Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment instructions using Kubernetes.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment instructions.
 
 ## API Documentation
 

@@ -1,96 +1,122 @@
-# Admin Service
+# Tenant Service
 
-System administration and configuration management service.
+Multi-tenant management service for organizing multiple organizations on a single platform instance.
 
 ## Overview
 
-- **Port**: 8090
-- **Database**: `candidacy_admin`
+- **Port**: 8092
+- **Database**: `candidacy_tenant`
 - **Framework**: Laravel 10
 
 ## Features
 
-- ✅ System settings management
-- ✅ Application configuration
-- ✅ AI provider configuration
-- ✅ System health monitoring
-- ✅ Service status tracking
+- ✅ Tenant (organization) CRUD operations
+- ✅ Tenant user management and invitations
+- ✅ Tenant settings and preferences
+- ✅ API key management for integrations
+- ✅ Tenant isolation enforcement
 
 ## API Endpoints
 
 ```http
-GET    /api/settings                # Get all settings
-PUT    /api/settings                # Update settings (bulk)
-GET    /api/settings/{key}          # Get single setting
-PUT    /api/settings/{key}          # Update single setting
-GET    /api/settings/category/{cat} # Get settings by category
-GET    /api/system-health           # Get all services health status
-GET    /api/health                  # Service health check
+GET    /api/tenants               # List all tenants (admin only)
+POST   /api/tenants               # Create new tenant
+GET    /api/tenants/{id}          # Get tenant details
+PUT    /api/tenants/{id}          # Update tenant
+DELETE /api/tenants/{id}          # Delete tenant
+
+GET    /api/tenants/{id}/users    # List tenant users
+POST   /api/tenants/{id}/invite  # Invite user to tenant
+
+GET    /api/tenant-users          # Current user's tenant memberships
+PUT    /api/tenant-users/{id}    # Update membership (role)
+
+GET    /api/invitations           # List pending invitations
+POST   /api/invitations/{token}  # Accept invitation
+
+GET    /api/api-keys              # List API keys
+POST   /api/api-keys              # Create API key
+DELETE /api/api-keys/{id}         # Revoke API key
 ```
 
-## Configuration Categories
+## Tenant Data Model
 
-The Admin Service manages settings across 8 categories with 40+ configurable options:
+### Tenant
+- `id` - Unique identifier
+- `name` - Organization name
+- `slug` - URL-friendly identifier
+- `domain` - Custom domain (optional)
+- `settings` - JSON configuration
+- `created_at`, `updated_at`
 
-### System (`system`)
-- `app.name`, `app.company_name`, `app.contact_email`
-- `app.candidate_portal_url`, `app.timezone`, `app.language`
+### Tenant User
+- `id` - Unique identifier
+- `tenant_id` - Associated tenant
+- `user_id` - User from auth service
+- `role` - Role within tenant (owner, admin, member)
+- `created_at`, `updated_at`
 
-### AI (`ai`)
-- `ai.provider` - ollama or openrouter
-- `ai.ollama.url` - Ollama endpoint
-- `ai.ollama.model.*` - Models for default, matching, cv_parsing
-- `ai.generation.*` - timeout, temperature, context_length
+### Invitation
+- `id` - Unique identifier
+- `tenant_id` - Inviting tenant
+- `email` - Invitee email
+- `role` - Role to grant
+- `token` - Unique acceptance token
+- `expires_at` - Expiration date
+- `created_at`, `updated_at`
 
-### Document Parser (`document_parser`)
-- `document_parser.use_granite_docling` - Enable IBM Granite Docling
-- `document_parser.timeout`, `document_parser.image_resolution`
+### API Key
+- `id` - Unique identifier
+- `tenant_id` - Owner tenant
+- `name` - Descriptive name
+- `key_hash` - Hashed API key (secure)
+- `last_used_at` - Last usage timestamp
+- `expires_at` - Optional expiration
+- `created_at`, `updated_at`
 
-### Matching (`matching`)
-- `matching.min_score_threshold` - Minimum score to save matches (default: 40)
-- `matching.display_threshold` - UI filter threshold (default: 60)
+## Multitenancy Architecture
 
-### Recruitment, Storage, Features, UI
-- See [FEATURES.md](/FEATURES.md) for complete settings reference
+The platform uses **shared database with tenant_id column** approach:
 
-## System Health Monitoring
-
-The system health endpoint checks all microservices:
-
-```bash
-curl http://localhost:8080/api/system-health
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Tenant Isolation                      │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌──────────┐    ┌──────────────────────────────────┐  │
+│  │  Tenant  │───▶│           Services               │  │
+│  │ Service  │    ├──────────────────────────────────┤  │
+│  └──────────┘    │  • Auth Service                  │  │
+│       │          │  • Candidate Service             │  │
+│       ▼          │  • Vacancy Service                │  │
+│  ┌──────────┐    │  • ...                           │  │
+│  │  Tenant  │    │                                  │  │
+│  │ Context  │───▶│  All queries filtered by         │  │
+│  │Middleware│    │  tenant_id automatically        │  │
+│  └──────────┘    └──────────────────────────────────┘  │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Response:**
-```json
-{
-  "services": [
-    {
-      "service": "auth-service",
-      "status": "online",
-      "response_time": "16ms"
-    },
-    ...
-  ],
-  "timestamp": "2025-12-23T03:00:00+00:00"
-}
-```
+## Tenant Resolution
 
-## Recent Fixes (2025-12-23)
+Tenant is resolved from:
 
-- ✅ Added Shared namespace configuration
-- ✅ Updated SettingController to extend BaseApiController
-- ✅ Fixed routes syntax errors
-- ✅ Improved system health check with HTTP client
+1. **JWT Claims**: `tenant_id` claim in authentication token
+2. **HTTP Header**: `X-Tenant-ID` header (API access)
+3. **Subdomain**: `{tenant}.yourdomain.com` (future)
 
 ## Development
 
-The database schema is managed via DBML. Always edit `schema.dbml` at the root and run `make dbml-sql`.
-
 ```bash
-# Sync local database
-make dbml-init
+# Sync schema
+make dbml-sql
 
-# Start service
-docker-compose up -d admin-service
+# Run service
+docker-compose up -d tenant-service
 ```
+
+## Related Documentation
+
+- [MULTITENANCY.md](../MULTITENANCY.md) - Full multitenancy guide
+- [DATABASE.md](../DATABASE.md) - Database schema

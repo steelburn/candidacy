@@ -26,18 +26,30 @@ class TenantController extends BaseApiController
         $userId = $request->header('X-User-ID');
         
         if (!$userId) {
+            \Log::error('User ID header is missing');
             return $this->error('User ID is required', 401);
         }
 
-        $tenantIds = TenantUser::where('user_id', $userId)
-            ->where('is_active', true)
-            ->pluck('tenant_id');
+        \Log::info('Fetching tenants for user', ['user_id' => $userId]);
 
-        $tenants = Tenant::whereIn('id', $tenantIds)
-            ->active()
-            ->get();
+        try {
+            $tenantIds = TenantUser::where('user_id', $userId)
+                ->where('is_active', true)
+                ->pluck('tenant_id');
 
-        return $this->success($tenants);
+            \Log::info('Tenant IDs retrieved', ['tenant_ids' => $tenantIds]);
+
+            $tenants = Tenant::whereIn('id', $tenantIds)
+                ->active()
+                ->get();
+
+            \Log::info('Tenants fetched successfully', ['tenants' => $tenants]);
+
+            return $this->success($tenants);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching tenants', ['exception' => $e->getMessage()]);
+            return $this->serverError('Failed to fetch tenants', $e);
+        }
     }
 
     /**

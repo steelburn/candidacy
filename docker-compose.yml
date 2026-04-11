@@ -73,6 +73,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     volumes:
       - ./gateway/api-gateway:/var/www/html
+      - /var/www/html/vendor
       - ./gateway/api-gateway/docker/php/conf.d/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
     depends_on:
       - redis
@@ -96,6 +97,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/auth-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -123,6 +125,7 @@ services:
       REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
       - candidate_uploads:/var/www/html/storage/app/public
       - ./services/candidate-service/docker/php/conf.d/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
@@ -152,6 +155,7 @@ services:
       REDIS_QUEUE: candidate_queue
     volumes:
       - ./services/candidate-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
       - candidate_uploads:/var/www/html/storage/app/public
     depends_on:
@@ -183,6 +187,7 @@ services:
       DOCLING_TIMEOUT: ${DOCLING_TIMEOUT:-300}
     volumes:
       - ./services/document-parser-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
       - document_parser_temp:/var/www/html/storage/temp
     depends_on:
@@ -212,6 +217,7 @@ services:
       DOCLING_TIMEOUT: ${DOCLING_TIMEOUT:-300}
     volumes:
       - ./services/document-parser-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
       - document_parser_temp:/var/www/html/storage/temp
     depends_on:
@@ -241,6 +247,7 @@ services:
       AI_SERVICE_URL: http://ai-service:8080
     volumes:
       - ./services/vacancy-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -268,6 +275,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/ai-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       #      - ollama
@@ -298,6 +306,7 @@ services:
       REDIS_QUEUE: matching_queue
     volumes:
       - ./services/matching-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -327,6 +336,7 @@ services:
       REDIS_QUEUE: matching_queue
     volumes:
       - ./services/matching-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -354,6 +364,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/interview-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -378,6 +389,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/offer-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -402,6 +414,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/onboarding-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -426,6 +439,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/reporting-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -450,6 +464,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/admin-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -474,6 +489,7 @@ services:
       REDIS_HOST: redis
     volumes:
       - ./services/tenant-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -508,6 +524,7 @@ services:
       MAIL_FROM_NAME: Candidacy
     volumes:
       - ./services/notification-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -542,6 +559,7 @@ services:
       MAIL_FROM_NAME: Candidacy
     volumes:
       - ./services/notification-service:/var/www/html
+      - /var/www/html/vendor
       - ./shared:/var/www/shared
     depends_on:
       - mysql
@@ -564,7 +582,7 @@ services:
     ports:
       - "3501:3000"
     environment:
-      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}
+      - VITE_API_GATEWAY_URL=${PUBLIC_API_URL:-http://localhost:9080}/api
       - PUBLIC_DOMAIN=${PUBLIC_DOMAIN}
     volumes:
       - ./frontend/web-app:/app

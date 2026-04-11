@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, path.resolve(__dirname, '../../'), '')
 
-  const allowedHosts = ['frontend', 'candidacy-frontend', 'localhost']
+  const allowedHosts = ['frontend', 'candidacy-frontend', 'localhost', 'candidacy.comulo.app']
   if (env.PUBLIC_DOMAIN) {
     allowedHosts.push(env.PUBLIC_DOMAIN)
   }
