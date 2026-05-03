@@ -121,9 +121,7 @@ setup:
 	@sleep 10
 	@echo ""
 	@echo "📋 Step 6/6: Seeding configuration and sample data..."
-	@echo "   • Seeding configuration settings (27 settings)..."
-	@docker compose exec -T admin-service php artisan db:seed --class=ConfigurationSeeder || echo "⚠️  Configuration seeding will run on first admin-service start"
-	@echo "   • Seeding sample data (optional)..."
+	@echo "   • Seeding configuration settings (42 settings)..."
 	@docker compose exec -T auth-service php artisan db:seed --force || echo "⚠️  Auth service seeding skipped"
 	@docker compose exec -T admin-service php artisan db:seed --force || echo "⚠️  Admin service seeding skipped"
 	@echo ""
@@ -144,7 +142,7 @@ setup:
 	@echo "  ✓ MySQL and Redis started"
 	@echo "  ✓ 9 databases initialized from DBML"
 	@echo "  ✓ All microservices started"
-	@echo "  ✓ 27 configuration settings seeded"
+	@echo "  ✓ 42 configuration settings seeded"
 	@echo "  ✓ Sample data seeded (auth, admin)"
 	@echo ""
 	@echo "📚 Next Steps:"
@@ -299,23 +297,22 @@ seed:
 seed-config:
 	@echo "⚙️  Seeding configuration settings..."
 	@echo ""
-	@docker compose exec -T admin-service php artisan db:seed --class=ConfigurationSeeder
+	@docker compose exec -T admin-service php artisan db:seed --force --class=ConfigurationSeeder
 	@echo ""
 	@echo "✅ Configuration seeded successfully!"
 	@echo ""
-	@echo "📊 Seeded 27 configuration settings across 7 categories:"
-	@echo "  • System (6): app name, company, contact, timezone, language"
-	@echo "  • AI (7): provider, Ollama URL/models, OpenRouter settings"
-	@echo "  • Document Parser (4): Granite Docling settings"
-	@echo "  • Recruitment (3): auto-matching, offer expiry, reminders"
-	@echo "  • Storage (2): CV size limit, max upload size"
-	@echo "  • Features (3): enable AI, notifications, auto-matching"
-	@echo "  • Services (2): AI service URL, document parser URL"
+	@echo "📊 Seeded 42 configuration settings across 8 categories:"
+	@echo "  • System (6): app name, company, contact, timezone, language, candidate portal URL"
+	@echo "  • AI Configuration (12): provider, generation settings, document parser AI settings"
+	@echo "  • Document Parser (4): timeout, supported types, pipeline, image resolution"
+	@echo "  • Recruitment (2): offer expiry days, interview reminder hours"
+	@echo "  • Storage (2): CV storage limit, max upload size"
+	@echo "  • Features (1): enable notifications"
+	@echo "  • Services (3): AI service URL, document parser URL, notification service URL"
+	@echo "  • UI Customization (8): login background, content width, sidebar, colors, date/time format"
 	@echo ""
-	@echo "📝 View configuration:"
-	@echo "  curl http://localhost:8090/api/settings | jq"
+	@echo "📝 View configuration: https://candidacy.comulo.app/admin/configuration"
 	@echo ""
-	@echo "📚 Documentation: See CONFIGURATION.md"
 
 migrate-tenants:
 	@echo "🏢 Running tenant_id migrations on all business services..."
@@ -504,6 +501,9 @@ dbml-check:
 dbml-init:
 	@echo "🗄️  Initializing databases from DBML..."
 	@docker compose run --rm dbml-tools bash scripts/init-databases-from-dbml.sh
+	@echo ""
+	@echo "🌱 Seeding configuration settings..."
+	@docker compose exec -T admin-service php artisan db:seed --force --class=ConfigurationSeeder || echo "⚠️  Configuration seeder skipped (admin-service may not be running)"
 
 dbml-reset:
 	@echo "⚠️  WARNING: This will drop all databases and recreate from DBML!"
