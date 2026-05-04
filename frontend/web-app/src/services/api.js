@@ -35,10 +35,12 @@ api.interceptors.request.use(
 )
 
 // Response interceptor
+let isRedirecting = false
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401 && !error.config?._skipAuthRedirect) {
+        if (error.response?.status === 401 && !error.config?._skipAuthRedirect && !isRedirecting) {
+            isRedirecting = true
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             window.location.href = '/login'

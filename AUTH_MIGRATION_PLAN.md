@@ -703,7 +703,7 @@ JWT_BLACKLIST_ENABLED=true
 JWT_LEEWAY=0
 
 # CORS (if not already set)
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3501
 ```
 
 ### 4.12 Frontend API Service
@@ -715,7 +715,7 @@ The frontend already uses Bearer token pattern. Update to handle JWT-specific re
 ```javascript
 import axios from 'axios'
 
-const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8080'
+const API_GATEWAY_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:9080'
 
 const api = axios.create({
     baseURL: API_GATEWAY_URL,

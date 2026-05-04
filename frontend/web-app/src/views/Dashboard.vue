@@ -111,7 +111,15 @@
             </router-link>
           </div>
           <div v-if="recentCandidates.length === 0" class="empty-state">
-            <p>No candidates yet</p>
+            <div class="empty-icon">
+              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="24" cy="24" r="20" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="2"/>
+                <circle cx="24" cy="19" r="7" fill="#A5B4FC"/>
+                <path d="M14 36c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#6366F1" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">No candidates yet</p>
+            <router-link to="/candidates/create" class="empty-cta">Add your first candidate</router-link>
           </div>
         </div>
       </div>
@@ -458,5 +466,36 @@ const getInitials = (name) => {
   padding: 32px;
   text-align: center;
   color: var(--text-secondary, #6b7280);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+}
+
+.empty-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-text {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.empty-cta {
+  font-size: 0.875rem;
+  color: var(--color-primary, #6366f1);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.empty-cta:hover {
+  text-decoration: underline;
 }
 </style>

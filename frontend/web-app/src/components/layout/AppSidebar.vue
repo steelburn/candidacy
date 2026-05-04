@@ -92,7 +92,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/useThemeStore'
 
@@ -116,9 +116,14 @@ const userInitials = computed(() => {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
 
-const expandedItems = ref({
-  '/admin': true // Expand admin by default
-})
+const expandedItems = ref(
+  JSON.parse(localStorage.getItem('sidebar_expanded') || 'null') || { '/admin': true }
+)
+
+// Persist sidebar expand/collapse state across sessions
+watch(expandedItems, (val) => {
+  localStorage.setItem('sidebar_expanded', JSON.stringify(val))
+}, { deep: true })
 
 const toggleExpand = (path) => {
   if (props.isCollapsed) return // Don't toggle in collapsed mode

@@ -22,7 +22,7 @@
       </select>
     </div>
     
-    <div v-if="loading" class="loading">Loading vacancies...</div>
+    <SkeletonLoader v-if="loading" type="card" :rows="6" />
     
     <div v-else class="vacancies-grid">
       <div v-for="vacancy in vacancies" :key="vacancy.id" class="vacancy-card">
@@ -66,7 +66,31 @@
     </div>
     
     <div v-if="!loading && vacancies.length === 0" class="empty-state">
-      <p>No vacancies found</p>
+      <div class="empty-illustration">
+        <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="20" width="90" height="65" rx="8" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="2"/>
+          <rect x="25" y="35" width="50" height="8" rx="3" fill="#6EE7B7"/>
+          <rect x="25" y="50" width="35" height="6" rx="3" fill="#A7F3D0"/>
+          <rect x="25" y="62" width="45" height="6" rx="3" fill="#A7F3D0"/>
+          <circle cx="90" cy="30" r="12" fill="#D1FAE5" stroke="#6EE7B7" stroke-width="2"/>
+          <line x1="86" y1="30" x2="94" y2="30" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="90" y1="26" x2="90" y2="34" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="30" cy="75" r="6" fill="#A7F3D0"/>
+          <circle cx="85" cy="80" r="4" fill="#D1FAE5"/>
+        </svg>
+      </div>
+      <h3 class="empty-title">No open vacancies yet</h3>
+      <p class="empty-desc">
+        Create your first job vacancy to start attracting candidates.
+        A clear job description helps candidates understand the role.
+      </p>
+      <router-link to="/vacancies/create" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Create Vacancy
+      </router-link>
     </div>
   </div>
 </template>
@@ -74,6 +98,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { vacancyAPI } from '../../services/api'
+import SkeletonLoader from '../../components/SkeletonLoader.vue'
 
 const vacancies = ref([])
 const loading = ref(false)
@@ -368,5 +393,43 @@ onMounted(() => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.empty-illustration {
+  width: 120px;
+  height: 100px;
+  margin-bottom: 24px;
+}
+
+.empty-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px;
+}
+
+.empty-desc {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 24px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.empty-state .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

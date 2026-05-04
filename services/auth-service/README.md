@@ -68,7 +68,7 @@ DELETE /api/users/{userId}/roles/{roleId}  # Remove role from user
 ### Login
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
+curl -X POST http://localhost:8081/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@test.com",
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 ### Using the Token
 
 ```bash
-curl -X GET http://localhost:8080/api/users \
+curl -X GET http://localhost:8081/api/users \
   -H "Authorization: Bearer {access_token}"
 ```
 
@@ -158,7 +158,7 @@ JWT_TTL=60
 When no users exist in the system, use the setup endpoint:
 
 ```bash
-curl -X POST http://localhost:8080/api/setup/create-admin \
+curl -X POST http://localhost:8081/api/setup/create-admin \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Admin User",

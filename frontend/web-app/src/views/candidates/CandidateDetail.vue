@@ -189,15 +189,11 @@ const isDocx = computed(() => {
            filename.toLowerCase().endsWith('.docx')
 })
 
-// === Methods ===
-
 const loadCandidate = async () => {
     loading.value = true
     try {
         const res = await candidateAPI.get(candidateId)
         candidate.value = res.data
-        // Pre-load duplicates matches? No, lazy load on tab switch usually better, 
-        // but original code might have loaded them. Let's stick to simple logic.
     } catch (e) {
         console.error("Failed to load candidate", e)
     } finally {

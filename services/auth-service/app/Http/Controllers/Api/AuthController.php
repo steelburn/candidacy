@@ -253,27 +253,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Validate the provided JWT and return its payload.
-     */
-    public function validateToken(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        try {
-            $payload = JWTAuth::setToken($request->token)->getPayload();
-            return response()->json(['valid' => true, 'payload' => $payload]);
-        } catch (Exception $e) {
-            return response()->json(['valid' => false, 'error' => $e->getMessage()], 401);
-        }
-    }
-
-    /**
      * Check if the user has the required role.
      */
     public function roleCheck(Request $request)

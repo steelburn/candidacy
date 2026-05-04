@@ -59,10 +59,7 @@
     </div>
     
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <span>Loading candidates...</span>
-    </div>
+    <SkeletonLoader v-if="loading" type="table" :rows="6" :columns="5" />
     
     <!-- Table -->
     <div v-else class="table-card">
@@ -123,13 +120,38 @@
       </table>
 
       <div v-if="candidates.length === 0" class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <line x1="17" y1="11" x2="23" y2="11"/>
-        </svg>
-        <p>No candidates found</p>
-        <router-link to="/candidates/create" class="btn btn-primary">Add Your First Candidate</router-link>
+        <div class="empty-illustration">
+          <svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="60" cy="50" r="40" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="2"/>
+            <circle cx="60" cy="40" r="14" fill="#A5B4FC"/>
+            <path d="M40 68c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="95" cy="25" r="8" fill="#C7D2FE"/>
+            <circle cx="25" cy="30" r="6" fill="#E0E7FF"/>
+            <path d="M85 70l10 10M95 70l-10 10" stroke="#818CF8" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3 class="empty-title">Your candidate pipeline is empty</h3>
+        <p class="empty-desc">
+          Add your first candidate to start building your talent pipeline.
+          You can upload resumes in bulk or add candidates manually.
+        </p>
+        <div class="empty-actions">
+          <router-link to="/candidates/create" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Candidate
+          </router-link>
+          <button @click="showBulkUpload = true" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Bulk Upload
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -139,6 +161,7 @@
 import { ref, onMounted } from 'vue'
 import { candidateAPI } from '../../services/api'
 import BulkUploadModal from '../../components/BulkUploadModal.vue'
+import SkeletonLoader from '../../components/SkeletonLoader.vue'
 
 const candidates = ref([])
 const loading = ref(false)
@@ -496,6 +519,50 @@ button.action-btn {
   padding: 64px 24px;
   text-align: center;
   color: var(--text-secondary, #6b7280);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--text-secondary, #6b7280);
+}
+
+.empty-illustration {
+  width: 120px;
+  height: 100px;
+  margin-bottom: 24px;
+  opacity: 0.9;
+}
+
+.empty-illustration svg {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0 0 8px;
+}
+
+.empty-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+  margin: 0 0 24px;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .empty-state svg {

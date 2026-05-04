@@ -243,7 +243,6 @@ curl http://localhost:9080/api/system-health
 - ✅ Migrated to JWT-based authentication with `auth:api`
 - ✅ Fixed shared namespace configuration
 - ✅ Standardized API responses across all services
-- ✅ Standardized API responses across all services
 - ✅ Centralized system health monitoring via API Gateway
 - ✅ **Resume Persistence & Reliability (Dec 25)**
   - Persisted parsed CV text in database (`extracted_text`)
@@ -261,14 +260,14 @@ curl http://localhost:9080/api/system-health
   - Beautified login page with glassmorphism design
   - Consistent list view styling across all pages
 - ✅ **Enhanced Configuration Management (Dec 26)**
-  - 40+ configurable settings across 8 categories
+  - 50+ configurable settings across 9 categories
   - Specialized input controls (color pickers, dropdowns, range sliders)
   - AI generation parameters (timeout, temperature, context length)
   - Matching thresholds as configurable settings
 
 ### Monitoring
 - **Grafana Dashboard**: http://localhost:3050 (admin/admin)
-- **Pre-built Dashboards**: 8 dashboards auto-provisioned
+|- **Pre-built Dashboards**: 9 dashboards auto-provisioned
   - Service Overview (all services at a glance)
   - API Gateway (requests, latency, errors)
   - Auth Service (logins, registrations)
@@ -302,9 +301,8 @@ curl http://localhost:9080/api/system-health
 **Authentication Issues**
 - Ensure you're using JWT tokens
 - Login endpoint: `POST /api/auth/login`
-- Include token in requests: `Authorization: Bearer {token}`
+- Include token in requests: `Authorization: Bearer &lt;your-token&gt;`
 - Token expires after 60 minutes (configurable via JWT_TTL)
-
 **Health Check Failures**
 - All services should report as "healthy" at `/api/health`
 - Redis is optional (services work without it)
@@ -332,4 +330,3 @@ We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for 
 - Code standards (PHP, Vue.js, DBML)
 - Pull request process
 - Testing requirements
-

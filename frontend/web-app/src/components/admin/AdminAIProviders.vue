@@ -2,7 +2,10 @@
   <div class="tab-content">
     <div class="ai-header">
       <h2>AI Providers & Failover</h2>
-      <button @click="loadProviders" class="btn-secondary">🔄 Refresh</button>
+      <button @click="loadProviders" class="btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        Refresh
+      </button>
     </div>
 
     <div v-if="loading" class="loading">Loading providers...</div>
@@ -21,13 +24,25 @@
         <div v-for="provider in providers" :key="provider.name" 
              class="provider-card" :class="{ available: provider.available }">
           <div class="provider-header">
-            <span class="provider-icon">{{ providerIcons[provider.type] || providerIcons[provider.name] || '🤖' }}</span>
+            <span class="provider-icon">
+              <svg v-if="provider.type === 'ollama'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <svg v-else-if="provider.type === 'openrouter'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <svg v-else-if="provider.type === 'openai'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg v-else-if="provider.type === 'gemini'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg v-else-if="provider.type === 'azure'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><path d="M3 15l9-9 9 9"/><path d="M3 19l9-9 9 9"/></svg>
+              <svg v-else-if="provider.type === 'litellm'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+            </span>
             <span class="provider-name">{{ provider.displayName }}</span>
-            <span v-if="provider.hasApiKey" class="key-badge" title="API Key Configured">🔑</span>
+            <span v-if="provider.hasApiKey" class="key-badge" title="API Key Configured">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </span>
           </div>
           <div class="provider-status">
             <span :class="provider.available ? 'status-ok' : 'status-error'">
-              {{ provider.available ? '✓ Available' : '✗ Unavailable' }}
+              <svg v-if="provider.available" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {{ provider.available ? 'Available' : 'Unavailable' }}
             </span>
           </div>
           <div class="provider-model">
@@ -46,12 +61,21 @@
           <div class="instance-info">
             <span class="instance-name">{{ instance.name }}</span>
             <span class="instance-type">{{ instance.type }}</span>
-            <span v-if="instance.config && instance.config.model" class="instance-model" title="Selected Model">📦 {{ instance.config.model }}</span>
-            <span v-if="instance.hasApiKey" class="key-badge-sm" title="API Key Configured">🔑</span>
+            <span v-if="instance.config && instance.config.model" class="instance-model" title="Selected Model">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              {{ instance.config.model }}
+            </span>
+            <span v-if="instance.hasApiKey" class="key-badge-sm" title="API Key Configured">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </span>
             <span class="instance-url">{{ instance.baseUrl }}</span>
           </div>
-          <button @click="openEditModal(instance)" class="btn-icon btn-edit" title="Edit">✏️</button>
-          <button @click="deleteInstance(instance.id)" class="btn-icon btn-delete" title="Delete">🗑️</button>
+          <button @click="openEditModal(instance)" class="btn-icon btn-edit" title="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button @click="deleteInstance(instance.id)" class="btn-icon btn-delete" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -64,7 +88,13 @@
       <div class="chains-container">
         <div v-for="(chain, serviceType) in serviceChains" :key="serviceType" class="chain-card">
           <div class="chain-header">
-            <span class="chain-icon">{{ serviceIcons[serviceType] || '⚡' }}</span>
+            <span class="chain-icon">
+              <svg v-if="serviceType === 'cv_parsing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              <svg v-else-if="serviceType === 'matching'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              <svg v-else-if="serviceType === 'jd_generation'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <svg v-else-if="serviceType === 'questions'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
             <span class="chain-name">{{ formatServiceType(serviceType) }}</span>
           </div>
           
@@ -77,7 +107,9 @@
                 </option>
               </select>
               <input v-model="chain[index].model" type="text" placeholder="Model (optional)" class="model-input" />
-              <button @click="removeFromChain(serviceType, index)" class="btn-icon" title="Remove">🗑️</button>
+              <button @click="removeFromChain(serviceType, index)" class="btn-icon" title="Remove">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
             </div>
           </div>
           
@@ -89,7 +121,8 @@
 
       <div class="save-section">
         <button @click="saveChains" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Saving...' : '💾 Save Failover Configuration' }}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          {{ saving ? 'Saving...' : 'Save Failover Configuration' }}
         </button>
       </div>
     </div>
@@ -120,7 +153,10 @@
           </select>
         </div>
         <div class="form-group" v-if="['openai', 'openrouter', 'gemini', 'azure', 'litellm'].includes(newInstance.type)">
-          <label>API Key <span v-if="isEditing && newInstance.hasApiKey" class="badge-success">✓ Configured</span></label>
+          <label>API Key <span v-if="isEditing && newInstance.hasApiKey" class="badge-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+            Configured
+          </span></label>
           <input v-model="newInstance.api_key" type="password" :placeholder="isEditing && newInstance.hasApiKey ? 'Leave empty to keep current key' : 'sk-...'" />
         </div>
         <div class="form-group">
@@ -136,9 +172,13 @@
             </select>
             <input v-else v-model="newInstance.model" type="text" placeholder="mistral" style="flex: 1;" />
             
-            <button v-if="availableModels.length > 0" @click="availableModels = []" class="btn-secondary" title="Switch to manual entry">✏️</button>
+            <button v-if="availableModels.length > 0" @click="availableModels = []" class="btn-secondary" title="Switch to manual entry">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
             <button @click="fetchModels" class="btn-secondary btn-icon-text" :disabled="fetchingModels" title="Fetch available models">
-              {{ fetchingModels ? '⏳' : '🔄 Fetch' }}
+              <svg v-if="!fetchingModels" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" class="spin"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+              {{ fetchingModels ? 'Fetching...' : 'Fetch' }}
             </button>
           </div>
         </div>
@@ -180,23 +220,9 @@ const newInstance = ref({
   hasApiKey: false
 })
 
-const providerIcons = {
-  ollama: '🦙',
-  openrouter: '🌐',
-  openai: '🧠',
-  gemini: '💎',
-  azure: '☁️',
-  litellm: '🔄',
-  llamacpp: '🖥️'
-}
+const providerIcons = {}
 
-const serviceIcons = {
-  cv_parsing: '📄',
-  matching: '🎯',
-  jd_generation: '📝',
-  questions: '❓',
-  discussion: '💬',
-}
+const serviceIcons = {}
 
 const serviceChains = ref({
   cv_parsing: [{ provider: 'ollama', model: null }],
@@ -468,6 +494,25 @@ onMounted(loadProviders)
 .loading { text-align: center; padding: 2rem; color: #666; }
 .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 6px; margin: 1rem 0; }
 .success { background: #e8f5e9; color: #388e3c; padding: 0.75rem; border-radius: 6px; margin: 1rem 0; }
+
+.btn-icon-text .spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.provider-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chain-icon {
+  display: flex;
+  align-items: center;
+}
 
 .key-badge {
   font-size: 1rem;

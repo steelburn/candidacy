@@ -209,11 +209,11 @@ const pollForParsingResults = async (jobId) => {
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const statusResponse = await api.get(`/api/candidates/cv-parsing/${jobId}/status`)
+      const statusResponse = await api.get(`/candidates/cv-parsing/${jobId}/status`)
       const status = statusResponse.data.status
       
       if (status === 'completed') {
-        const resultResponse = await api.get(`/api/candidates/cv-parsing/${jobId}/result`)
+        const resultResponse = await api.get(`/candidates/cv-parsing/${jobId}/result`)
         let parsedData = resultResponse.data.parsed_data
         
         // Fallback parsing logic

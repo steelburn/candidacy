@@ -64,7 +64,7 @@ Candidacy is a microservices-based recruitment management platform with Laravel 
 ```bash
 cd frontend/web-app
 npm install
-npm run dev    # Start development server (port 3000)
+npm run dev    # Start development server (port 3501)
 npm run build  # Build for production
 npm run preview # Preview production build
 ```
@@ -73,7 +73,7 @@ npm run preview # Preview production build
 ```bash
 cd frontend/applicant-web-app
 npm install
-npm run dev    # Start development server (port 3000)
+npm run dev    # Start development server (port 3501)
 npm run build  # Build for production
 npm run preview # Preview production build
 ```

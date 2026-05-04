@@ -14,7 +14,7 @@
 - ✅ reporting-service (port 8089)
 - ✅ admin-service (port 8090)
 - ✅ notification-service (port 8091)
-- ✅ document-parser-service (port 8092)
+|- ✅ document-parser-service (port 8095)
 - ✅ api-gateway (port 9080)
 - ✅ MySQL database (port 3306)
 - ✅ Redis (port 6379)
@@ -29,7 +29,7 @@
 - **Applicant Portal**: http://localhost:5173
 - **API Gateway**: http://localhost:9080
 - **Grafana Monitoring**: http://localhost:3050 (admin/admin)
-- **Individual Services**: http://localhost:8081-8092
+- **Individual Services**: http://localhost:8081-8095
 - **Unified Health**: http://localhost:9080/api/system-health
 
 ## Core Features Implemented

@@ -75,7 +75,6 @@ const props = defineProps({
   }
 })
 
-// Get phone from candidate or from latest CV parsed data
 const displayPhone = computed(() => {
   if (props.candidate.phone) return props.candidate.phone
   

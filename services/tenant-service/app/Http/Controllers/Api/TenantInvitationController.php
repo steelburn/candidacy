@@ -112,8 +112,6 @@ class TenantInvitationController extends BaseApiController
             'expires_at' => $expiresAt,
         ]);
 
-        // TODO: Dispatch event to notification service to send email
-
         return $this->created($invitation);
     }
 

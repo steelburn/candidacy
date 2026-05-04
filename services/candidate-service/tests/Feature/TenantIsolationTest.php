@@ -37,10 +37,6 @@ class TenantIsolationTest extends TestCase
         parent::tearDown();
     }
 
-    // -------------------------------------------------------------------------
-    // SCOPING TESTS
-    // -------------------------------------------------------------------------
-
     public function test_candidates_are_scoped_to_current_tenant(): void
     {
         // Create candidates in two different tenants (bypass scope using forceFill)
@@ -86,10 +82,6 @@ class TenantIsolationTest extends TestCase
         $this->assertGreaterThanOrEqual(2, $all->count());
     }
 
-    // -------------------------------------------------------------------------
-    // AUTO-STAMP TESTS
-    // -------------------------------------------------------------------------
-
     public function test_tenant_id_is_auto_stamped_on_create(): void
     {
         $this->setTenant(42);
@@ -109,10 +101,6 @@ class TenantIsolationTest extends TestCase
         $candidate = Candidate::factory()->create();
         $this->assertEquals(1, $candidate->tenant_id);
     }
-
-    // -------------------------------------------------------------------------
-    // BELONGS-TO HELPERS
-    // -------------------------------------------------------------------------
 
     public function test_belongsToTenant_returns_true_for_correct_tenant(): void
     {
@@ -137,10 +125,6 @@ class TenantIsolationTest extends TestCase
         );
         $this->assertFalse($candidateInTenant2->belongsToCurrentTenant());
     }
-
-    // -------------------------------------------------------------------------
-    // API LAYER TESTS (HTTP-level scoping via X-Tenant-ID header)
-    // -------------------------------------------------------------------------
 
     public function test_api_list_returns_only_own_tenant_candidates(): void
     {

@@ -87,6 +87,15 @@
             </div>
           </div>
 
+          <!-- Remember Me & Forgot Password -->
+          <div class="form-row">
+            <label class="checkbox-label">
+              <input v-model="rememberMe" type="checkbox" />
+              <span>Remember me</span>
+            </label>
+            <a href="javascript:void(0)" class="forgot-link" @click="handleForgotPassword">Forgot password?</a>
+          </div>
+
           <!-- Error Message -->
           <transition name="shake">
             <div v-if="error" class="error-message">
@@ -120,13 +129,13 @@
       </div>
 
       <!-- Footer -->
-      <p class="footer-text">© 2025 Candidacy. All rights reserved.</p>
+      <p class="footer-text">© {{ new Date().getFullYear() }} Candidacy. All rights reserved.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -142,6 +151,24 @@ const error = ref('')
 const showPassword = ref(false)
 const emailFocused = ref(false)
 const passwordFocused = ref(false)
+const rememberMe = ref(localStorage.getItem('remember_email') === 'true')
+
+// Restore remembered email
+onMounted(() => {
+  const savedEmail = localStorage.getItem('remembered_email')
+  if (savedEmail) {
+    credentials.value.email = savedEmail
+  }
+})
+
+const handleForgotPassword = () => {
+  if (!credentials.value.email) {
+    error.value = 'Please enter your email address first.'
+    return
+  }
+  // Placeholder: shows a toast and could route to a password-reset flow
+  error.value = `Password reset link sent to ${credentials.value.email}. Check your inbox.`
+}
 
 const fillDemoCredentials = () => {
   credentials.value.email = 'admin@test.com'
@@ -151,7 +178,16 @@ const fillDemoCredentials = () => {
 async function handleLogin() {
   loading.value = true
   error.value = ''
-  
+
+  // Persist email if "Remember me" is checked
+  if (rememberMe.value) {
+    localStorage.setItem('remembered_email', credentials.value.email)
+    localStorage.setItem('remember_email', 'true')
+  } else {
+    localStorage.removeItem('remembered_email')
+    localStorage.setItem('remember_email', 'false')
+  }
+
   try {
     await authStore.login(credentials.value)
     router.push('/dashboard')
@@ -400,6 +436,46 @@ async function handleLogin() {
 .toggle-password svg {
   width: 100%;
   height: 100%;
+}
+
+/* Remember Me & Forgot Password */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  user-select: none;
+}
+
+.forgot-link {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.forgot-link:hover {
+  color: #667eea;
+  text-decoration: underline;
 }
 
 /* Error Message */

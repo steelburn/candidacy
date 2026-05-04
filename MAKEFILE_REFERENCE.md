@@ -146,11 +146,11 @@ Run migrations for all tenants.
 make migrate-tenants
 ```
 
-### db-reset
+### dbml-reset
 Reset all databases (WARNING: data loss).
 
 ```bash
-make db-reset
+make dbml-reset
 ```
 
 ### clear-matches

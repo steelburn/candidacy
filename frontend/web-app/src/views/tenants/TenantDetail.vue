@@ -340,7 +340,7 @@ async function loadMembers() {
 async function loadInvitations() {
   invitationsLoading.value = true
   try {
-    const response = await api.get(`/api/tenants/${route.params.id}/invitations`)
+    const response = await api.get(`/tenants/${route.params.id}/invitations`)
     invitations.value = response.data?.data ?? response.data ?? []
   } catch (error) {
     console.error('Failed to load invitations:', error)
@@ -405,7 +405,7 @@ async function removeMember(member) {
   if (!confirm(`Remove ${member.user?.name || member.email} from this workspace?`)) return
   
   try {
-    await api.delete(`/api/tenants/${route.params.id}/members/${member.id}`)
+    await api.delete(`/tenants/${route.params.id}/members/${member.id}`)
     await loadMembers()
   } catch (error) {
     console.error('Failed to remove member:', error)
@@ -417,7 +417,7 @@ async function cancelInvitation(invitation) {
   if (!confirm('Cancel this invitation?')) return
   
   try {
-    await api.delete(`/api/tenants/${route.params.id}/invitations/${invitation.id}`)
+    await api.delete(`/tenants/${route.params.id}/invitations/${invitation.id}`)
     await loadInvitations()
   } catch (error) {
     console.error('Failed to cancel invitation:', error)
@@ -441,7 +441,7 @@ function editMember(member) {
 
 async function updateMemberRole(member, newRole) {
   try {
-    await api.put(`/api/tenants/${route.params.id}/members/${member.id}`, { role: newRole })
+    await api.put(`/tenants/${route.params.id}/members/${member.id}`, { role: newRole })
     await loadMembers()
   } catch (error) {
     console.error('Failed to update member role:', error)

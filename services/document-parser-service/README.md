@@ -4,7 +4,7 @@ Dedicated microservice for high-performance, asynchronous text extraction from P
 
 ## Overview
 
-- **Port**: 8092
+- **Port**: 8095
 - **Database**: `candidacy_document_parser`
 - **Framework**: Laravel 10
 - **Responsibilities**: PDF/DOCX Parsing, Text Cleaning
@@ -46,7 +46,7 @@ GET    /api/health               # Service health check
 
 **Request:**
 ```bash
-curl -X POST http://localhost:8080/api/document-parser/parse \
+curl -X POST http://localhost:8095/api/document-parser/parse \
   -F "file=@resume.pdf"
 ```
 
@@ -96,5 +96,5 @@ docker-compose up -d document-parser-service
 ## Health Check
 
 ```bash
-curl http://localhost:8092/api/health
+curl http://localhost:8095/api/health
 ```

@@ -32,7 +32,7 @@ GET    /api/health                  # Service health check
 The dashboard endpoint aggregates all metrics:
 
 ```bash
-curl http://localhost:8080/api/reports/dashboard
+curl http://localhost:8089/api/reports/dashboard
 ```
 
 **Response:**

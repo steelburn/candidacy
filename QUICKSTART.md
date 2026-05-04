@@ -14,7 +14,7 @@
 
 ```bash
 # Navigate to project directory
-cd /home/steelburn/Development/candidacy
+cd candidacy
 
 # Complete platform setup (recommended)
 make setup
@@ -24,7 +24,7 @@ The setup command will:
 - Configure environment files
 - Build base Docker image
 - Start MySQL and Redis
-- Initialize 9 databases from DBML
+- Initialize databases from DBML
 - Start all 12 microservices
 - Seed configuration settings (27 settings)
 
@@ -43,7 +43,6 @@ cp .env.example .env
 # Edit .env with your configuration
 # Especially configure:
 # - AI_PROVIDER (ollama or openrouter)
-# - OLLAMA_URL if using local Ollama
 # - OPENROUTER_API_KEY if using OpenRouter
 ```
 
@@ -94,9 +93,9 @@ make seed
 
 ### 7. Access the Application
 
-- **Main Frontend (HR/Recruiter)**: http://localhost:3001
+- **Main Frontend (HR/Recruiter)**: http://localhost:3501
 - **Applicant Portal**: http://localhost:5173
-- **API Gateway**: http://localhost:8080
+- **API Gateway**: http://localhost:9080
 - **Grafana (Monitoring)**: http://localhost:3050 (admin/admin)
 - **Individual Services**:
   - Auth: http://localhost:8081
@@ -161,7 +160,7 @@ Services communicate via:
 
 Check the status of all services at once:
 ```bash
-curl http://localhost:8080/api/system-health
+curl http://localhost:9080/api/system-health
 ```
 
 ## Testing
@@ -184,14 +183,14 @@ make dbml-check
 
 ### Authentication Issues
 If you encounter 401 Unauthorized errors:
-1. Verify JWT_SECRET is set in `.env`
-2. Check token hasn't expired (default: 60 minutes)
-3. Ensure token is included in requests: `Authorization: Bearer <token>`
+- Verify JWT_SECRET is set in `.env`
+- Check token hasn't expired (default: 60 minutes)
+- Ensure token is included in requests: `Authorization: Bearer <your-token-here>`
 4. Check service logs: `make logs-auth`
 
 ### Service Health
 If a service is behaving unexpectedly, check its health endpoint:
-`http://localhost:8080/api/system-health`
+`http://localhost:9080/api/system-health`
 
 ### AI Processing
 Ensure Ollama is running and the models are pulled. You can check Ollama status in the Admin panel.
@@ -228,7 +227,7 @@ curl -X POST http://localhost:8081/api/auth/login \
 
 # Use token in subsequent requests
 curl http://localhost:8082/api/candidates \
-  -H "Authorization: Bearer <your-jwt-token>"
+  -H "Authorization: Bearer `***`<your-jwt-token>"
 ```
 
 ### Token Refresh
@@ -237,12 +236,12 @@ Tokens can be refreshed using the refresh endpoint:
 
 ```bash
 curl -X POST http://localhost:8081/api/auth/refresh \
-  -H "Authorization: Bearer <your-jwt-token>"
+  -H "Authorization: Bearer `***`<your-jwt-token>"
 ```
 
 ## Admin Panel Configuration
 
-After logging in, access the Admin panel at http://localhost:3001/admin to configure:
+After logging in, access the Admin panel at http://localhost:3501/admin to configure:
 
 ### Configuration Tab
 The configuration management interface features search, filtering by category, and change history for all settings.

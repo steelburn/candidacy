@@ -88,7 +88,7 @@ npm install
 npm run dev
 ```
 
-Access at http://localhost:3001
+Access at http://localhost:3501
 
 ## Build
 
@@ -99,7 +99,7 @@ npm run build
 ## Environment Variables
 
 ```env
-VITE_API_GATEWAY_URL=http://localhost:8080
+VITE_API_GATEWAY_URL=http://localhos9080
 ```
 
 ## Routes

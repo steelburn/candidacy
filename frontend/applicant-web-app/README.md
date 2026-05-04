@@ -45,7 +45,7 @@ npm run build
 ## Environment Variables
 
 ```env
-VITE_API_GATEWAY_URL=http://localhost:8080
+VITE_API_GATEWAY_URL=http://localhos9080
 ```
 
 ## Token Format

@@ -20,27 +20,13 @@ The API Gateway serves as the single entry point for all client requests in the 
 
 The gateway routes requests based on URL prefixes to the following services:
 
-| Route Prefix | Service | Internal URL |
-|-------------|---------|--------------|
-| `/api/auth/*` | auth-service | `http://auth-service:8080` |
-| `/api/candidates/*` | candidate-service | `http://candidate-service:8080` |
-| `/api/vacancies/*` | vacancy-service | `http://vacancy-service:8080` |
-| `/api/matches/*` | matching-service | `http://matching-service:8080` |
-| `/api/interviews/*` | interview-service | `http://interview-service:8080` |
-| `/api/offers/*` | offer-service | `http://offer-service:8080` |
-| `/api/admin/*` | admin-service | `http://admin-service:8080` |
-| `/api/settings/*` | admin-service | `http://admin-service:8080` |
-| `/api/system-health/*` | admin-service | `http://admin-service:8080` |
-| `/api/portal/*` | candidate-service | `http://candidate-service:8080` |
-| `/api/notifications/*` | notification-service | `http://notification-service:8080` |
-| `/api/reports/*` | reporting-service | `http://reporting-service:8080` |
-| `/api/users/*` | auth-service | `http://auth-service:8080` |
-| `/api/roles/*` | auth-service | `http://auth-service:8080` |
-| `/api/document-parser/*` | document-parser-service | `http://document-parser-service:8080` |
+|| Route Prefix | Service | Internal URL |
+||-------------|---------|------------|
+|| `/api/*` | service | `http://{service}:8080` |
 
 ## How It Works
 
-1. **Client Request**: Client sends request to `http://localhost:8080/api/{service}/{endpoint}`
+1. **Client Request**: Client sends request to `http://localhost:9080/api/{service}/{endpoint}`
 2. **Route Matching**: Gateway extracts service prefix from URL
 3. **Service Lookup**: Maps prefix to internal service URL
 4. **Request Forwarding**: Proxies request to target service with all headers
@@ -54,7 +40,7 @@ The gateway routes requests based on URL prefixes to the following services:
 APP_NAME=api-gateway
 APP_ENV=local
 APP_DEBUG=true
-APP_URL=http://localhost:8080
+APP_URL=http://localhost:9080
 ```
 
 ### Service URLs
@@ -67,7 +53,7 @@ Services are accessed via Docker network using service names:
 
 ```
 Client Request:
-POST http://localhost:8080/api/auth/login
+POST http://localhost:9080/api/auth/login
 Headers: Content-Type: application/json
 Body: {"email": "user@example.com", "password": "password"}
 
@@ -124,7 +110,7 @@ php artisan serve --port=8080
 
 ```bash
 # Test gateway routing
-curl http://localhost:8080/api/auth/login
+curl http://localhost:9080/api/auth/login
 
 # Check gateway logs
 docker-compose logs -f api-gateway

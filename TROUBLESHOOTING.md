@@ -1,458 +1,154 @@
-# Candidacy Troubleshooting Guide
+# Candidacy Platform — Browser Console Troubleshooting
 
-Common issues and solutions for the AI-powered Candidacy recruitment platform.
-
----
-
-## Table of Contents
-
-- [Service Issues](#service-issues)
-- [Database Issues](#database-issues)
-- [AI/ML Issues](#aiml-issues)
-- [Authentication Issues](#authentication-issues)
-- [Frontend Issues](#frontend-issues)
-- [Network Issues](#network-issues)
-- [Performance Issues](#performance-issues)
+**Date:** 2026-05-03
+**Environment:** Production (`https://candidacy.comulo.app`)
+**User:** admin@test.com / password
 
 ---
 
-## Service Issues
+## Pages Visited & Console Status
 
-### Service Won't Start
-
-**Symptoms**: Container exits immediately after starting
-
-**Diagnosis**:
-```bash
-# Check container status
-docker-compose ps
-
-# View logs
-docker-compose logs service-name
-```
-
-**Solutions**:
-
-1. **Port conflict**:
-   ```bash
-   # Find conflicting process
-   lsof -i :8080
-   # Kill or change port
-   ```
-
-2. **Missing environment variables**:
-   ```bash
-   # Copy .env.example to .env
-   cp .env.example .env
-   # Edit with correct values
-   ```
-
-3. **Database connection failed**:
-   ```bash
-   # Check MySQL is running
-   docker-compose ps mysql
-   # Restart MySQL
-   docker-compose restart mysql
-   ```
-
-### Service Returns 502 Bad Gateway
-
-**Diagnosis**:
-```bash
-# Check if target service is running
-docker-compose ps
-
-# Test service health
-curl http://localhost:8082/api/health
-```
-
-**Solutions**:
-1. Restart the failing service: `docker-compose restart candidate-service`
-2. Check service logs for errors
-3. Verify Docker network connectivity
-
-### All Services Down
-
-**Recovery Steps**:
-```bash
-# Stop all services
-make down
-
-# Clean up
-make clean
-
-# Restart everything
-make up
-
-# Check status
-make status
-```
+| # | Page | URL | Result |
+|---|------|-----|--------|
+| 1 | Login | `/login` | PASS — no errors |
+| 2 | Dashboard | `/dashboard` | PASS — no errors |
+| 3 | Candidates List | `/candidates` | PASS — no errors |
+| 4 | Vacancies List | `/vacancies` | PASS — no errors |
+| 5 | Matches | `/matches` | **FAIL** — 500 from matching-service |
+| 6 | Interviews | `/interviews` | PASS — no errors |
+| 7 | Offers | `/offers` | **FAIL** — 500 from offer-service |
+| 8 | Reports | `/reports` | PASS — no errors |
+| 9 | System Health | `/admin/system` | PASS — no errors |
+| 10 | Configuration | `/admin/configuration` | PASS — no errors |
+| 11 | AI Providers | `/admin/ai-providers` | **FAIL** — 500 from admin-service |
+| 12 | User Management | `/admin/users` | PASS — no errors |
+| 13 | CV Jobs | `/admin/cv-jobs` | PASS — no errors |
+| 14 | Workspaces | `/admin/workspaces` | PASS — no errors |
+| 15 | Workspace Detail | `/tenants/:id` | PASS — no errors (invitation fix verified) |
+| 16 | Create Candidate | `/candidates/create` | PASS — no errors |
+| 17 | Create Vacancy | `/vacancies/create` | PASS — no errors (benign Vite/Suspense only) |
 
 ---
 
-## Database Issues
+## Errors Identified
 
-### Database Connection Refused
+### ERROR-001 — Matches Page (500 Internal Server Error)
 
-**Error**: `SQLSTATE[HY000] [2002] Connection refused`
-
-**Solutions**:
-```bash
-# Check MySQL is running
-docker-compose ps mysql
-
-# Restart MySQL
-docker-compose restart mysql
-
-# Check MySQL logs
-docker-compose logs mysql
-
-# Verify connection from service
-docker-compose exec candidate-service php artisan db:connect
+**Page:** `/matches`
+**Error message:**
+```
+Failed to load resource: the server responded with a status of 500 ()
+Failed to fetch matches: AxiosError: Request failed with status code 500
+    at async fetchMatches (MatchList.vue:110:22)
 ```
 
-### Migration Failures
+**Affected endpoint:** `GET /matches` → proxied to `matching-service`
+**Severity:** HIGH — page is non-functional
+**Potential causes:**
+- Missing `tenant_id` header causing matching-service to fail tenant-scoped query
+- Database schema mismatch in matching-service
+- Missing required configuration (e.g., AI provider not set up)
+- 500 from matching-service's `/api/matches` endpoint
 
-**Error**: `SQLSTATE[42S01]: Table already exists`
-
-**Solutions**:
-```bash
-# Fresh database (development only!)
-make db-reset
-
-# Or run specific migration
-docker-compose exec candidate-service php artisan migrate:fresh
-```
-
-### Schema Out of Sync
-
-**Symptoms**: Unexpected database errors, missing columns
-
-**Diagnosis**:
-```bash
-# Check DBML sync status
-make dbml-check
-```
-
-**Solutions**:
-```bash
-# Regenerate SQL from DBML
-make dbml-sql
-
-# Reset databases with new schema (WARNING: data loss)
-make db-reset
-```
-
-### MySQL Container Won't Start
-
-**Diagnosis**:
-```bash
-# Check Docker volumes
-docker volume ls | grep mysql
-
-# Check disk space
-df -h
-```
-
-**Solutions**:
-```bash
-# Remove stuck volume
-docker volume rm candidacy_mysql
-
-# Start fresh
-docker-compose up -d mysql
-```
+**Troubleshooting steps:**
+- [ ] Check `matching-service` logs: `make logs-matching` or `docker compose logs matching-service`
+- [ ] Verify tenant-service is running and returning valid `X-Tenant-ID` context
+- [ ] Check if `candidate_id` / `vacancy_id` tables exist and have data
+- [ ] Try with a tenant that has candidates and vacancies to see if it is a data issue
 
 ---
 
-## AI/ML Issues
+### ERROR-002 — Offers Page (500 Internal Server Error)
 
-### AI Service Returns Timeout
-
-**Error**: `Connection timeout after 300000 ms`
-
-**Solutions**:
-
-1. **Check Ollama is running**:
-   ```bash
-   curl http://192.168.88.120:11535/api/tags
-   ```
-
-2. **Pull required models**:
-   ```bash
-   docker-compose exec ollama ollama pull gemma2:2b
-   docker-compose exec ollama ollama pull llama3.2
-   ```
-
-3. **Switch to OpenRouter** (cloud):
-   ```env
-   AI_PROVIDER=openrouter
-   OPENROUTER_API_KEY=sk-your-key
-   ```
-
-4. **Increase timeout** in Admin panel:
-   - Go to Settings → AI → Generation Timeout
-   - Increase from 300s to 600s
-
-### CV Parsing Not Working
-
-**Symptoms**: CV uploaded but no parsed data
-
-**Diagnosis**:
-```bash
-# Check document parser service
-curl http://localhost:8095/api/health
-
-# Check AI service
-curl http://localhost:8084/api/health
-
-# View parsing logs
-make logs-document-parser
+**Page:** `/offers`
+**Error message:**
+```
+Failed to load resource: the server responded with a status of 500 ()
+Failed to fetch offers: AxiosError: Request failed with status code 500
+    at async fetchOffers (OfferList.vue:20:22)
 ```
 
-**Solutions**:
-1. Verify CV format (PDF/DOCX only)
-2. Check file size limit (max 10MB)
-3. Ensure AI service has valid configuration
+**Affected endpoint:** `GET /offers` → proxied to `offer-service`
+**Severity:** HIGH — page is non-functional
+**Potential causes:**
+- Missing `tenant_id` scope in offer-service query
+- Database schema mismatch in offer-service
+- Missing foreign key references (candidate_id, vacancy_id)
+- Configuration issue in offer-service
 
-### Matching Scores All Zero
-
-**Diagnosis**:
-```bash
-# Check matching service
-docker-compose logs matching-service | grep -i error
-
-# Check AI service
-docker-compose logs ai-service | grep -i error
-```
-
-**Solutions**:
-1. Verify candidates and vacancies exist
-2. Check AI provider configuration
-3. Ensure minimum threshold not too high (default: 40)
+**Troubleshooting steps:**
+- [ ] Check `offer-service` logs: `make logs-offer` or `docker compose logs offer-service`
+- [ ] Check if `offers` table exists and schema is correct
+- [ ] Verify `candidate_id` and `vacancy_id` foreign key references are valid
+- [ ] Check if the service requires seeding data
 
 ---
 
-## Authentication Issues
+### ERROR-003 — AI Providers Page (500 Internal Server Error)
 
-### Login Returns 401 Unauthorized
-
-**Solutions**:
-```bash
-# Clear cache
-docker-compose exec gateway php artisan cache:clear
-
-# Check user exists
-docker-compose exec auth-service php artisan tinker
-# Then: App\Models\User::first()
+**Page:** `/admin/ai-providers`
+**Error message:**
+```
+Failed to load resource: the server responded with a status of 500 ()
+Using default provider configuration AxiosError: Request failed with status code 500
+    at async loadProviders (AdminAIProviders.vue:77:22)
 ```
 
-### JWT Token Expired Immediately
+**Affected endpoint:** `GET /providers` → proxied to `ai-service`
+**Severity:** HIGH — AI provider management is non-functional
+**Potential causes:**
+- Database schema mismatch in ai-service (missing `ai_providers` table)
+- Missing AI provider seed data
+- Configuration issue in ai-service
 
-**Solutions**:
-```bash
-# Generate new JWT secret
-php artisan jwt:secret --force
-
-# Clear cache
-docker-compose exec auth-service php artisan cache:clear
-```
-
-### CORS Errors
-
-**Error**: `Access-Control-Allow-Origin` not set
-
-**Solutions**:
-1. Update `SANCTUM_STATEFUL_DOMAINS` in .env
-2. Rebuild gateway service
-3. Clear browser cache
+**Troubleshooting steps:**
+- [ ] Check `ai-service` logs: `make logs-ai` or `docker compose logs ai-service`
+- [ ] Verify `ai_providers` table exists in ai-service database
+- [ ] Run `make dbml-check` to verify schema sync across services
+- [ ] Seed AI provider data: `make shell S=ai-service` then `php artisan db:seed`
 
 ---
 
-## Frontend Issues
+## Previously Fixed
 
-### Frontend Won't Load
+### FIXED-001 — Invitation 404 (Double `/api/api/` prefix)
 
-**Diagnosis**:
-```bash
-# Check frontend container
-docker-compose ps web-app
-
-# Check for build errors
-docker-compose logs web-app
-```
-
-**Solutions**:
-```bash
-# Rebuild frontend
-docker-compose up -d --build web-app
-
-# Clear node_modules
-rm -rf frontend/web-app/node_modules
-docker-compose up -d --build web-app
-```
-
-### API Calls Return 404
-
-**Diagnosis**:
-```bash
-# Check API Gateway logs
-make logs-gateway
-
-# Verify route configuration
-curl http://localhost:8080/api/health
-```
-
-**Solutions**:
-1. Verify service is running
-2. Check API Gateway routes are configured
-3. Ensure correct endpoint URL
-
-### WebSocket Connection Failed
-
-**Solutions**:
-```bash
-# Check if Pusher/WebSocket service is configured
-# Update .env with correct WebSocket credentials
-```
+**Symptom:** `GET /api/api/tenants/test-uuid-123/invitations` → 404
+**Root cause:** `TenantDetail.vue` was prefixing API calls with `/api/`, but `VITE_API_GATEWAY_URL` already included `/api`. Axios concatenated -> double `/api/api/`.
+**Fix:** Removed `/api` prefix from 4 API calls in `frontend/web-app/src/views/tenants/TenantDetail.vue`:
+- Line 343: `api.get('/api/tenants/...')` -> `api.get('/tenants/...')`
+- Line 408: `api.delete('/api/tenants/...')` -> `api.delete('/tenants/...')`
+- Line 420: `api.delete('/api/tenants/...')` -> `api.delete('/tenants/...')`
+- Line 444: `api.put('/api/tenants/...')` -> `api.put('/tenants/...')`
+**Status:** FIXED — verified on `/tenants/test-uuid-123` — no console errors
 
 ---
 
-## Network Issues
+## Notes
 
-### Cannot Connect to Services
-
-**Diagnosis**:
-```bash
-# Check Docker network
-docker network ls | grep candidacy
-
-# Inspect network
-docker network inspect candidacy_candidacy-network
-```
-
-**Solutions**:
-```bash
-# Recreate network
-docker-compose down
-docker-compose up -d
-```
-
-### Port Already in Use
-
-**Error**: `Bind for 0.0.0.0:8080 failed: port is already allocated`
-
-**Solutions**:
-```bash
-# Find process using port
-lsof -i :8080
-
-# Kill process or edit docker-compose.yml to use different port
-```
-
-### DNS Resolution Failed
-
-**Error**: `Could not resolve host: service-name`
-
-**Solutions**:
-```bash
-# Restart Docker
-sudo systemctl restart docker
-
-# Recreate containers
-docker-compose down
-docker-compose up -d
-```
+- All other pages (Dashboard, Candidates, Vacancies, Interviews, Reports, System Health, Configuration, User Management, CV Jobs, Workspaces, Workspace Detail, Create forms) load with **zero console errors**.
+- Benign messages from Vite dev server (`[vite] connecting...`, `[vite] connected.`, `<Suspense> is experimental`) are **not errors** — these appear because the frontend is running in dev mode with Vite HMR. They do not appear in production builds.
+- The three 500 errors all share a similar pattern — each targets a different backend microservice. This suggests either a shared database initialization issue (tables not created/migrated) or a missing seed step across the matching, offer, and ai services.
 
 ---
 
-## Performance Issues
+## Fixes Applied (2026-05-03)
 
-### Slow Response Times
+### FIXED-001 — Matches 500 (matching-service)
+**Root cause:** `Shared\\` autoload path in `vendor/composer/autoload_psr4.php` was `/../var/www/shared` (wrong). Should be `/../shared`.
+**Fix:** Changed `composer.json` autoload from `"Shared\\": "/var/www/shared/"` to `"Shared\\": "../shared/"` in `services/matching-service/composer.json`, then ran `composer dump-autoload` inside container.
+**Note:** Volume mount `./services/matching-service:/var/www/html` overwrites built vendor files; must regenerate autoloader in running container, not just rebuild image.
+**Status:** FIXED — `GET /api/matches` returns 200 with pagination JSON.
 
-**Diagnosis**:
-```bash
-# Check resource usage
-docker stats
+### FIXED-002 — Offers 500 (offer-service)
+**Root cause:** Same as FIXED-001 — same broken `Shared\\` autoload path.
+**Fix:** Same — `services/offer-service/composer.json` autoload fixed, `composer dump-autoload` in container.
+**Status:** FIXED — `GET /api/offers` returns 200 with pagination JSON.
 
-# Check database queries
-docker-compose exec candidate-service php artisan --env=local
-```
+### FIXED-003 — AI Providers 500 (ai-service)
+**Root cause:** Same as FIXED-001/002 — `Shared\\Services\\ConfigurationService` not found due to wrong autoload path.
+**Fix:** Same — `services/ai-service/composer.json` autoload fixed, `composer dump-autoload` in container.
+**Status:** FIXED — `GET /api/providers` returns 200 with provider array.
 
-**Solutions**:
-1. Increase container resources
-2. Optimize database queries
-3. Enable Redis caching
-4. Check for N+1 query problems
-
-### High Memory Usage
-
-**Solutions**:
-```bash
-# Restart services
-docker-compose restart
-
-# Clear Redis cache
-docker-compose exec redis redis-cli FLUSHALL
-```
-
-### Database Connections Exhausted
-
-**Error**: `Too many connections`
-
-**Solutions**:
-```bash
-# Check connection count
-docker-compose exec mysql mysql -u root -p -e "SHOW PROCESSLIST;"
-
-# Increase max_connections in MySQL config
-# Or restart services to clear idle connections
-```
-
----
-
-## Getting More Help
-
-### Enable Debug Mode
-
-```env
-APP_DEBUG=true
-```
-
-### View All Logs
-
-```bash
-# All services
-make logs
-
-# Specific service
-make logs-candidate
-
-# Follow in real-time
-docker-compose logs -f
-```
-
-### Check System Health
-
-```bash
-curl http://localhost:8080/api/system-health
-```
-
-### Run Diagnostics
-
-```bash
-# Test all backend services
-make test-backend
-
-# Test API endpoints
-make test-api
-```
-
----
-
-## Related Documentation
-
-- [TESTING.md](TESTING.md) - Testing procedures
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment
-- [CONFIGURATION.md](CONFIGURATION.md) - Configuration reference
-- [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md) - Network setup
+### Root Cause Summary
+All 3 services had `"Shared\\": "/var/www/shared/"` in `composer.json` which Composer resolved to a relative path `../var/www/shared` at build time (incorrect). Working services (candidate, vacancy) had the path resolved correctly as `../shared`. The volume mount `./services/X-service:/var/www/html` overwrites built files, so rebuilding alone was insufficient — autoloader had to be regenerated inside running containers using the corrected `composer.json`.

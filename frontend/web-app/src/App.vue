@@ -31,6 +31,9 @@
       </template>
     </Suspense>
 
+    <!-- Toast Notifications -->
+    <ToastContainer />
+
     <!-- Change Password Modal -->
     <div v-if="showChangePassword" class="modal-overlay" @click.self="showChangePassword = false">
       <div class="modal-content">
@@ -68,6 +71,7 @@ import { useAuthStore } from './stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { authAPI, adminAPI } from './services/api'
 import DashboardLayout from './components/layout/DashboardLayout.vue'
+import ToastContainer from './components/ToastContainer.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

@@ -534,7 +534,7 @@ The Admin panel uses intelligent input controls based on setting type:
 ## 🌐 Multi-Application Support
 
 ### Main Frontend (HR/Recruiter)
-- **URL**: http://localhost:3001
+- **URL**: http://localhost:3501
 - **Users**: HR, Recruiters, Admins, Interviewers
 - **Features**: Full recruitment management
 - **Technology**: Vue 3 + Vite

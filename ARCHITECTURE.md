@@ -11,7 +11,7 @@ Candidacy is built using a **microservices architecture** with 12 independent se
 ```mermaid
 graph TB
     subgraph "Frontend Layer"
-        WEB[Main Frontend<br/>Vue 3 - Port 3001]
+        WEB[Main Frontend<br/>Vue 3 - Port 3501]
         APP[Applicant Portal<br/>Vue 3 - Port 5173]
     end
     
@@ -164,9 +164,8 @@ database/dbml/
 ├── interview.dbml      # Interview service tables
 ├── offer.dbml          # Offer service tables
 ├── onboarding.dbml     # Onboarding service tables
-├── notification.dbml   # Notification service (stateless)
-├── ai.dbml             # AI service (stateless)
-├── document_parser.dbml # Document parser tables
+├── notification.dbml   # Notification service tables
+├── ai.dbml             # AI service tables
 └── relationships.dbml  # Cross-service logical relationships
 ```
 
@@ -264,8 +263,8 @@ Notification Service subscribes and sends confirmation email
 - Interviewer performance metrics
 
 ### Admin Service
-- **Centralized configuration management** (40+ settings)
-- 8 configuration categories: System, AI, Document Parser, Matching, Recruitment, Storage, Features, UI
+- **Centralized configuration management** (50+ settings)
+| - 10 configuration categories: System, AI, Document Parser, Matching, Recruitment, Storage, Features, UI, Email, Services |
 - Settings API with category filtering and change history
 - System health monitoring (all 12 services)
 - AI provider configuration (Ollama/OpenRouter)
@@ -496,7 +495,7 @@ Services → Docker Logs → Promtail → Loki → Grafana
 | Database | MySQL 8.0 (Managed via DBML) |
 | Cache/Events | Redis 7 |
 | AI | Ollama, OpenRouter |
-| Configuration | Admin Service (40+ settings) |
+| Configuration | Admin Service (50+ settings) |
 | Monitoring | Loki, Promtail, Grafana |
 | Architecture | Microservices, Event-Driven |
 

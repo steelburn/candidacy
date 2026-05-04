@@ -5,25 +5,32 @@
       
       <!-- Search Bar -->
       <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
         <input 
           v-model="configSearch" 
           type="text" 
           placeholder="Search all settings..." 
           class="search-input"
         />
-        <button v-if="configSearch" @click="configSearch = ''" class="clear-search">✕</button>
+        <button v-if="configSearch" @click="configSearch = ''" class="clear-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
 
       <div class="config-actions">
         <button @click="exportConfiguration" class="btn-secondary" title="Export Configuration">
-          📥 Export
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
         </button>
         <button @click="showImportModal = true" class="btn-secondary" title="Import Configuration">
-          📤 Import
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
         </button>
         <button @click="loadConfiguration" class="btn-secondary" title="Refresh">
-          🔄 Refresh
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          Refresh
         </button>
       </div>
     </div>
@@ -47,7 +54,11 @@
               role="tab"
               :aria-selected="activeCategory === category.name && !configSearch"
             >
-              <span class="category-icon" aria-hidden="true">{{ category.icon }}</span>
+              <span class="category-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18">
+                  <g v-html="category.svgPath"></g>
+                </svg>
+              </span>
               <span class="category-label">{{ category.label }}</span>
               <span class="category-count">{{ category.count }}</span>
             </button>
@@ -193,14 +204,14 @@ const importData = ref('')
 const themeStore = useThemeStore()
 
 const categoryConfig = {
-  system: { label: 'System', icon: '⚙️' },
-  ai: { label: 'AI Configuration', icon: '🤖' },
-  document_parser: { label: 'Document Parser', icon: '📄' },
-  recruitment: { label: 'Recruitment', icon: '👥' },
-  storage: { label: 'Storage', icon: '💾' },
-  features: { label: 'Features', icon: '✨' },
-  services: { label: 'Services', icon: '🔗' },
-  ui: { label: 'UI Customization', icon: '🎨' }
+  system: { label: 'System', icon: 'svg', svgPath: '<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.8 1.09 1.51 1.51H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
+  ai: { label: 'AI Configuration', icon: 'svg', svgPath: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>' },
+  document_parser: { label: 'Document Parser', icon: 'svg', svgPath: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+  recruitment: { label: 'Recruitment', icon: 'svg', svgPath: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+  storage: { label: 'Storage', icon: 'svg', svgPath: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
+  features: { label: 'Features', icon: 'svg', svgPath: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+  services: { label: 'Services', icon: 'svg', svgPath: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
+  ui: { label: 'UI Customization', icon: 'svg', svgPath: '<circle cx="13.5" cy="6.5" r="0.5"/><circle cx="17.5" cy="10.5" r="0.5"/><circle cx="8.5" cy="7.5" r="0.5"/><circle cx="6.5" cy="12.5" r="0.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>' }
 }
 
 const loadConfiguration = async () => {

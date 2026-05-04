@@ -96,7 +96,7 @@ REDIS_PASSWORD=strong-redis-password
 
 # AI Provider
 AI_PROVIDER=openrouter
-OPENROUTER_API_KEY=sk-your-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
 
 # Mail
 MAIL_MAILER=smtp
@@ -197,7 +197,7 @@ make status
 
 ```bash
 # Check all services
-curl http://localhost:8080/api/system-health
+curl http://localhost:9080/api/system-health
 ```
 
 ---

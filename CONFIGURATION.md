@@ -41,7 +41,7 @@ make setup
 ```bash
 # Generate secrets manually
 php -r "echo 'APP_KEY=base64:' . base64_encode(random_bytes(32)) . PHP_EOL;"
-php -r "echo 'JWT_SECRET=' . base64_encode(random_bytes(64)) . PHP_EOL;"
+php -r "echo 'JWT_SECRET=' . bin2hex(random_bytes(64)) . PHP_EOL;"
 
 # Update .env with generated values
 # Then start services
@@ -88,7 +88,7 @@ The Candidacy platform uses **JWT (JSON Web Tokens)** via the `tymon/jwt-auth` p
 make generate-secrets
 
 # Option 2: Using PHP
-php -r "echo 'JWT_SECRET=' . bin2hex(random_bytes(32)) . PHP_EOL;"
+php -r "echo 'JWT_SECRET=' . bin2hex(random_bytes(64)) . PHP_EOL;"
 
 # Option 3: Using Laravel artisan
 php artisan jwt:secret

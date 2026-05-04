@@ -42,7 +42,7 @@ POST   /api/portal/submit-answers/{token}   # Submit questionnaire answers
 Upload and parse CVs with AI:
 
 ```bash
-curl -X POST http://localhost:8080/api/candidates/parse-cv \
+curl -X POST http://localhost:8082/api/candidates/parse-cv \
   -F "cv_file=@resume.pdf"
 ```
 
@@ -58,7 +58,7 @@ The AI extracts:
 Generate secure tokens for candidates to access their portal:
 
 ```bash
-curl -X POST http://localhost:8080/api/candidates/1/generate-token \
+curl -X POST http://localhost:8082/api/candidates/1/generate-token \
   -H "Authorization: Bearer {token}" \
   -d '{"vacancy_id": 5}'
 ```

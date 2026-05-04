@@ -106,7 +106,7 @@ bash scripts/test-backend-services.sh
 **Service Health Checks**:
 | Service | Port | Endpoint |
 |---------|------|----------|
-| API Gateway | 8080 | `/api/health` |
+| API Gateway | 9080 | `/api/health` |
 | Auth Service | 8081 | `/api/health` |
 | Candidate Service | 8082 | `/api/health` |
 | Vacancy Service | 8083 | `/api/health` |
@@ -246,9 +246,9 @@ docker-compose exec candidate-service php artisan db:seed
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@example.com | password |
-| Recruiter | recruiter@example.com | password |
-| HR Manager | hr@example.com | password |
+| Admin | admin@example.com | password123 |
+| Recruiter | recruiter@example.com | password123 |
+| HR Manager | hr@example.com | password123 |
 
 ### Sample CVs
 
@@ -257,7 +257,7 @@ Location: `test_resume.pdf`
 Use for CV parsing tests:
 ```bash
 # Upload test CV
-curl -X POST http://localhost:8080/api/candidates \
+curl -X POST http://localhost:9080/api/candidates \
   -H "Authorization: Bearer $TOKEN" \
   -F "cv=@test_resume.pdf"
 ```
@@ -312,7 +312,7 @@ docker-compose logs --tail=100 test-runner
 
 | Issue | Solution |
 |-------|----------|
-| Auth tests failing | Check `SANCTUM_STATEFUL_DOMAINS` in .env |
+| Auth tests failing | Check `STATEFUL_DOMAINS` in .env |
 | Database connection errors | Run `make dbml-init` |
 | CV parsing timeout | Increase `AI_GENERATION_TIMEOUT` |
 | Service unreachable | Run `make up` to start all services |

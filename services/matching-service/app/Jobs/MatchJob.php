@@ -111,10 +111,6 @@ class MatchJob implements ShouldQueue
             }
 
             // 4. Process Matches
-            $matchController = new MatchController(); // Use controller for helper methods if needed, or just helpers here. 
-            // Better to copy helper logic or rely on private methods if accessible? No.
-            // Let's implement robust matching here.
-
             $results = [];
 
             foreach ($vacancies as $vacancy) {
@@ -225,10 +221,6 @@ class MatchJob implements ShouldQueue
                                 'score' => $finalMatchData['match_score']
                             ];
                         }
-                    }
-                    else {
-                    // If strict, we might want to delete existing match if score dropped below 40?
-                    // For now, just don't create/update.
                     }
 
                 }

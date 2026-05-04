@@ -77,7 +77,7 @@ Before you begin, ensure you have:
    - **Domain**: Select `comulo.app` (or your domain)
    - **Path**: Leave empty
    - **Type**: `HTTP`
-   - **URL**: `frontend:3000`
+   - **URL**: `frontend:3501`
    - Click **Save hostname**
 
 3. **Add Additional Routes** (Optional)
@@ -85,9 +85,9 @@ Before you begin, ensure you have:
    
    | Service | Subdomain | Path | URL |
    |---------|-----------|------|-----|
-   | API Gateway | ne1-candidacy | /api | api-gateway:8080 |
-   | Applicant Portal | ne1-candidacy | /applicant | applicant-frontend:3000 |
-   | Grafana | ne1-candidacy | /grafana | grafana:3000 |
+   | API Gateway | ne1-candidacy | /api | api-gateway:9080 |
+   | Applicant Portal | ne1-candidacy | /applicant | applicant-frontend:3501 |
+   | Grafana | ne1-candidacy | /grafana | grafana:3050 |
 
 ### 3. Configure Environment Variables
 
@@ -154,12 +154,12 @@ credentials-file: /etc/cloudflared/credentials.json
 ingress:
   # Main Frontend
   - hostname: ne1-candidacy.comulo.app
-    service: http://frontend:3000
+    service: http://frontend:3501
   
   # API Gateway
   - hostname: ne1-candidacy.comulo.app
     path: /api/*
-    service: http://api-gateway:8080
+    service: http://api-gateway:9080
   
   # Catch-all
   - service: http_status:404
@@ -171,11 +171,11 @@ The API Gateway is automatically configured to accept requests from your public 
 
 ```php
 'allowed_origins' => array_filter([
-    'http://localhost:3001',
-    'http://localhost:3002',
+    'http://localhost:3501',
     'http://localhost:5173',
     env('PUBLIC_DOMAIN') ? 'https://' . env('PUBLIC_DOMAIN') : null,
 ]),
+```
 ```
 
 ## Starting the Tunnel

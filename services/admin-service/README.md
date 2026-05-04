@@ -30,7 +30,7 @@ GET    /api/health                  # Service health check
 
 ## Configuration Categories
 
-The Admin Service manages settings across 8 categories with 40+ configurable options:
+The Admin Service manages settings across 9 categories with 50+ configurable options:
 
 ### System (`system`)
 - `app.name`, `app.company_name`, `app.contact_email`
@@ -58,7 +58,7 @@ The Admin Service manages settings across 8 categories with 40+ configurable opt
 The system health endpoint checks all microservices:
 
 ```bash
-curl http://localhost:8080/api/system-health
+curl http://localhost:9080/api/system-health
 ```
 
 **Response:**

@@ -36,7 +36,7 @@ GET    /api/vacancies/metrics/stats   # Get vacancy statistics
 Generate job descriptions using AI:
 
 ```bash
-curl -X POST http://localhost:8080/api/vacancies/1/generate-description \
+curl -X POST http://localhost:8083/api/vacancies/1/generate-description \
   -H "Authorization: Bearer {token}"
 ```
 

@@ -64,7 +64,7 @@
           >
             <span class="tenant-option-avatar">{{ tenantInitials(tenant.name) }}</span>
             <span class="tenant-option-info">
-              <span class="tenant-option-name">{{ tenant.name }}</span>
+              <span class="tenant-option-name">{{ tenant.name || `Tenant #${tenant.id}` }}</span>
               <span v-if="tenant.slug" class="tenant-option-slug">{{ tenant.slug }}</span>
             </span>
             <span v-if="tenant.id === authStore.currentTenantId" class="tenant-option-check">
